@@ -1,0 +1,64 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Next.js
+.next
+out
+
+# Build
+dist
+build
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Turbo
+.turbo
+
+# IDE
+.vscode/settings.json
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+packages/db/prisma/migrations/**/migration_lock.toml
+
+# Test
+coverage
+.nyc_output
+playwright-report
+
+# Misc
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Document and Data Files
+*.doc
+*.docx
+*.pdf
+*.csv
+*.xlsx
+*.zip
+*.tar
+*.tar.gz
+
+# Documentation
+docs/
+
+# Ignore images/files uploaded to root by User/AI
+/*.png
+/*.jpg
+/*.jpeg
+/ChatGPT*
+/FreightFlowPro_ColorPalette*
+/Transport invoice*

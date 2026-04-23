@@ -1,0 +1,1069 @@
+// ============================================
+// FreightFlow Pro — Prisma Schema
+// Multi-Tenant SaaS Transport Management
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// PLATFORM-LEVEL TABLES (Super Admin)
+// ============================================
+
+model Tenant {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String   @db.VarChar(255)
+  slug             String   @unique @db.VarChar(100)
+  plan             String   @default("starter") @db.VarChar(50)
+  status           String   @default("active") @db.VarChar(20)
+  licenseKey       String?  @map("license_key") @db.Text
+  licenseExpiresAt DateTime? @map("license_expires_at") @db.Timestamptz()
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  companies     Company[]
+  users         User[]
+  modules       TenantModule[]
+  licenseKeys   LicenseKey[]
+  usageRecords  TenantUsage[]
+
+  @@map("tenants")
+}
+
+model TenantModule {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  moduleKey String   @map("module_key") @db.VarChar(50)
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  enabledBy String?  @map("enabled_by") @db.Uuid
+  enabledAt DateTime @default(now()) @map("enabled_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, moduleKey])
+  @@map("tenant_modules")
+}
+
+model LicenseKey {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  keyHash     String   @map("key_hash") @db.Text
+  plan        String   @db.VarChar(50)
+  maxUsers    Int      @map("max_users")
+  maxVehicles Int      @map("max_vehicles")
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz()
+  issuedAt    DateTime @default(now()) @map("issued_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("license_keys")
+}
+
+model PlatformAdmin {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.Text
+  role         String    @default("super_admin") @db.VarChar(50)
+  lastLogin    DateTime? @map("last_login") @db.Timestamptz()
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  auditLogs AuditLogPlatform[]
+
+  @@map("platform_admins")
+}
+
+model TenantUsage {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  metricName  String   @map("metric_name") @db.VarChar(100)
+  metricValue Int      @default(0) @map("metric_value")
+  recordedAt  DateTime @default(now()) @map("recorded_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_usage")
+}
+
+model AuditLogPlatform {
+  id             String   @id @default(uuid()) @db.Uuid
+  adminId        String?  @map("admin_id") @db.Uuid
+  action         String   @db.VarChar(100)
+  targetTenantId String?  @map("target_tenant_id") @db.Uuid
+  payload        Json?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  admin PlatformAdmin? @relation(fields: [adminId], references: [id])
+
+  @@map("audit_log_platform")
+}
+
+// ============================================
+// TENANT-LEVEL CORE TABLES
+// ============================================
+
+model Company {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  name            String   @db.VarChar(255)
+  gstin           String?  @db.VarChar(15)
+  pan             String?  @db.VarChar(10)
+  address         String?  @db.Text
+  city            String?  @db.VarChar(100)
+  state           String?  @db.VarChar(100)
+  stateCode       String?  @map("state_code") @db.VarChar(5)
+  pincode         String?  @db.VarChar(10)
+  phone           String?  @db.VarChar(20)
+  email           String?  @db.VarChar(255)
+  logoUrl         String?  @map("logo_url") @db.Text
+  fiscalYearStart Int      @default(4) @map("fiscal_year_start")
+  isActive        Boolean  @default(true) @map("is_active")
+  registrationCertificateUrl String? @map("registration_certificate_url") @db.Text
+  gstCertificateUrl          String? @map("gst_certificate_url") @db.Text
+  panCardUrl                 String? @map("pan_card_url") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branches  Branch[]
+  users     User[]
+  dealers   Dealer[]
+  consignors Consignor[]
+  consignees Consignee[]
+  vehicles  Vehicle[]
+  labours   Labour[]
+  employees Employee[]
+  products  Product[]
+  orders    Order[]
+  pallets   OrderPallet[]
+  trips     Trip[]
+  chartOfAccounts ChartOfAccount[]
+  journalEntries  JournalEntry[]
+  freightInvoices FreightInvoice[]
+  paymentsReceived PaymentReceived[]
+  vendorInvoices  VendorInvoice[]
+  paymentsMade    PaymentMade[]
+  bankAccounts    BankAccount[]
+  payrollRuns     PayrollRun[]
+  driverAdvances  DriverAdvance[]
+  gstReturns      GstReturn[]
+  tdsEntries      TdsEntry[]
+
+  
+  orderDetails OrderDetail[]
+  palletDetails PalletDetail[]
+  palletConsigneeDetails PalletConsigneeDetail[]
+  lrStatusLogs LrStatusLog[]
+  podRecords PodRecord[]
+  tripOrders TripOrder[]
+  tripExpenses TripExpense[]
+  tripSettlements TripSettlement[]
+  journalLines JournalLine[]
+  bankTransactions BankTransaction[]
+  salaryStructures SalaryStructure[]
+  payrollLines PayrollLine[]
+  vehicleDocuments VehicleDocument[]
+  maintenanceJobs MaintenanceJob[]
+  fuelEntries FuelEntry[]
+
+  @@index([tenantId])
+  @@map("companies")
+}
+
+model Branch {
+  id        String  @id @default(uuid()) @db.Uuid
+  companyId String  @map("company_id") @db.Uuid
+  name      String  @db.VarChar(255)
+  address   String? @db.Text
+  stateCode String? @map("state_code") @db.VarChar(5)
+  managerId String? @map("manager_id") @db.Uuid
+  isActive  Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users          User[]
+  journalEntries JournalEntry[]
+  employees      Employee[]
+
+  @@index([companyId])
+  @@map("branches")
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  companyId       String?  @map("company_id") @db.Uuid
+  authUid         String?  @unique @map("auth_uid") @db.VarChar(255)
+  passwordHash    String?  @map("password_hash") @db.Text
+  name            String   @db.VarChar(255)
+  email           String?  @unique @db.VarChar(255)
+  phone           String?  @unique @db.VarChar(20)
+  role            String   @default("staff") @db.VarChar(50)
+  branchId        String?  @map("branch_id") @db.Uuid
+  isActive        Boolean  @default(true) @map("is_active")
+  isEmailVerified Boolean  @default(false) @map("is_email_verified")
+  verificationToken String? @map("verification_token") @db.VarChar(255)
+  otpCode         String?  @map("otp_code") @db.VarChar(10)
+  otpExpires      DateTime? @map("otp_expires") @db.Timestamptz()
+  avatarUrl       String?  @map("avatar_url") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id])
+  branch  Branch?  @relation(fields: [branchId], references: [id])
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([authUid])
+  @@map("users")
+}
+
+// ============================================
+// MASTER DATA TABLES
+// ============================================
+
+model Dealer {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  name         String   @db.VarChar(255)
+  shortName    String?  @map("short_name") @db.VarChar(100)
+  personName   String?  @map("person_name") @db.VarChar(255)
+  address      String?  @db.Text
+  pincode      String?  @db.VarChar(10)
+  area         String?  @db.VarChar(100)
+  phone        String?  @db.VarChar(20)
+  email        String?  @db.VarChar(255)
+  pan          String?  @db.VarChar(10)
+  gstin        String?  @db.VarChar(15)
+  serviceTaxNo String?  @map("service_tax_no") @db.VarChar(50)
+  dealerType   String?  @map("dealer_type") @db.VarChar(50)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orders  Order[]
+  pallets OrderPallet[]
+
+  @@index([companyId, name])
+  @@index([companyId, gstin])
+  @@map("dealers")
+}
+
+model Consignor {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  companyName String?  @map("company_name") @db.VarChar(255)
+  address     String?  @db.Text
+  email       String?  @db.VarChar(255)
+  gstin       String?  @db.VarChar(15)
+  phone       String?  @db.VarChar(20)
+  imageUrl    String?  @map("image_url") @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, name])
+  @@map("consignors")
+}
+
+model Consignee {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  companyName String?  @map("company_name") @db.VarChar(255)
+  address     String?  @db.Text
+  email       String?  @db.VarChar(255)
+  phone       String?  @db.VarChar(20)
+  gstin       String?  @db.VarChar(15)
+  pan         String?  @db.VarChar(10)
+  imageUrl    String?  @map("image_url") @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orders  Order[]
+
+  @@index([companyId, name])
+  @@map("consignees")
+}
+
+model Vehicle {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  regNo      String   @map("reg_no") @db.VarChar(20)
+  make       String?  @db.VarChar(100)
+  model      String?  @db.VarChar(100)
+  type       String?  @db.VarChar(50)
+  ownership  String   @default("own") @db.VarChar(20)
+  chassisNo  String?  @map("chassis_no") @db.VarChar(50)
+  engineNo   String?  @map("engine_no") @db.VarChar(50)
+  odometer   Int      @default(0)
+  status     String   @default("active") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orders           Order[]
+  pallets          OrderPallet[]
+  trips            Trip[]
+  vehicleDocuments VehicleDocument[]
+  maintenanceJobs  MaintenanceJob[]
+  fuelEntries      FuelEntry[]
+
+  @@unique([companyId, regNo])
+  @@index([companyId, status])
+  @@map("vehicles")
+}
+
+model Labour {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  name      String   @db.VarChar(255)
+  phone     String?  @db.VarChar(20)
+  address   String?  @db.Text
+  salary    Int      @default(0) // stored in paise
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("labours")
+}
+
+model Employee {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  empCode     String?  @map("emp_code") @db.VarChar(50)
+  name        String   @db.VarChar(255)
+  phone       String?  @db.VarChar(20)
+  email       String?  @db.VarChar(255)
+  address     String?  @db.Text
+  designation String?  @db.VarChar(100)
+  branchId    String?  @map("branch_id") @db.Uuid
+  joiningDate DateTime? @map("joining_date") @db.Date
+  status      String   @default("active") @db.VarChar(20)
+  bankAccount String?  @map("bank_account") @db.Text // encrypted
+  pan         String?  @db.VarChar(10)
+  aadharEncrypted String? @map("aadhar_encrypted") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch           Branch?  @relation(fields: [branchId], references: [id])
+  driver           Driver?
+  salaryStructure  SalaryStructure?
+  payrollLines     PayrollLine[]
+
+  @@index([companyId, status])
+  @@map("employees")
+}
+
+model Driver {
+  id            String   @id @default(uuid()) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  employeeId    String   @unique @map("employee_id") @db.Uuid
+  dlNumber      String?  @map("dl_number") @db.VarChar(50)
+  dlExpiry      DateTime? @map("dl_expiry") @db.Date
+  dlCategory    String?  @map("dl_category") @db.VarChar(20)
+  badgeNo       String?  @map("badge_no") @db.VarChar(50)
+  isVendorDriver Boolean @default(false) @map("is_vendor_driver")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tripsAsDriver   Trip[]   @relation("TripDriver")
+  tripsAsCoDriver Trip[]   @relation("TripCoDriver")
+  driverAdvances  DriverAdvance[]
+
+  @@index([companyId])
+  @@map("drivers")
+}
+
+model Product {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String   @map("company_id") @db.Uuid
+  name           String   @db.VarChar(255)
+  hsnCode        String?  @map("hsn_code") @db.VarChar(20)
+  defaultPacking String?  @map("default_packing") @db.VarChar(50)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("products")
+}
+
+// ============================================
+// LR / ORDER TABLES
+// ============================================
+
+model Order {
+  id            String   @id @default(uuid()) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  lrNo          Int      @map("lr_no")
+  gstBillNo     String?  @map("gst_bill_no") @db.VarChar(50)
+  dealerId      String?  @map("dealer_id") @db.Uuid
+  consigneeId   String?  @map("consignee_id") @db.Uuid
+  ewayBillNo    String?  @map("eway_bill_no") @db.VarChar(20)
+  vehicleId     String?  @map("vehicle_id") @db.Uuid
+  date          DateTime @db.Date
+  fromLocation  String?  @map("from_location") @db.VarChar(255)
+  toLocation    String?  @map("to_location") @db.VarChar(255)
+  freight       Int      @default(0) // paise
+  hamali        Int      @default(0) // paise
+  rateOn        String   @default("weight") @map("rate_on") @db.VarChar(20)
+  rate          Int      @default(0) // paise
+  cgstPct       Decimal  @default(0) @map("cgst_pct") @db.Decimal(5, 2)
+  sgstPct       Decimal  @default(0) @map("sgst_pct") @db.Decimal(5, 2)
+  totalWeight   Decimal  @default(0) @map("total_weight") @db.Decimal(10, 2)
+  totalBoxes    Int      @default(0) @map("total_boxes")
+  subtotal      Int      @default(0) // paise
+  cgstAmount    Int      @default(0) @map("cgst_amount") // paise
+  sgstAmount    Int      @default(0) @map("sgst_amount") // paise
+  totalAmount   Int      @default(0) @map("total_amount") // paise
+  status        String   @default("created") @db.VarChar(20)
+  createdBy     String?  @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dealer     Dealer?    @relation(fields: [dealerId], references: [id])
+  consignee  Consignee? @relation(fields: [consigneeId], references: [id])
+  vehicle    Vehicle?   @relation(fields: [vehicleId], references: [id])
+  details    OrderDetail[]
+  statusLog  LrStatusLog[]
+  podRecord  PodRecord?
+  tripOrders TripOrder[]
+
+  @@unique([companyId, lrNo])
+  @@index([companyId, date])
+  @@index([companyId, status])
+  @@index([dealerId])
+  @@index([consigneeId])
+  @@index([vehicleId])
+  @@map("orders")
+}
+
+model OrderDetail {
+  id          String  @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  orderId     String  @map("order_id") @db.Uuid
+  productName String? @map("product_name") @db.VarChar(255)
+  boxCount    Int     @default(0) @map("box_count")
+  packingType String? @map("packing_type") @db.VarChar(50)
+  weight      Decimal @default(0) @db.Decimal(10, 2)
+  dcpiNo      String? @map("dcpi_no") @db.VarChar(50)
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_details")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model OrderPallet {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  lrNo        Int?     @map("lr_no")
+  dealerId    String?  @map("dealer_id") @db.Uuid
+  vehicleId   String?  @map("vehicle_id") @db.Uuid
+  date        DateTime @db.Date
+  companyName String?  @map("company_name") @db.VarChar(255)
+  partyCode   String?  @map("party_code") @db.VarChar(50)
+  gstPct      Decimal  @default(0) @map("gst_pct") @db.Decimal(5, 2)
+  status      String   @default("created") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dealer           Dealer?           @relation(fields: [dealerId], references: [id])
+  vehicle          Vehicle?          @relation(fields: [vehicleId], references: [id])
+  palletDetails    PalletDetail[]
+  consigneeDetails PalletConsigneeDetail[]
+
+  @@index([companyId])
+  @@map("order_pallets")
+}
+
+model PalletDetail {
+  id       String @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  palletId String @map("pallet_id") @db.Uuid
+  qty      Int    @default(0)
+  rate     Int    @default(0) // paise
+
+  pallet OrderPallet @relation(fields: [palletId], references: [id], onDelete: Cascade)
+
+  @@map("pallet_details")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model PalletConsigneeDetail {
+  id            String  @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  palletId      String  @map("pallet_id") @db.Uuid
+  consigneeName String? @map("consignee_name") @db.VarChar(255)
+  qty           Int     @default(0)
+  rate          Int     @default(0) // paise
+
+  pallet OrderPallet @relation(fields: [palletId], references: [id], onDelete: Cascade)
+
+  @@map("pallet_consignee_details")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model LrStatusLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  status    String   @db.VarChar(20)
+  notes     String?  @db.Text
+  updatedBy String?  @map("updated_by") @db.Uuid
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+  geoLat    Decimal? @map("geo_lat") @db.Decimal(10, 7)
+  geoLng    Decimal? @map("geo_lng") @db.Decimal(10, 7)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("lr_status_log")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model PodRecord {
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  orderId       String    @unique @map("order_id") @db.Uuid
+  photoUrl      String?   @map("photo_url") @db.Text
+  signatureUrl  String?   @map("signature_url") @db.Text
+  receiverName  String?   @map("receiver_name") @db.VarChar(255)
+  deliveredAt   DateTime? @map("delivered_at") @db.Timestamptz()
+  geoLat        Decimal?  @map("geo_lat") @db.Decimal(10, 7)
+  geoLng        Decimal?  @map("geo_lng") @db.Decimal(10, 7)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("pod_records")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+// ============================================
+// TRIP TABLES
+// ============================================
+
+model Trip {
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  vehicleId          String    @map("vehicle_id") @db.Uuid
+  driverId           String?   @map("driver_id") @db.Uuid
+  coDriverId         String?   @map("co_driver_id") @db.Uuid
+  fromLocation       String?   @map("from_location") @db.VarChar(255)
+  toLocation         String?   @map("to_location") @db.VarChar(255)
+  departureAt        DateTime? @map("departure_at") @db.Timestamptz()
+  expectedDeliveryAt DateTime? @map("expected_delivery_at") @db.Timestamptz()
+  status             String    @default("planned") @db.VarChar(20)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id])
+  driver         Driver?         @relation("TripDriver", fields: [driverId], references: [id])
+  coDriver       Driver?         @relation("TripCoDriver", fields: [coDriverId], references: [id])
+  tripOrders     TripOrder[]
+  tripExpenses   TripExpense[]
+  tripSettlement TripSettlement?
+  driverAdvances DriverAdvance[]
+
+  @@index([companyId])
+  @@map("trips")
+}
+
+model TripOrder {
+  id      String @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  tripId  String @map("trip_id") @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+
+  trip  Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, orderId])
+  @@map("trip_orders")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model TripExpense {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  tripId      String   @map("trip_id") @db.Uuid
+  type        String   @db.VarChar(50) // toll, fuel, rto, maintenance, food, other
+  amount      Int      @default(0) // paise
+  description String?  @db.Text
+  receiptUrl  String?  @map("receipt_url") @db.Text
+  location    String?  @db.VarChar(255)
+  recordedAt  DateTime @default(now()) @map("recorded_at") @db.Timestamptz()
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@map("trip_expenses")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model TripSettlement {
+  id            String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  tripId        String   @unique @map("trip_id") @db.Uuid
+  advanceAmount Int      @default(0) @map("advance_amount") // paise
+  totalExpenses Int      @default(0) @map("total_expenses") // paise
+  balance       Int      @default(0) // paise
+  settledBy     String?  @map("settled_by") @db.Uuid
+  settledAt     DateTime @default(now()) @map("settled_at") @db.Timestamptz()
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("trip_settlements")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+// ============================================
+// ACCOUNTING TABLES
+// ============================================
+
+model ChartOfAccount {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  code      String   @db.VarChar(50)
+  name      String   @db.VarChar(255)
+  type      String   @db.VarChar(50) // asset, liability, equity, revenue, expense
+  parentId  String?  @map("parent_id") @db.Uuid
+  isSystem  Boolean  @default(false) @map("is_system")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company       Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent        ChartOfAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children      ChartOfAccount[] @relation("AccountHierarchy")
+  journalLines  JournalLine[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("chart_of_accounts")
+}
+
+model JournalEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  branchId    String?  @map("branch_id") @db.Uuid
+  voucherType String   @map("voucher_type") @db.VarChar(50) // receipt, payment, contra, journal, sales, purchase
+  voucherNo   String   @map("voucher_no") @db.VarChar(50)
+  date        DateTime @db.Date
+  narration   String?  @db.Text
+  refId       String?  @map("ref_id") @db.Uuid
+  refType     String?  @map("ref_type") @db.VarChar(50)
+  postedBy    String?  @map("posted_by") @db.Uuid
+  isPosted    Boolean  @default(true) @map("is_posted")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch  Branch?       @relation(fields: [branchId], references: [id])
+  lines   JournalLine[]
+
+  @@unique([companyId, voucherType, voucherNo])
+  @@index([companyId, date])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id            String  @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  entryId       String  @map("entry_id") @db.Uuid
+  accountId     String  @map("account_id") @db.Uuid
+  debit         Int     @default(0) // paise
+  credit        Int     @default(0) // paise
+  costCentreId  String? @map("cost_centre_id") @db.Uuid
+  subLedgerType String? @map("sub_ledger_type") @db.VarChar(50)
+  subLedgerId   String? @map("sub_ledger_id") @db.Uuid
+
+  entry   JournalEntry   @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account ChartOfAccount @relation(fields: [accountId], references: [id])
+
+  @@index([entryId])
+  @@index([accountId])
+  @@map("journal_lines")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model FreightInvoice {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  invoiceNo  String   @map("invoice_no") @db.VarChar(50)
+  customerId String   @map("customer_id") @db.Uuid
+  orderIds   String[] @map("order_ids") @db.Uuid
+  date       DateTime @db.Date
+  subtotal   Int      @default(0) // paise
+  cgst       Int      @default(0) // paise
+  sgst       Int      @default(0) // paise
+  igst       Int      @default(0) // paise
+  total      Int      @default(0) // paise
+  irn        String?  @db.VarChar(100) // e-Invoicing IRN
+  status     String   @default("unpaid") @db.VarChar(20)
+  paidAmount Int      @default(0) @map("paid_amount") // paise
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, invoiceNo])
+  @@index([companyId])
+  @@index([customerId])
+  @@map("freight_invoices")
+}
+
+model PaymentReceived {
+  id            String   @id @default(uuid()) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  customerId    String   @map("customer_id") @db.Uuid
+  invoiceIds    String[] @map("invoice_ids") @db.Uuid
+  amount        Int      @default(0) // paise
+  mode          String   @db.VarChar(50) // cash, neft, upi, cheque
+  utrNo         String?  @map("utr_no") @db.VarChar(100)
+  date          DateTime @db.Date
+  bankAccountId String?  @map("bank_account_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@index([companyId])
+  @@map("payments_received")
+}
+
+model VendorInvoice {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  vendorId   String   @map("vendor_id") @db.Uuid
+  invoiceNo  String   @map("invoice_no") @db.VarChar(50)
+  date       DateTime @db.Date
+  amount     Int      @default(0) // paise
+  tdsAmount  Int      @default(0) @map("tds_amount") // paise
+  netPayable Int      @default(0) @map("net_payable") // paise
+  status     String   @default("unpaid") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("vendor_invoices")
+}
+
+model PaymentMade {
+  id               String   @id @default(uuid()) @db.Uuid
+  companyId        String   @map("company_id") @db.Uuid
+  vendorId         String   @map("vendor_id") @db.Uuid
+  vendorInvoiceIds String[] @map("vendor_invoice_ids") @db.Uuid
+  amount           Int      @default(0) // paise
+  mode             String   @db.VarChar(50) // cash, neft, upi, cheque
+  utrNo            String?  @map("utr_no") @db.VarChar(100)
+  date             DateTime @db.Date
+  bankAccountId    String?  @map("bank_account_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@index([companyId])
+  @@map("payments_made")
+}
+
+model BankAccount {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String   @map("company_id") @db.Uuid
+  bankName       String   @map("bank_name") @db.VarChar(255)
+  accountNo      String   @map("account_no") @db.VarChar(50)
+  ifsc           String   @db.VarChar(20)
+  branchName     String?  @map("branch_name") @db.VarChar(255)
+  currentBalance Int      @default(0) @map("current_balance") // paise
+  lastSyncedAt   DateTime? @map("last_synced_at") @db.Timestamptz()
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  paymentsReceived PaymentReceived[]
+  paymentsMade     PaymentMade[]
+  bankTransactions BankTransaction[]
+
+  @@unique([companyId, accountNo])
+  @@index([companyId])
+  @@map("bank_accounts")
+}
+
+model BankTransaction {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  bankAccountId  String   @map("bank_account_id") @db.Uuid
+  date           DateTime @db.Date
+  description    String   @db.Text
+  debit          Int      @default(0) // paise
+  credit         Int      @default(0) // paise
+  balance        Int      @default(0) // paise
+  matchedEntryId String?  @map("matched_entry_id") @db.Uuid
+  isReconciled   Boolean  @default(false) @map("is_reconciled")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  @@index([bankAccountId])
+  @@map("bank_transactions")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+// ============================================
+// HR, FLEET & COMPLIANCE TABLES
+// ============================================
+
+model SalaryStructure {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  employeeId      String   @unique @map("employee_id") @db.Uuid
+  basic           Int      @default(0) // paise
+  hra             Int      @default(0) // paise
+  conveyance      Int      @default(0) // paise
+  driverAllowance Int      @default(0) @map("driver_allowance") // paise
+  otherAllowances Int      @default(0) @map("other_allowances") // paise
+  pfApplicable    Boolean  @default(false) @map("pf_applicable")
+  esiApplicable   Boolean  @default(false) @map("esi_applicable")
+  effectiveFrom   DateTime @map("effective_from") @db.Date
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("salary_structures")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model PayrollRun {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  month           Int
+  year            Int
+  status          String   @default("draft") @db.VarChar(20) // draft, approved, paid
+  totalGross      Int      @default(0) @map("total_gross") // paise
+  totalDeductions Int      @default(0) @map("total_deductions") // paise
+  totalNet        Int      @default(0) @map("total_net") // paise
+  processedBy     String?  @map("processed_by") @db.Uuid
+  processedAt     DateTime? @map("processed_at") @db.Timestamptz()
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  payrollLines PayrollLine[]
+
+  @@unique([companyId, month, year])
+  @@index([companyId])
+  @@map("payroll_runs")
+}
+
+model PayrollLine {
+  id               String @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  runId            String @map("run_id") @db.Uuid
+  employeeId       String @map("employee_id") @db.Uuid
+  gross            Int    @default(0) // paise
+  pfDeduction      Int    @default(0) @map("pf_deduction") // paise
+  esiDeduction     Int    @default(0) @map("esi_deduction") // paise
+  ptDeduction      Int    @default(0) @map("pt_deduction") // paise
+  tdsDeduction     Int    @default(0) @map("tds_deduction") // paise
+  advanceDeduction Int    @default(0) @map("advance_deduction") // paise
+  netPay           Int    @default(0) @map("net_pay") // paise
+
+  run      PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employee Employee   @relation(fields: [employeeId], references: [id])
+
+  @@unique([runId, employeeId])
+  @@map("payroll_lines")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model DriverAdvance {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  driverId        String   @map("driver_id") @db.Uuid
+  tripId          String?  @map("trip_id") @db.Uuid
+  amount          Int      @default(0) // paise
+  mode            String   @db.VarChar(50) // cash, neft, upi
+  date            DateTime @db.Date
+  purpose         String?  @db.Text
+  recoveryAmount  Int      @default(0) @map("recovery_amount") // paise/month or trip
+  recoveredAmount Int      @default(0) @map("recovered_amount") // total recovered so far
+  status          String   @default("active") @db.VarChar(20) // active, recovered
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  driver  Driver  @relation(fields: [driverId], references: [id])
+  trip    Trip?   @relation(fields: [tripId], references: [id])
+
+  @@index([companyId])
+  @@index([driverId])
+  @@map("driver_advances")
+}
+
+model VehicleDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  vehicleId  String   @map("vehicle_id") @db.Uuid
+  docType    String   @map("doc_type") @db.VarChar(50) // rc, insurance, fitness, permit, puc
+  docNo      String?  @map("doc_no") @db.VarChar(100)
+  issueDate  DateTime? @map("issue_date") @db.Date
+  expiryDate DateTime? @map("expiry_date") @db.Date
+  fileUrl    String?  @map("file_url") @db.Text
+  alertSent  Boolean  @default(false) @map("alert_sent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_documents")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model MaintenanceJob {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  vehicleId   String   @map("vehicle_id") @db.Uuid
+  jobType     String   @map("job_type") @db.VarChar(50) // periodic, repair, tyre, battery
+  description String?  @db.Text
+  odometer    Int      @default(0)
+  startedAt   DateTime? @map("started_at") @db.Timestamptz()
+  completedAt DateTime? @map("completed_at") @db.Timestamptz()
+  cost        Int      @default(0) // paise
+  status      String   @default("scheduled") @db.VarChar(20) // scheduled, in_progress, completed
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("maintenance_jobs")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model FuelEntry {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  vehicleId String   @map("vehicle_id") @db.Uuid
+  date      DateTime @db.Date
+  quantity  Decimal  @default(0) @db.Decimal(10, 2) // liters
+  rate      Int      @default(0) // paise
+  amount    Int      @default(0) // paise
+  vendor    String?  @db.VarChar(255)
+  odometer  Int      @default(0)
+  kmpl      Decimal? @db.Decimal(5, 2)
+  isAnomaly Boolean  @default(false) @map("is_anomaly")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("fuel_entries")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model GstReturn {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  returnType  String   @map("return_type") @db.VarChar(20) // gstr1, gstr3b
+  period      String   @db.VarChar(20) // e.g. "2026-04"
+  arn         String?  @db.VarChar(100)
+  status      String   @default("pending") @db.VarChar(20) // pending, filed
+  filedAt     DateTime? @map("filed_at") @db.Timestamptz()
+  jsonPayload Json?    @map("json_payload")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, returnType, period])
+  @@map("gst_returns")
+}
+
+model TdsEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  vendorId   String   @map("vendor_id") @db.Uuid
+  invoiceId  String?  @map("invoice_id") @db.Uuid // Optional link to vendor_invoices
+  section    String   @db.VarChar(50) // e.g. "194C"
+  baseAmount Int      @default(0) @map("base_amount") // paise
+  rate       Decimal  @default(0) @db.Decimal(5, 2)
+  tdsAmount  Int      @default(0) @map("tds_amount") // paise
+  deposited  Boolean  @default(false)
+  challanNo  String?  @map("challan_no") @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("tds_entries")
+}
