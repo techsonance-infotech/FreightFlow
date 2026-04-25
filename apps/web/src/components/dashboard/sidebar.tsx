@@ -19,15 +19,19 @@ export function Sidebar({ user }: SidebarProps) {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const toggleMenu = (id: string) => {
-    setOpenMenus(prev => ({ ...prev, [id]: !prev[id] }));
+    setOpenMenus(prev => {
+      const isOpen = prev[id];
+      // Close all and open only the selected one if it was closed
+      return isOpen ? {} : { [id]: true };
+    });
   };
 
   const renderNavItem = (item: NavItem, isSubItem = false) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
+    // It's expanded if the state says so OR if we are on a child path
     const isExpanded = openMenus[item.id] || (hasSubItems && pathname.startsWith(item.path));
     const isActive = pathname === item.path || (item.path !== '/dashboard' && pathname.startsWith(item.path) && !hasSubItems);
     
-    // Check permissions for sub-items too
     const filteredSubItems = item.subItems?.filter(si => hasPermission(user.role, si.allowedRoles)) || [];
 
     if (!hasPermission(user.role, item.allowedRoles)) return null;
@@ -42,9 +46,14 @@ export function Sidebar({ user }: SidebarProps) {
               isExpanded ? "text-white bg-white/5" : "text-white/50 hover:bg-white/5 hover:text-white"
             )}
           >
-            <span className="text-base opacity-70 group-hover:opacity-100">{item.icon}</span>
+            <span className={cn(
+              "text-base transition-all duration-200",
+              isExpanded ? "opacity-100 scale-110" : "opacity-70 group-hover:opacity-100"
+            )}>
+              {item.icon}
+            </span>
             <span className="flex-1 text-left">{item.label}</span>
-            <span className={cn("text-[8px] transition-transform duration-200 opacity-30", isExpanded ? "rotate-180" : "")}>
+            <span className={cn("text-[8px] transition-transform duration-300 opacity-30", isExpanded ? "rotate-180" : "")}>
               ▼
             </span>
           </button>
@@ -72,7 +81,7 @@ export function Sidebar({ user }: SidebarProps) {
         )}
 
         {hasSubItems && isExpanded && (
-          <div className="space-y-0.5 mt-0.5 border-l border-white/[0.03] ml-5 pl-1.5 animate-in slide-in-from-top-1 duration-200">
+          <div className="space-y-0.5 mt-0.5 border-l border-white/[0.03] ml-5 pl-1.5 animate-in slide-in-from-top-1 duration-300">
             {filteredSubItems.map(si => renderNavItem(si, true))}
           </div>
         )}

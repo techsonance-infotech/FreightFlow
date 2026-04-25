@@ -46,6 +46,9 @@ export async function login(_prevState: unknown, formData: FormData) {
     return { error: 'Your account has been deactivated. Please contact support.' };
   }
 
+  // Extract remember me
+  const rememberMe = formData.get('remember_me') === 'on';
+
   // Set session cookie
   await setSession({
     id: user.id,
@@ -54,7 +57,7 @@ export async function login(_prevState: unknown, formData: FormData) {
     email: user.email,
     role: user.role,
     name: user.name,
-  });
+  }, rememberMe);
 
   // If no company is set up, redirect to onboarding
   if (!user.companyId) {
@@ -148,7 +151,7 @@ export async function register(_prevState: unknown, formData: FormData) {
       await tx.user.create({
         data: {
           tenantId: tenant.id,
-          name: username,
+          name: `${firstName} ${lastName}`,
           email: email,
           phone: phone,
           passwordHash,

@@ -6,150 +6,116 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import { 
-  Download, Printer, Filter, Search, Calendar, ChevronLeft, ChevronRight, FileSpreadsheet, FileJson
+  Download, Printer, Filter, Search, 
+  Calendar as CalendarIcon, FileSpreadsheet, FileText, ChevronDown 
 } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from '@/components/ui/badge';
 
 interface ReportViewerProps {
   title: string;
   subtitle?: string;
-  data: any[];
-  columns: {
-    key: string;
-    label: string;
-    format?: (val: any) => React.ReactNode;
-  }[];
+  children: React.ReactNode;
+  onExport?: (format: 'excel' | 'pdf') => void;
   onFilterChange?: (filters: any) => void;
   isLoading?: boolean;
+  filters?: React.ReactNode;
 }
 
 export function ReportViewer({ 
   title, 
   subtitle, 
-  data, 
-  columns, 
-  onFilterChange,
-  isLoading 
+  children, 
+  onExport, 
+  onFilterChange, 
+  isLoading,
+  filters
 }: ReportViewerProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState({
-    start: format(new Date().setDate(1), 'yyyy-MM-dd'), // Start of month
-    end: format(new Date(), 'yyyy-MM-dd')
-  });
-
-  const filteredData = data.filter(item => 
-    Object.values(item).some(val => 
-      String(val).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
 
   return (
-    <div className="space-y-4">
-      <Card className="border-none shadow-sm bg-muted/30">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row md:items-end gap-4">
-            <div className="grid gap-2">
-              <Label className="text-xs uppercase text-muted-foreground font-bold">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Filter records..."
-                  className="pl-8 w-[250px] bg-background"
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+            {title}
+          </h1>
+          {subtitle && <p className="text-muted-foreground mt-1">{subtitle}</p>}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-10 rounded-xl border-slate-200 hover:bg-slate-50 shadow-sm">
+                <Download className="mr-2 h-4 w-4 text-blue-500" />
+                Export
+                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-xl">
+              <DropdownMenuItem onClick={() => onExport?.('excel')} className="py-2 cursor-pointer">
+                <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-500" />
+                Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onExport?.('pdf')} className="py-2 cursor-pointer">
+                <FileText className="mr-2 h-4 w-4 text-rose-500" />
+                PDF Document
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-10 w-10 rounded-xl border-slate-200 hover:bg-slate-50 shadow-sm"
+            onClick={() => window.print()}
+          >
+            <Printer className="h-4 w-4 text-slate-500" />
+          </Button>
+        </div>
+      </div>
+
+      <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-2xl overflow-hidden">
+        <CardHeader className="border-b border-slate-50 pb-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  placeholder="Search records..." 
+                  className="pl-10 h-10 bg-slate-50/50 border-none rounded-xl focus-visible:ring-blue-500/20"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              {filters}
             </div>
             
-            <div className="grid gap-2">
-              <Label className="text-xs uppercase text-muted-foreground font-bold">Start Date</Label>
-              <Input 
-                type="date" 
-                className="w-[180px] bg-background" 
-                value={dateRange.start}
-                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-              />
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+              <Activity className="h-3 w-3" />
+              Live Report
+              <Badge variant="outline" className="ml-2 bg-emerald-50 text-emerald-600 border-emerald-100 rounded-lg">
+                Verified
+              </Badge>
             </div>
-
-            <div className="grid gap-2">
-              <Label className="text-xs uppercase text-muted-foreground font-bold">End Date</Label>
-              <Input 
-                type="date" 
-                className="w-[180px] bg-background" 
-                value={dateRange.end}
-                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-              />
-            </div>
-
-            <Button 
-              variant="default" 
-              onClick={() => onFilterChange?.(dateRange)}
-              className="ml-auto"
-            >
-              Apply Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>{title}</CardTitle>
-            {subtitle && <CardDescription>{subtitle}</CardDescription>}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Excel
-            </Button>
-            <Button variant="outline" size="sm">
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  {columns.map((col) => (
-                    <TableHead key={col.key} className="font-bold text-xs uppercase tracking-wider">
-                      {col.label}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-                    </TableCell>
-                  </TableRow>
-                ) : filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      No records found matching filters.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((row, i) => (
-                    <TableRow key={i} className="hover:bg-muted/30 transition-colors">
-                      {columns.map((col) => (
-                        <TableCell key={col.key}>
-                          {col.format ? col.format(row[col.key]) : row[col.key]}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            {isLoading ? (
+              <div className="p-12 flex flex-col items-center justify-center space-y-4">
+                <div className="h-10 w-10 rounded-full border-4 border-slate-100 border-t-blue-500 animate-spin" />
+                <p className="text-sm font-medium text-slate-500">Generating report data...</p>
+              </div>
+            ) : (
+              children
+            )}
           </div>
         </CardContent>
       </Card>
@@ -157,21 +123,19 @@ export function ReportViewer({
   );
 }
 
-function Loader2({ className }: { className?: string }) {
+function Activity({ className }: { className?: string }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
       className={className}
     >
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
     </svg>
   );
 }

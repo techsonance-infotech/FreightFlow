@@ -62,31 +62,49 @@ export class FleetService {
 
     const jobs = await prisma.maintenanceJob.findMany({
       where,
-      select: {
-        vehicleId: true,
-        actualCost: true,
+      include: {
         vehicle: {
-          select: { regNo: true }
+          select: { regNo: true, model: true }
         }
-      }
+      },
+      orderBy: { startedAt: 'desc' }
     });
 
     // Aggregate by vehicle
-    const report: Record<string, { regNo: string; totalCost: number; jobCount: number }> = {};
+    const vehicleStats: Record<string, { 
+      regNo: string; 
+      model: string;
+      totalCost: number; 
+      jobCount: number;
+      scheduledCount: number;
+      breakdownCount: number;
+    }> = {};
     
     jobs.forEach(job => {
-      if (!report[job.vehicleId]) {
-        report[job.vehicleId] = { regNo: job.vehicle.regNo, totalCost: 0, jobCount: 0 };
+      if (!vehicleStats[job.vehicleId]) {
+        vehicleStats[job.vehicleId] = { 
+          regNo: job.vehicle.regNo, 
+          model: job.vehicle.model || '',
+          totalCost: 0, 
+          jobCount: 0,
+          scheduledCount: 0,
+          breakdownCount: 0
+        };
       }
-      report[job.vehicleId].totalCost += job.actualCost || 0;
-      report[job.vehicleId].jobCount += 1;
+      vehicleStats[job.vehicleId].totalCost += job.actualCost || 0;
+      vehicleStats[job.vehicleId].jobCount += 1;
+      if (job.jobType === 'scheduled') vehicleStats[job.vehicleId].scheduledCount += 1;
+      if (job.jobType === 'breakdown') vehicleStats[job.vehicleId].breakdownCount += 1;
     });
 
-    return Object.values(report);
+    return {
+      summary: Object.values(vehicleStats),
+      allJobs: jobs
+    };
   }
 
   /**
-   * Fleet-wide fuel consumption report.
+   * Fleet-wide fuel consumption report with trends.
    */
   static async getFuelReport(tenantId: string, companyId: string) {
     const entries = await prisma.fuelEntry.findMany({
@@ -101,8 +119,9 @@ export class FleetService {
 
     const totalLitres = entries.reduce((acc, curr) => acc + Number(curr.quantity), 0);
     const totalCost = entries.reduce((acc, curr) => acc + curr.amount, 0);
-    const avgKmpl = entries.length > 0 
-      ? entries.reduce((acc, curr) => acc + Number(curr.kmpl || 0), 0) / entries.length 
+    const validKmplEntries = entries.filter(e => e.kmpl && Number(e.kmpl) > 0);
+    const avgKmpl = validKmplEntries.length > 0 
+      ? validKmplEntries.reduce((acc, curr) => acc + Number(curr.kmpl || 0), 0) / validKmplEntries.length 
       : 0;
 
     return {
