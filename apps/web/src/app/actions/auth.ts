@@ -69,7 +69,7 @@ export async function register(_prevState: unknown, formData: FormData) {
   const firstName = (formData.get('firstName') as string)?.trim();
   const lastName = (formData.get('lastName') as string)?.trim();
   const username = (formData.get('username') as string)?.trim();
-  const email = (formData.get('email') as string)?.trim();
+  const email = (formData.get('email') as string)?.trim().toLowerCase();
   const phone = (formData.get('phone') as string)?.trim();
   const password = formData.get('password') as string;
   const confirmPassword = formData.get('confirmPassword') as string;
@@ -230,13 +230,16 @@ export async function verifyEmail(token: string) {
 
 // ─── FORGOT PASSWORD (OTP) ──────────────────────────────────
 export async function forgotPassword(_prevState: unknown, formData: FormData) {
-  const email = (formData.get('email') as string)?.trim();
+  const email = (formData.get('email') as string)?.trim().toLowerCase();
 
   if (!email) return { error: 'Please enter your email address.' };
+
+  console.log(`[ForgotPassword] Request for: ${email}`);
 
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (user) {
+    console.log(`[ForgotPassword] User found: ${user.id}`);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -248,11 +251,18 @@ export async function forgotPassword(_prevState: unknown, formData: FormData) {
       },
     });
 
-    await sendEmail({
-      to: email,
-      subject: 'Your Password Reset OTP',
-      html: getOtpEmailTemplate(otp),
-    });
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'Your Password Reset OTP',
+        html: getOtpEmailTemplate(otp),
+      });
+      console.log(`[ForgotPassword] OTP Email sent to ${email}`);
+    } catch (err: any) {
+      console.error(`[ForgotPassword] Failed to send email: ${err.message}`);
+    }
+  } else {
+    console.warn(`[ForgotPassword] No user found with email: ${email}`);
   }
 
   // Always return success for security
@@ -261,6 +271,7 @@ export async function forgotPassword(_prevState: unknown, formData: FormData) {
     message: 'If an account exists, a 6-digit OTP has been sent to your email.',
   };
 }
+
 
 // ─── VERIFY OTP ─────────────────────────────────────────────
 export async function verifyOtp(email: string, otp: string) {

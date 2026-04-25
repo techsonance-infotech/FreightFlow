@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import Link from 'next/link';
 import { register } from '@/app/actions/auth';
 import { Check, X, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';

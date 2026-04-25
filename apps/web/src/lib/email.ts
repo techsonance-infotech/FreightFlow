@@ -1,24 +1,55 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+let transporter: nodemailer.Transporter | null = null;
+
+function getTransporter() {
+  if (transporter) return transporter;
+
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+
+  console.log(`[Email Config] Attempting to initialize with User: ${smtpUser ? 'Defined' : 'UNDEFINED'}, Host: ${smtpHost}:${smtpPort}`);
+
+  if (!smtpUser || !smtpPass) {
+    console.error('[Email Config] CRITICAL: SMTP_USER or SMTP_PASS is missing in environment variables.');
+  }
+
+  transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+
+  return transporter;
+}
+
+
 
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
-  const info = await transporter.sendMail({
-    from: `"FreightFlow" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-    to,
-    subject,
-    html,
-  });
-  return info;
+  try {
+    const transport = getTransporter();
+    console.log(`[Email] Attempting to send email to: ${to} with subject: ${subject}`);
+    const info = await transport.sendMail({
+      from: `"FreightFlow" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+    });
+    console.log(`[Email] Success! Message ID: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error('[Email] Error sending email:', error);
+    throw error;
+  }
 }
+
+
 
 export function getVerificationEmailTemplate(name: string, token: string) {
   const verifyUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/verify-email?token=${token}`;

@@ -6,18 +6,39 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
-  // 1. Seed Super Admin
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@freightflow.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'FreightAdmin@2026';
-  const hashedPassword = await bcrypt.hash(adminPassword, 10);
-
-  const admin = await prisma.platformAdmin.upsert({
-    where: { email: adminEmail },
+  // 1. Seed System Tenant
+  const systemTenantId = '00000000-0000-0000-0000-000000000000';
+  await prisma.tenant.upsert({
+    where: { id: systemTenantId },
     update: {},
     create: {
+      id: systemTenantId,
+      name: 'FreightFlow System',
+      slug: 'system',
+      plan: 'enterprise',
+      status: 'active',
+    },
+  });
+
+  // 2. Seed Super Admin
+  const adminEmail = 'hello.freightflow@gmail.com';
+  const adminPassword = 'TechSonance1711!@#$';
+  const hashedPassword = await bcrypt.hash(adminPassword, 12);
+
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      role: 'super_admin',
+    },
+    create: {
+      tenantId: systemTenantId,
+      name: 'Freight Flow',
       email: adminEmail,
+      phone: '9173101711',
       passwordHash: hashedPassword,
       role: 'super_admin',
+      isActive: true,
+      isEmailVerified: true,
     },
   });
   console.log(`✅ Super Admin created: ${admin.email}`);

@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 export async function createClient() {
@@ -28,30 +29,20 @@ export async function createClient() {
 
 /** Create admin client with service role key (for server-side operations only) */
 export async function createAdminClient() {
-  const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn('[Supabase] SUPABASE_SERVICE_ROLE_KEY is missing. Admin operations will fail.');
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('[Supabase Admin] Missing URL or Service Role Key');
+    throw new Error('Supabase Admin configuration missing');
   }
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore
-          }
-        },
-      },
+  // Use the standard client for admin operations to ensure RLS bypass
+  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
     }
-  );
+  });
 }
+

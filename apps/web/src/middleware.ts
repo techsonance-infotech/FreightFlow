@@ -7,17 +7,33 @@ const MODULE_REQUIREMENTS: Record<string, string> = {
   '/dashboard/orders': 'mod_lr_management',
   '/dashboard/pallets': 'mod_pallet_management',
   '/dashboard/trips': 'mod_trip_management',
-  '/dashboard/accounting': 'mod_core_accounting',
-  '/dashboard/fleet': 'mod_fleet',
-  '/dashboard/hr': 'mod_hr_payroll',
-  '/dashboard/compliance': 'mod_gst_compliance',
+  '/dashboard/accounting': 'core_accounting',
+  '/dashboard/billing': 'freight_billing',
+  '/dashboard/fleet': 'fleet_management',
+  '/dashboard/hr': 'driver_hr',
+  '/dashboard/compliance': 'compliance',
+  '/dashboard/fuel': 'fuel_management',
+  '/dashboard/purchase': 'purchase_expense',
+  '/dashboard/dispatch': 'crm_dispatch',
+  '/dashboard/ai': 'ai_analytics',
+  '/dashboard/reports': 'reporting',
 };
 
-// Define basic RBAC — minimum role required to access path
+// Define strict RBAC — minimum role required to access path
 const ROLE_REQUIREMENTS: Record<string, string[]> = {
-  '/dashboard/accounting': ['tenant_owner', 'company_admin', 'accountant'],
-  '/dashboard/hr': ['tenant_owner', 'company_admin', 'hr_manager'],
-  '/dashboard/settings': ['tenant_owner', 'company_admin'],
+  '/dashboard/accounting': ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'],
+  '/dashboard/billing': ['tenant_owner', 'fleet_owner', 'accountant', 'ops_manager'],
+  '/dashboard/hr': ['tenant_owner', 'fleet_owner', 'hr_manager'],
+  '/dashboard/compliance': ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'],
+  '/dashboard/settings': ['tenant_owner', 'fleet_owner'],
+  '/dashboard/masters': ['tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'maintenance_supervisor'],
+  '/dashboard/fleet': ['tenant_owner', 'fleet_owner', 'ops_manager', 'maintenance_supervisor'],
+  '/dashboard/fuel': ['tenant_owner', 'fleet_owner', 'ops_manager', 'maintenance_supervisor'],
+  '/dashboard/trips': ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer', 'driver'],
+  '/dashboard/dispatch': ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'],
+  '/dashboard/ai': ['tenant_owner', 'fleet_owner', 'ops_manager'],
+  '/dashboard/reports': ['tenant_owner', 'fleet_owner', 'accountant', 'ops_manager', 'hr_manager', 'auditor'],
+  '/dashboard/admin': ['super_admin'],
 };
 
 export async function middleware(request: NextRequest) {
@@ -52,13 +68,13 @@ export async function middleware(request: NextRequest) {
   // 2. Logged in -> Redirect away from Auth pages
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = user.companyId ? '/dashboard' : '/onboarding';
+    url.pathname = (user.role === 'super_admin' || user.companyId) ? '/dashboard' : '/onboarding';
     return NextResponse.redirect(url);
   }
 
   // 3. Logged in + Dashboard page -> Check if onboarding is complete
   if (user && isDashboardPage) {
-    if (!user.companyId) {
+    if (!user.companyId && user.role !== 'super_admin') {
       const skippedOnboarding = request.cookies.get('onboarding_skipped')?.value;
       if (!skippedOnboarding) {
         const url = request.nextUrl.clone();
