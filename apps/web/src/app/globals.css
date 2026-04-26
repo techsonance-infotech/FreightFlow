@@ -54,6 +54,10 @@
   --color-input: #ECEFF1;
   --color-ring: #42A5F5;
   --color-muted: #607D8B;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1A1A2E;
+  --color-accent: #E3F2FD;
+  --color-accent-foreground: #1565C0;
 
   /* --- Sidebar --- */
   --color-sidebar: #0A1628;

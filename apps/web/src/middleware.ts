@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { decrypt } from '@/lib/auth-utils';
+import { decrypt, updateSession } from '@/lib/auth-utils';
 import { redis, CACHE_KEYS, type CachedLicense } from '@/lib/redis';
 
 // Define which routes require which modules
@@ -61,11 +61,17 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('redirectTo', pathname);
-      return NextResponse.redirect(url);
+      
+      const response = NextResponse.redirect(url);
+      // Clear session cookie if it exists but is invalid
+      if (sessionToken) {
+        response.cookies.delete('session');
+      }
+      return response;
     }
   }
 
-  // 2. Logged in -> Redirect away from Auth pages
+  // 2. Logged in -> Redirect away from Auth pages (Persistent Session)
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = (user.role === 'super_admin' || user.companyId) ? '/dashboard' : '/onboarding';
@@ -85,6 +91,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // 4. Advanced Checks (License, Module, RBAC)
+  let response = NextResponse.next();
+  
+  // Refresh session if logged in
+  if (user) {
+    const updatedResponse = await updateSession(request);
+    if (updatedResponse) {
+      response = updatedResponse;
+    }
+  }
+
   if (user && isDashboardPage) {
     const { tenantId, role } = user;
 
@@ -137,7 +153,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  // Add Security Headers for sensitive pages (Dashboard & Auth) 
+  // to prevent "back" button from showing cached data after login/logout
+  if (isDashboardPage || isAuthPage) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+
+  return response;
 }
 
 export const config = {

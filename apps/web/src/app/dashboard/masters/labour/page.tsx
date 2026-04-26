@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { LabourForm } from '@/components/masters/labour-form';
+import { LabourExpenseModal } from '@/components/masters/labour-expense-modal';
+import { LabourDetailView } from '@/components/masters/labour-detail-view';
 import { type Labour } from '@freightflow/shared';
 import { toast } from 'sonner';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
 
 export default function LabourPage() {
   const [data, setData] = useState<Labour[]>([]);
@@ -16,6 +19,9 @@ export default function LabourPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
+  const [selectedLabour, setSelectedLabour] = useState<Labour | null>(null);
   const [editingItem, setEditingItem] = useState<Labour | null>(null);
 
   const fetchData = async () => {
@@ -23,8 +29,15 @@ export default function LabourPage() {
     try {
       const response = await fetch(`/api/v1/masters/labour?page=${page}&search=${search}`);
       const result = await response.json();
-      if (response.ok) { setData(result.data); setTotal(result.meta.total); }
-    } catch { toast.error('Failed to fetch data'); } finally { setLoading(false); }
+      if (response.ok) { 
+        setData(result.data); 
+        setTotal(result.meta.total); 
+      }
+    } catch { 
+      toast.error('Failed to fetch data'); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   useEffect(() => {
@@ -33,98 +46,170 @@ export default function LabourPage() {
   }, [page, search]);
 
   const handleDelete = async (item: Labour) => {
-    if (!confirm(`Delete record for ${item.name}?`)) return;
+    if (!confirm(`Are you sure you want to delete ${item.name}? This action cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/v1/masters/labour/${item.id}`, { method: 'DELETE' });
-      if (res.ok) { toast.success('Deleted'); fetchData(); }
-    } catch { toast.error('Error'); }
+      if (res.ok) { 
+        toast.success('Labour record deleted'); 
+        fetchData(); 
+      }
+    } catch { 
+      toast.error('Error deleting record'); 
+    }
   };
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedWorker, setSelectedWorker] = useState<Labour | null>(null);
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const exportData = data.map(l => ({
+      Name: l.name,
+      Phone: l.phone || 'N/A',
+      Salary: l.salary / 100,
+      Address: l.address || 'N/A',
+      Status: l.isActive ? 'Active' : 'Inactive'
+    }));
+
+    const filename = `Labour_Registry_${new Date().toISOString().split('T')[0]}`;
+
+    if (format === 'csv') {
+      exportToCSV(exportData, filename);
+    } else if (format === 'excel') {
+      exportToExcel(exportData, filename);
+    } else {
+      const headers = ['Name', 'Phone', 'Salary (₹)', 'Address', 'Status'];
+      const pdfData = exportData.map(l => [l.Name, l.Phone, l.Salary.toLocaleString(), l.Address, l.Status]);
+      exportToPDF(headers, pdfData, filename, 'Labour Registry Master List');
+    }
+  };
 
   const columns = [
     { 
-      header: 'Worker Name', 
+      header: 'Worker Profile', 
       accessor: (row: Labour) => (
-        <div>
-          <p className="font-black text-slate-900">{row.name}</p>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.phone || 'No Phone'}</p>
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg shadow-sm border border-slate-200/50">
+            👤
+          </div>
+          <div>
+            <p className="font-black text-slate-900 leading-tight">{row.name}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{row.phone || 'No Phone'}</p>
+          </div>
         </div>
       )
     },
-    { header: 'Address', accessor: 'address', className: 'max-w-xs truncate' },
+    { header: 'Address', accessor: 'address', className: 'max-w-xs truncate text-slate-500 font-medium' },
     { 
       header: 'Monthly Salary', 
       accessor: (row: Labour) => (
-        <div className="flex items-center gap-3">
-          <div className="font-black text-blue-600">
-            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(row.salary / 100)}
-          </div>
-          <button 
-            onClick={() => { setSelectedWorker(row); setIsDrawerOpen(true); }}
-            className="h-7 w-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-blue-600 hover:text-white transition-all text-xs"
-            title="View Payment History"
-          >
-            ₹
-          </button>
+        <div className="font-black text-blue-600 tabular-nums">
+          {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(row.salary / 100)}
         </div>
       )
     },
     { 
       header: 'Status', 
       accessor: (row: Labour) => (
-        <span className={`inline-flex px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${row.isActive ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
+        <span className={`inline-flex px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${row.isActive ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
           {row.isActive ? 'Active' : 'Inactive'}
         </span>
       )
     },
+    {
+      header: 'Actions',
+      className: 'text-right',
+      accessor: (row: Labour) => (
+        <div className="flex items-center justify-end gap-2">
+          <button 
+            onClick={() => { setSelectedLabour(row); setIsDetailViewOpen(true); }}
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-600 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
+            title="View Ledger"
+          >
+            👁️
+          </button>
+          <button 
+            onClick={() => { setSelectedLabour(row); setIsExpenseModalOpen(true); }}
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-orange-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
+            title="Record Expense"
+          >
+            ₹
+          </button>
+          <button 
+            onClick={() => { setEditingItem(row); setIsModalOpen(true); }}
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
+            title="Edit Profile"
+          >
+            ✏️
+          </button>
+          <button 
+            onClick={() => handleDelete(row)}
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-red-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
+            title="Delete Record"
+          >
+            🗑️
+          </button>
+        </div>
+      )
+    }
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Labour Master</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">Manage transport workers, loaders, and staff</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Labour Registry</h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">Manage workforce attendance, ledger, and profile registry</p>
         </div>
-        <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} icon="➕">Register Worker</Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-100 shadow-sm mr-2">
+            <Button variant="ghost" size="sm" onClick={() => handleExport('csv')} className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600">CSV</Button>
+            <Button variant="ghost" size="sm" onClick={() => handleExport('excel')} className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600">Excel</Button>
+            <Button variant="ghost" size="sm" onClick={() => handleExport('pdf')} className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600">PDF</Button>
+          </div>
+          <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100">
+            <span className="mr-2">➕</span> Register Labour
+          </Button>
+        </div>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <Input placeholder="Search by name or phone..." icon="🔍" value={search} onChange={(e) => setSearch(e.target.value)} className="bg-white border-none focus:ring-0" />
+      <div className="bg-white p-2 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+        <div className="pl-4 text-slate-400">🔍</div>
+        <input 
+          placeholder="Search by worker name, phone or address..." 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          className="flex-1 bg-transparent border-none focus:ring-0 h-12 text-sm font-medium text-slate-600 outline-none" 
+        />
       </div>
 
-      <DataTable columns={columns as any} data={data} loading={loading} onEdit={(row) => { setEditingItem(row); setIsModalOpen(true); }} onDelete={handleDelete} pagination={{ page, total, limit: 10, onPageChange: setPage }} />
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden">
+        <DataTable 
+          columns={columns as any} 
+          data={data} 
+          loading={loading} 
+          pagination={{ page, total, limit: 10, onPageChange: setPage }} 
+        />
+      </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Worker Profile' : 'Register New Worker'} size="lg">
+      {/* Register / Edit Labour Modal */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Labour Profile' : 'Register New Labour'} size="lg">
         <LabourForm initialData={editingItem || undefined} onSuccess={() => { setIsModalOpen(false); fetchData(); }} onCancel={() => setIsModalOpen(false)} />
       </Modal>
 
-      {/* Payment History Side Drawer */}
-      {isDrawerOpen && (
-        <div className="fixed inset-0 z-[60] flex justify-end animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsDrawerOpen(false)} />
-          <div className="relative w-full max-w-md bg-white shadow-2xl h-full animate-in slide-in-from-right duration-500 flex flex-col">
-            <div className="p-8 border-b border-slate-50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900">Payment History</h3>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{selectedWorker?.name}</p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setIsDrawerOpen(false)}>✕</Button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-8 space-y-6">
-              <div className="text-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
-                <p className="text-4xl mb-4">📜</p>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Payment History Yet</p>
-                <p className="text-[10px] text-slate-300 mt-2 italic px-8">Payments recorded in the Accounting module will appear here.</p>
-              </div>
-            </div>
-            <div className="p-8 border-t border-slate-50 bg-slate-50/50">
-              <Button className="w-full" onClick={() => setIsDrawerOpen(false)}>Close Ledger</Button>
-            </div>
+      {/* Add Expense Modal */}
+      <Modal isOpen={isExpenseModalOpen} onClose={() => setIsExpenseModalOpen(false)} title="Record Labour Expense" size="md">
+        {selectedLabour?.id && (
+          <LabourExpenseModal 
+            labourId={selectedLabour.id} 
+            onSuccess={() => { setIsExpenseModalOpen(false); fetchData(); }} 
+            onCancel={() => setIsExpenseModalOpen(false)} 
+          />
+        )}
+      </Modal>
+
+      {/* Detailed Eye View (Ledger) */}
+      {isDetailViewOpen && selectedLabour && (
+        <div className="fixed inset-0 z-[70] flex justify-end animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsDetailViewOpen(false)} />
+          <div className="relative w-full max-w-4xl bg-white shadow-2xl h-full animate-in slide-in-from-right duration-500">
+            <LabourDetailView labour={selectedLabour} onClose={() => setIsDetailViewOpen(false)} />
           </div>
         </div>
       )}

@@ -123,11 +123,9 @@ export const NAV_ITEMS: NavGroup[] = [
         path: '/dashboard/masters',
         allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'hr_manager', 'accountant'],
         subItems: [
-          { id: 'masters-employees', label: 'Employees', icon: '👥', path: '/dashboard/masters/employees', allowedRoles: ['tenant_owner', 'hr_manager'] },
           { id: 'masters-dealers', label: 'Dealers', icon: '🏢', path: '/dashboard/masters/dealers', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'accountant'] },
           { id: 'masters-consignees', label: 'Consignees', icon: '👥', path: '/dashboard/masters/consignees', allowedRoles: ['tenant_owner', 'ops_manager'] },
           { id: 'masters-consignors', label: 'Consignors', icon: '📤', path: '/dashboard/masters/consignors', allowedRoles: ['tenant_owner', 'ops_manager'] },
-          { id: 'masters-vehicles-m', label: 'Vehicles', icon: '🚚', path: '/dashboard/masters/vehicles', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'maintenance_supervisor'] },
           { id: 'masters-drivers', label: 'Drivers', icon: '👷', path: '/dashboard/masters/drivers', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'hr_manager'] },
           { id: 'masters-products', label: 'Products', icon: '📦', path: '/dashboard/masters/products', allowedRoles: ['tenant_owner', 'ops_manager'] },
           { id: 'masters-labour', label: 'Labour Registry', icon: '👷', path: '/dashboard/masters/labour', allowedRoles: ['tenant_owner', 'fleet_owner', 'hr_manager', 'ops_manager'] },

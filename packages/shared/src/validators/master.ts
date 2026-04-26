@@ -127,3 +127,15 @@ export const SalaryStructureSchema = z.object({
 
 export type SalaryStructure = z.infer<typeof SalaryStructureSchema>;
 
+export const LabourExpenseSchema = z.object({
+  id: z.string().uuid().optional(),
+  labourId: z.string().uuid(),
+  type: z.enum(['Advance', 'Salary', 'Bonus', 'Deduction', 'Other']),
+  amount: z.number().int().positive('Amount must be positive'), // in paise
+  date: z.string().or(z.date()),
+  message: z.string().min(1, 'Message/Remarks are required'),
+  paymentMode: z.enum(['Cash', 'Bank', 'Online']).default('Cash'),
+});
+
+export type LabourExpense = z.infer<typeof LabourExpenseSchema>;
+

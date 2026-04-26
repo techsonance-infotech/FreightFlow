@@ -67,6 +67,7 @@ model Tenant {
   scheduledReports ScheduledReport[]
   reportCaches     ReportCache[]
   drivers          Driver[]
+  labourExpenses   LabourExpense[]
 
   @@map("tenants")
 }
@@ -208,6 +209,7 @@ model Company {
   scheduledReports ScheduledReport[]
   reportCaches     ReportCache[]
   drivers          Driver[]
+  labourExpenses   LabourExpense[]
 
   @@index([tenantId])
   @@map("companies")
@@ -396,10 +398,33 @@ model Labour {
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  expenses LabourExpense[]
 
   @@index([tenantId])
   @@index([companyId])
   @@map("labours")
+}
+
+model LabourExpense {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  labourId    String   @map("labour_id") @db.Uuid
+  type        String   @db.VarChar(50) // advance, salary, bonus, deduction
+  amount      Int      @map("amount") // paise
+  date        DateTime @db.Date
+  message     String?  @db.Text
+  paymentMode String?  @map("payment_mode") @db.VarChar(20) // cash, bank, online
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  labour  Labour  @relation(fields: [labourId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([labourId])
+  @@index([companyId])
+  @@map("labour_expenses")
 }
 
 model Employee {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_ITEMS, hasPermission, type NavItem } from '@/config/rbac';
@@ -17,20 +17,81 @@ interface SidebarProps {
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const [hasInteracted, setHasInteracted] = useState(false);
 
-  const toggleMenu = (id: string) => {
+  // Reset manual interaction state when navigating to a new page
+  // This allows the sidebar to "auto-expand" the correct section for the new page
+  React.useEffect(() => {
+    setHasInteracted(false);
+    setOpenMenus({});
+  }, [pathname]);
+
+  // Calculate active items and paths
+  const activeIds = useMemo(() => {
+    const ids = new Set<string>();
+    
+    const checkActive = (items: NavItem[]): boolean => {
+      let anyActive = false;
+      
+      for (const item of items) {
+        let isThisItemActive = false;
+        
+        // 1. Exact match
+        if (pathname === item.path) {
+          isThisItemActive = true;
+        }
+        
+        // 2. Child match (recursive)
+        if (item.subItems && checkActive(item.subItems)) {
+          isThisItemActive = true;
+        }
+        
+        // 3. Prefix match (for leaf nodes/detail pages)
+        // We only consider it active if no sibling is an exact match or a better prefix match
+        if (!isThisItemActive && (!item.subItems || item.subItems.length === 0)) {
+          if (item.path !== '/dashboard' && pathname.startsWith(item.path + '/')) {
+            const betterSibling = items.find(sibling => 
+              sibling.id !== item.id && 
+              (pathname === sibling.path || (pathname.startsWith(sibling.path + '/') && sibling.path.length > item.path.length))
+            );
+            if (!betterSibling) {
+              isThisItemActive = true;
+            }
+          }
+        }
+        
+        if (isThisItemActive) {
+          ids.add(item.id);
+          anyActive = true;
+        }
+      }
+      
+      return anyActive;
+    };
+
+    NAV_ITEMS.forEach(group => checkActive(group.items));
+    return ids;
+  }, [pathname]);
+
+  const toggleMenu = (id: string, defaultExpanded: boolean) => {
+    setHasInteracted(true);
     setOpenMenus(prev => {
-      const isOpen = prev[id];
-      // Close all and open only the selected one if it was closed
-      return isOpen ? {} : { [id]: true };
+      const isCurrentlyOpen = prev[id] !== undefined ? prev[id] : defaultExpanded;
+      // Close others and toggle the current one for strict single-open behavior
+      return { [id]: !isCurrentlyOpen };
     });
   };
 
   const renderNavItem = (item: NavItem, isSubItem = false) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
-    // It's expanded if the state says so OR if we are on a child path
-    const isExpanded = openMenus[item.id] || (hasSubItems && pathname.startsWith(item.path));
-    const isActive = pathname === item.path || (item.path !== '/dashboard' && pathname.startsWith(item.path) && !hasSubItems);
+    const isActive = activeIds.has(item.id);
+    
+    // Logic: 
+    // 1. If user has interacted, use the manual state (openMenus).
+    // 2. Otherwise, use the "active path" auto-expansion.
+    const isExpanded = hasInteracted 
+      ? !!openMenus[item.id] 
+      : (hasSubItems && isActive);
     
     const filteredSubItems = item.subItems?.filter(si => hasPermission(user.role, si.allowedRoles)) || [];
 
@@ -40,15 +101,15 @@ export function Sidebar({ user }: SidebarProps) {
       <div key={item.id} className="space-y-0.5">
         {hasSubItems ? (
           <button
-            onClick={() => toggleMenu(item.id)}
+            onClick={() => toggleMenu(item.id, isActive)}
             className={cn(
               "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-200",
-              isExpanded ? "text-white bg-white/5" : "text-white/50 hover:bg-white/5 hover:text-white"
+              isActive ? "text-white bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" : "text-white/50 hover:bg-white/5 hover:text-white"
             )}
           >
             <span className={cn(
               "text-base transition-all duration-200",
-              isExpanded ? "opacity-100 scale-110" : "opacity-70 group-hover:opacity-100"
+              isActive ? "opacity-100 scale-110" : "opacity-70 group-hover:opacity-100"
             )}>
               {item.icon}
             </span>
@@ -62,9 +123,10 @@ export function Sidebar({ user }: SidebarProps) {
             href={item.path}
             className={cn(
               "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-200",
+              isSubItem && "pl-8",
               isActive 
                 ? "bg-blue-600/15 text-white border border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.05)]" 
-                : isSubItem ? "text-white/30 hover:text-white pl-8" : "text-white/50 hover:bg-white/5 hover:text-white"
+                : isSubItem ? "text-white/30 hover:text-white" : "text-white/50 hover:bg-white/5 hover:text-white"
             )}
           >
             <span className={cn(
