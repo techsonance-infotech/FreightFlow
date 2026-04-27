@@ -19,7 +19,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "public/**"]
     },
     "dev": {
       "cache": false,
@@ -47,7 +47,8 @@
       "cache": false
     },
     "generate": {
-      "cache": false
+      "dependsOn": ["^generate"],
+      "outputs": ["node_modules/.prisma/**"]
     }
   }
 }
