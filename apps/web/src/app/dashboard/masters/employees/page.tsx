@@ -19,10 +19,6 @@ export default function EmployeesMasterPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-
   const fetchEmployees = async () => {
     setLoading(true);
     try {
@@ -35,6 +31,10 @@ export default function EmployeesMasterPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
   const handleEdit = (emp: any) => {
     setSelectedEmployee(emp);

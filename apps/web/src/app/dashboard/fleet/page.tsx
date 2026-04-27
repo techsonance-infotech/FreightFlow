@@ -19,10 +19,6 @@ export default function FleetOverviewPage() {
     recentDocs: [] as any[],
   });
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
   const fetchStats = async () => {
     try {
       setLoading(true);
@@ -52,6 +48,10 @@ export default function FleetOverviewPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   if (loading) {
     return (

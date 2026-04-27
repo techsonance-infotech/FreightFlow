@@ -18,12 +18,6 @@ export function CompanySwitcher({ currentCompanyId }: { currentCompanyId: string
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && companies.length === 0) {
-      fetchCompanies();
-    }
-  }, [isOpen]);
-
   const fetchCompanies = async () => {
     try {
       setLoading(true);
@@ -36,6 +30,12 @@ export function CompanySwitcher({ currentCompanyId }: { currentCompanyId: string
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && companies.length === 0) {
+      fetchCompanies();
+    }
+  }, [isOpen]);
 
   const switchCompany = async (companyId: string) => {
     if (companyId === currentCompanyId) {

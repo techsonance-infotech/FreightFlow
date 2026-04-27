@@ -34,10 +34,6 @@ export default function FuelPage() {
     vendor: '',
   });
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
@@ -56,6 +52,10 @@ export default function FuelPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

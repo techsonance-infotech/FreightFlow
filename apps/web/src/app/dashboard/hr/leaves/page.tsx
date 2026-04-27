@@ -18,10 +18,6 @@ export default function LeavesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchLeaves();
-  }, []);
-
   const fetchLeaves = async () => {
     setLoading(true);
     try {
@@ -34,6 +30,10 @@ export default function LeavesPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchLeaves();
+  }, []);
 
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
     const loadingToast = toast.loading(`${action === 'approved' ? 'Approving' : 'Rejecting'} leave request...`);

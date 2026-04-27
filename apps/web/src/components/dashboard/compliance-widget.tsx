@@ -11,11 +11,12 @@ export function ComplianceCalendarWidget() {
     // In a real app we fetch from /api/v1/compliance/deadlines
     // Mocking for immediate UI feedback as per phase instructions
     setLoading(true);
+    const nowTimestamp = Date.now();
     setTimeout(() => {
       setDeadlines([
-        { id: 1, type: 'GSTR-1', desc: 'Outward Supplies', date: new Date(Date.now() + 3 * 86400000), status: 'urgent' },
-        { id: 2, type: 'TDS', desc: 'Payment (Form 26Q)', date: new Date(Date.now() + 6 * 86400000), status: 'warning' },
-        { id: 3, type: 'GSTR-3B', desc: 'Monthly Return', date: new Date(Date.now() + 15 * 86400000), status: 'normal' },
+        { id: 1, type: 'GSTR-1', desc: 'Outward Supplies', date: new Date(nowTimestamp + 3 * 86400000), daysLeft: 3, status: 'urgent' },
+        { id: 2, type: 'TDS', desc: 'Payment (Form 26Q)', date: new Date(nowTimestamp + 6 * 86400000), daysLeft: 6, status: 'warning' },
+        { id: 3, type: 'GSTR-3B', desc: 'Monthly Return', date: new Date(nowTimestamp + 15 * 86400000), daysLeft: 15, status: 'normal' },
       ]);
       setLoading(false);
     }, 500);
@@ -58,7 +59,7 @@ export function ComplianceCalendarWidget() {
                   d.status === 'urgent' ? 'text-rose-600' :
                   d.status === 'warning' ? 'text-amber-600' : 'text-emerald-600'
                 }`}>
-                  {Math.ceil((d.date.getTime() - Date.now()) / 86400000)} Days Left
+                  {d.daysLeft} Days Left
                 </span>
               </div>
             </div>

@@ -28,10 +28,6 @@ export default function FleetDocumentsPage() {
     fileUrl: '',
   });
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
@@ -49,6 +45,10 @@ export default function FleetDocumentsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -28,10 +28,6 @@ export default function MaintenancePage() {
     startedAt: format(new Date(), 'yyyy-MM-dd'),
   });
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
@@ -49,6 +45,10 @@ export default function MaintenancePage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -29,10 +29,6 @@ export default function TransportReportsPage() {
   const [lrData, setLrData] = useState<any[]>([]);
   const [fuelData, setFuelData] = useState<any>(null);
 
-  useEffect(() => {
-    fetchReportData();
-  }, [activeTab, startDate, endDate]);
-
   const fetchReportData = async () => {
     try {
       setLoading(true);
@@ -62,6 +58,10 @@ export default function TransportReportsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchReportData();
+  }, [activeTab, startDate, endDate]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', {

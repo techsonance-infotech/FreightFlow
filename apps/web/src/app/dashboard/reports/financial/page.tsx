@@ -27,10 +27,6 @@ export default function FinancialReportsPage() {
   const [bsData, setBsData] = useState<any>(null);
   const [ageingData, setAgeingData] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchReportData();
-  }, [activeTab, asOnDate]);
-
   const fetchReportData = async () => {
     try {
       setLoading(true);
@@ -54,6 +50,10 @@ export default function FinancialReportsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchReportData();
+  }, [activeTab, asOnDate]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', {

@@ -20,10 +20,6 @@ export default function AttendancePage() {
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, [date]);
-
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -51,6 +47,10 @@ export default function AttendancePage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, [date]);
 
   const handleStatusChange = (empId: string, status: string) => {
     setAttendance(prev => ({ ...prev, [empId]: status }));
