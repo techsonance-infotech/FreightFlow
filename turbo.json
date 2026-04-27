@@ -5,14 +5,21 @@
     "DIRECT_URL",
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_SITE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "SMTP_FROM",
     "JWT_SECRET",
     "NODE_ENV"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "public/**"]
     },
     "dev": {
       "cache": false,
@@ -40,7 +47,8 @@
       "cache": false
     },
     "generate": {
-      "cache": false
+      "dependsOn": ["^generate"],
+      "outputs": ["node_modules/.prisma/**"]
     }
   }
 }
