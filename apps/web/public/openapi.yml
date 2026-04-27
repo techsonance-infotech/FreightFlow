@@ -1,0 +1,442 @@
+openapi: 3.0.3
+info:
+  title: FreightFlow API
+  version: 1.0.0
+  description: |
+    OpenAPI Contract-First specification for FreightFlow — a multi-tenant SaaS platform
+    for Indian road transport and logistics companies.
+
+    ## Authentication
+    All protected endpoints require a valid Supabase JWT token in the Authorization header.
+    Tokens are obtained via the `/auth/login` flow and refreshed automatically via `@supabase/ssr`.
+
+  contact:
+    name: TechSonance InfoTech LLP
+    url: https://www.techsonanceinfotech.com
+    email: dev@techsonanceinfotech.com
+  license:
+    name: Proprietary
+    url: https://freightflowpro.com/license
+
+servers:
+  - url: /api/v1
+    description: Internal Next.js API Routes (Production)
+  - url: http://localhost:3000/api/v1
+    description: Local Development
+
+tags:
+  - name: Auth
+    description: Authentication & account management
+  - name: Onboarding
+    description: Tenant onboarding & company setup
+  - name: SuperAdmin
+    description: Platform administration (Super Admin only)
+  - name: License
+    description: License & subscription management
+  - name: Modules
+    description: Tenant module control
+
+paths:
+  # ─── AUTH ─────────────────────────────────────────────────
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new Tenant and User
+      operationId: registerTenant
+      description: |
+        Creates a new Supabase Auth user, provisions a Tenant with a 7-day trial,
+        and seeds default modules. Sends a verification email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registration successful — verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Validation error or email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in with email and password
+      operationId: loginUser
+      description: |
+        Authenticates via Supabase `signInWithPassword`. Rejects unverified emails.
+        Sets secure HTTP-only session cookies on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful — session established
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials or email not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Sign out and destroy session
+      operationId: logoutUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Session destroyed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request a password reset email
+      operationId: forgotPassword
+      description: Sends a password reset link. Always returns 200 to prevent email enumeration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent (if account exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/callback:
+    get:
+      tags: [Auth]
+      summary: OAuth / Email verification callback
+      operationId: authCallback
+      description: Exchanges a one-time code from email verification or password reset for a session.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: next
+          in: query
+          required: false
+          schema:
+            type: string
+            default: /dashboard
+      responses:
+        '302':
+          description: Redirect to dashboard or specified path
+
+  # ─── ONBOARDING ──────────────────────────────────────────
+  /onboarding/company:
+    post:
+      tags: [Onboarding]
+      summary: Save company details (Step 1)
+      operationId: saveCompanyDetails
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyDetailsRequest'
+      responses:
+        '200':
+          description: Company created and linked to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyDetailsResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /onboarding/compliance:
+    post:
+      tags: [Onboarding]
+      summary: Save compliance documents (Step 2)
+      operationId: saveComplianceDetails
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ComplianceRequest'
+      responses:
+        '200':
+          description: Compliance details saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid GST/PAN or upload failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─── SUPER ADMIN ─────────────────────────────────────────
+  /super-admin/dashboard:
+    get:
+      tags: [SuperAdmin]
+      summary: Get platform KPI stats
+      operationId: getSuperAdminDashboard
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard KPIs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuperAdminDashboard'
+        '403':
+          description: Not a platform admin
+
+  /super-admin/tenants:
+    get:
+      tags: [SuperAdmin]
+      summary: List all tenants (paginated)
+      operationId: listTenants
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended, cancelled]
+      responses:
+        '200':
+          description: Paginated tenant list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token from session cookies
+
+  schemas:
+    # ─── Auth Schemas ──────────────────────────────────────
+    RegisterRequest:
+      type: object
+      required: [tenantName, username, email, password, confirmPassword]
+      properties:
+        tenantName:
+          type: string
+          minLength: 3
+          description: Business / Tenant name
+          example: Shree Shivay Roadlines
+        username:
+          type: string
+          pattern: '^[a-zA-Z0-9_]{3,20}$'
+          example: shivay_admin
+        email:
+          type: string
+          format: email
+          example: admin@shivay.com
+        phone:
+          type: string
+          pattern: '^\d{10}$'
+          example: '9876543210'
+        password:
+          type: string
+          format: password
+          minLength: 8
+        confirmPassword:
+          type: string
+          format: password
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        redirectTo:
+          type: string
+          description: Path to redirect after login
+
+    # ─── Onboarding Schemas ────────────────────────────────
+    CompanyDetailsRequest:
+      type: object
+      required: [companyName]
+      properties:
+        companyName:
+          type: string
+          minLength: 2
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: string
+          maxLength: 6
+        companyEmail:
+          type: string
+          format: email
+        companyPhone:
+          type: string
+
+    CompanyDetailsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        companyId:
+          type: string
+          format: uuid
+
+    ComplianceRequest:
+      type: object
+      required: [complianceType]
+      properties:
+        complianceType:
+          type: string
+          enum: [gst, pan]
+        gstNumber:
+          type: string
+          pattern: '^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$'
+        panNumber:
+          type: string
+          pattern: '^[A-Z]{5}\d{4}[A-Z]{1}$'
+        document:
+          type: string
+          format: binary
+          description: GST certificate or PAN card image (PDF/JPG/PNG, max 10MB)
+
+    # ─── Super Admin Schemas ───────────────────────────────
+    SuperAdminDashboard:
+      type: object
+      properties:
+        totalTenants:
+          type: integer
+        activeLicenses:
+          type: integer
+        expiringIn30Days:
+          type: integer
+        totalRevenue:
+          type: number
+          format: double
+
+    TenantListResponse:
+      type: object
+      properties:
+        tenants:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantSummary'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    TenantSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        plan:
+          type: string
+          enum: [trial, starter, growth, enterprise]
+        status:
+          type: string
+          enum: [active, suspended, cancelled]
+        licenseExpiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    # ─── Common Schemas ────────────────────────────────────
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
