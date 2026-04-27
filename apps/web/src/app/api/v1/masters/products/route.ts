@@ -19,11 +19,21 @@ export async function GET(request: Request) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { hsnCode: { contains: search, mode: 'insensitive' } },
+        { category: { name: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
     const [items, total] = await Promise.all([
-      prisma.product.findMany({ where, skip, take: limit, orderBy: { updatedAt: 'desc' } }),
+      prisma.product.findMany({ 
+        where, 
+        skip, 
+        take: limit, 
+        orderBy: { updatedAt: 'desc' },
+        include: { 
+          category: true,
+          unit: true
+        }
+      }),
       prisma.product.count({ where }),
     ]);
 

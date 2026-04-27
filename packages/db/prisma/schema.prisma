@@ -39,8 +39,10 @@ model Tenant {
   consignees    Consignee[]
   vehicles      Vehicle[]
   labours       Labour[]
-  employees     Employee[]
+  productCategories ProductCategory[]
+  productUnits  ProductUnit[]
   products      Product[]
+  employees     Employee[]
   orders        Order[]
   pallets       OrderPallet[]
   trips         Trip[]
@@ -68,6 +70,7 @@ model Tenant {
   reportCaches     ReportCache[]
   drivers          Driver[]
   labourExpenses   LabourExpense[]
+  labourAttendance LabourAttendance[]
 
   @@map("tenants")
 }
@@ -173,8 +176,10 @@ model Company {
   consignees Consignee[]
   vehicles  Vehicle[]
   labours   Labour[]
-  employees Employee[]
+  productCategories ProductCategory[]
+  productUnits ProductUnit[]
   products  Product[]
+  employees Employee[]
   orders    Order[]
   pallets   OrderPallet[]
   trips     Trip[]
@@ -185,6 +190,8 @@ model Company {
   payrollRuns     PayrollRun[]
   driverAdvances  DriverAdvance[]
   tdsEntries      TdsEntry[]
+  labourExpenses  LabourExpense[]
+  labourAttendance LabourAttendance[]
 
   
   orderDetails OrderDetail[]
@@ -209,7 +216,6 @@ model Company {
   scheduledReports ScheduledReport[]
   reportCaches     ReportCache[]
   drivers          Driver[]
-  labourExpenses   LabourExpense[]
 
   @@index([tenantId])
   @@map("companies")
@@ -285,6 +291,26 @@ model Dealer {
   gstin        String?  @db.VarChar(15)
   serviceTaxNo String?  @map("service_tax_no") @db.VarChar(50)
   dealerType   String?  @map("dealer_type") @db.VarChar(50)
+
+  // Bank Details
+  bankName     String?  @map("bank_name") @db.VarChar(255)
+  accountNo    String?  @map("account_no") @db.VarChar(50)
+  ifscCode     String?  @map("ifsc_code") @db.VarChar(20)
+  branchName   String?  @map("branch_name") @db.VarChar(255)
+
+  // Financials & TDS
+  tdsRate      Float    @default(0) @map("tds_rate")
+  tdsSection   String?  @map("tds_section") @db.VarChar(50)
+
+  // Logistics Profile
+  fleetSize    Int      @default(0) @map("fleet_size")
+  primaryRoutes String? @map("primary_routes") @db.Text
+
+  // Documents
+  gstUrl       String?  @map("gst_url") @db.Text
+  panUrl       String?  @map("pan_url") @db.Text
+  bankProofUrl String?  @map("bank_proof_url") @db.Text
+
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
@@ -309,9 +335,24 @@ model Consignor {
   companyName String?  @map("company_name") @db.VarChar(255)
   address     String?  @db.Text
   email       String?  @db.VarChar(255)
-  gstin       String?  @db.VarChar(15)
   phone       String?  @db.VarChar(20)
+  gstin       String?  @db.VarChar(15)
+  pan         String?  @db.VarChar(10)
+  
+  // Credit & Financials
+  creditLimit Float    @default(0) @map("credit_limit")
+  creditDays  Int      @default(0) @map("credit_days")
+  
+  // MSME & Compliance
+  isMsme      Boolean  @default(false) @map("is_msme")
+  msmeRegNo   String?  @map("msme_reg_no") @db.VarChar(50)
+  
+  // Documents
   imageUrl    String?  @map("image_url") @db.Text
+  gstUrl      String?  @map("gst_url") @db.Text
+  panUrl      String?  @map("pan_url") @db.Text
+  msmeUrl     String?  @map("msme_url") @db.Text
+
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
@@ -336,7 +377,25 @@ model Consignee {
   phone       String?  @db.VarChar(20)
   gstin       String?  @db.VarChar(15)
   pan         String?  @db.VarChar(10)
+
+  // Credit & Financials
+  creditLimit Float    @default(0) @map("credit_limit")
+  creditDays  Int      @default(0) @map("credit_days")
+
+  // Logistics Preferences
+  unloadingHours String? @map("unloading_hours") @db.VarChar(100)
+  restrictions   String? @db.Text
+
+  // Documents
   imageUrl    String?  @map("image_url") @db.Text
+  gstUrl      String?  @map("gst_url") @db.Text
+  panUrl      String?  @map("pan_url") @db.Text
+  msmeUrl     String?  @map("msme_url") @db.Text
+
+  // MSME & Compliance
+  isMsme      Boolean  @default(false) @map("is_msme")
+  msmeRegNo   String?  @map("msme_reg_no") @db.VarChar(50)
+
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
@@ -391,7 +450,26 @@ model Labour {
   phone     String?  @db.VarChar(20)
   address   String?  @db.Text
   salary    Int      @default(0) // stored in paise
+  aadharNo  String?  @map("aadhar_no") @db.VarChar(20)
+  panNo     String?  @map("pan_no") @db.VarChar(20)
+  aadharUrl String?  @map("aadhar_url") @db.Text
+  panUrl    String?  @map("pan_url") @db.Text
+  skillCategory String? @map("skill_category") @db.VarChar(50) // Driver, Loader, Cleaner, Mechanic
   isActive  Boolean  @default(true) @map("is_active")
+  
+  // Driver specific fields (optional)
+  dlNumber  String?  @map("dl_number") @db.VarChar(50)
+  dlExpiry  DateTime? @map("dl_expiry") @db.Date
+  dlCategory String?  @map("dl_category") @db.VarChar(20)
+  badgeNo   String?  @map("badge_no") @db.VarChar(50)
+  dlUrl     String?  @map("dl_url") @db.Text
+
+  // Bank Details
+  bankName     String?  @map("bank_name") @db.VarChar(255)
+  accountNo    String?  @map("account_no") @db.VarChar(50)
+  ifscCode     String?  @map("ifsc_code") @db.VarChar(20)
+  branchName   String?  @map("branch_name") @db.VarChar(255)
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
@@ -399,10 +477,33 @@ model Labour {
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   expenses LabourExpense[]
+  attendance LabourAttendance[]
 
   @@index([tenantId])
   @@index([companyId])
   @@map("labours")
+}
+
+model LabourAttendance {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  labourId    String   @map("labour_id") @db.Uuid
+  date        DateTime @db.Date
+  status      String   @db.VarChar(20) // Present, Absent, HalfDay, Leave
+  overtime    Int      @default(0) // hours
+  remarks     String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  labour  Labour  @relation(fields: [labourId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([labourId, date])
+  @@index([labourId])
+  @@index([date])
+  @@map("labour_attendance")
 }
 
 model LabourExpense {
@@ -532,23 +633,66 @@ model Driver {
   @@map("drivers")
 }
 
+model ProductCategory {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([companyId, name])
+  @@index([tenantId])
+  @@map("product_categories")
+}
+
+model ProductUnit {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  name      String   @db.VarChar(50) // KG, MT, BOX, etc.
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([companyId, name])
+  @@index([tenantId])
+  @@map("product_units")
+}
+
 model Product {
   id             String   @id @default(uuid()) @db.Uuid
   tenantId       String   @map("tenant_id") @db.Uuid
   companyId      String   @map("company_id") @db.Uuid
+  categoryId     String?  @map("category_id") @db.Uuid
+  unitId         String?  @map("unit_id") @db.Uuid
   name           String   @db.VarChar(255)
-  hsnCode        String?  @map("hsn_code") @db.VarChar(20)
+  description    String?  @db.Text
+  hsnCode        String   @map("hsn_code") @db.VarChar(20)
   defaultPacking String?  @map("default_packing") @db.VarChar(50)
+  gstRate        Int      @default(0) @map("gst_rate") // Percentage
+  imageUrl       String?  @map("image_url") @db.Text
   isActive       Boolean  @default(true) @map("is_active")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt      DateTime? @map("deleted_at") @db.Timestamptz()
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  unit     ProductUnit?     @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  company  Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([companyId])
+  @@index([categoryId])
+  @@index([unitId])
   @@map("products")
 }
 

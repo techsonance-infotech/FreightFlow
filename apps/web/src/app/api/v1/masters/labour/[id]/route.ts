@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-utils';
 import { prisma } from '@freightflow/db';
-import { LabourSchema } from '@freightflow/shared';
+import { LabourObjectSchema } from '@freightflow/shared';
 import { z } from 'zod';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -17,17 +17,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession();
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
     const { id } = await params;
     const body = await request.json();
-    const validatedData = LabourSchema.partial().parse(body);
+    const validatedData = LabourObjectSchema.partial().parse(body);
+    
+    // Remove id from update data if present to avoid Prisma conflicts
+    const { id: _, ...updateData } = validatedData;
 
-    const updated = await prisma.labour.update({ where: { id }, data: validatedData });
+    const updated = await prisma.labour.update({
+      where: { 
+        id,
+        tenantId: session.user.tenantId,
+        companyId: session.user.companyId 
+      },
+      data: updateData
+    });
+    
     return NextResponse.json(updated);
   } catch (error) {
+    console.error('Labour PATCH Error:', error);
     if (error instanceof z.ZodError) return NextResponse.json({ error: error.errors }, { status: 400 });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

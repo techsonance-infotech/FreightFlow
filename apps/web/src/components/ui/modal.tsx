@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from './button';
 
 interface ModalProps {
@@ -11,13 +12,16 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     if (isOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const sizes = {
     sm: 'max-w-md',
@@ -27,14 +31,14 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
     '3xl': 'max-w-[90vw]',
   };
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
       <div 
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 
       />
       
-      <div className={`relative w-full ${sizes[size]} rounded-3xl bg-white shadow-2xl shadow-slate-900/20 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-300`}>
+      <div className={`relative w-full ${sizes[size]} rounded-3xl bg-white shadow-2xl shadow-slate-900/30 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-300`}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-50 px-8 py-6">
           <div>
@@ -47,7 +51,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
         </div>
 
         {/* Content */}
-        <div className="max-h-[70vh] overflow-y-auto px-8 py-8 custom-scrollbar">
+        <div className="max-h-[75vh] overflow-y-auto px-8 py-8 custom-scrollbar">
           {children}
         </div>
 
@@ -60,4 +64,6 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

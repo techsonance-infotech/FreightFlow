@@ -5,108 +5,261 @@ import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
-import { DriverForm } from '@/components/masters/driver-form';
-import { type Driver } from '@freightflow/shared';
+import { LabourForm } from '@/components/masters/labour-form';
+import { LabourExpenseModal } from '@/components/masters/labour-expense-modal';
+import { LabourDetailView } from '@/components/masters/labour-detail-view';
+import { type Labour } from '@freightflow/shared';
 import { toast } from 'sonner';
-import { format, isPast, isWithinInterval, addDays } from 'date-fns';
+import { format, isPast, isWithinInterval, addDays, parseISO } from 'date-fns';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
 
 export default function DriversPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Labour[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Driver | null>(null);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<Labour | null>(null);
+  const [editingItem, setEditingItem] = useState<Labour | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/v1/masters/drivers?page=${page}&search=${search}`);
+      const response = await fetch(`/api/v1/masters/labour?page=${page}&limit=${limit}&search=${search}&skillCategory=Driver`);
       const result = await response.json();
-      if (response.ok) { setData(result.data); setTotal(result.meta.total); }
-    } catch { toast.error('Failed to fetch data'); } finally { setLoading(false); }
+      if (response.ok) { 
+        setData(result.data); 
+        setTotal(result.meta.total); 
+      }
+    } catch { 
+      toast.error('Failed to fetch data'); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   useEffect(() => {
     const timer = setTimeout(fetchData, 300);
     return () => clearTimeout(timer);
-  }, [page, search]);
+  }, [page, limit, search]);
 
-  const handleDelete = async (item: Driver) => {
-    if (!confirm(`Remove driver license for ${item.id}?`)) return;
-    try {
-      const res = await fetch(`/api/v1/masters/drivers/${item.id}`, { method: 'DELETE' });
-      if (res.ok) { toast.success('Deleted'); fetchData(); }
-    } catch { toast.error('Error'); }
+  const handleExport = (formatType: 'csv' | 'excel' | 'pdf') => {
+    const exportData = data.map(d => ({
+      Name: d.name,
+      Phone: d.phone || 'N/A',
+      'License No': d.dlNumber || 'N/A',
+      'DL Expiry': d.dlExpiry ? format(parseISO(d.dlExpiry as any), 'dd MMM yyyy') : 'N/A',
+      Salary: d.salary / 100,
+      'Bank Name': d.bankName || 'N/A',
+      'Account No': d.accountNo || 'N/A'
+    }));
+
+    const filename = `Drivers_List_${new Date().toISOString().split('T')[0]}`;
+
+    if (formatType === 'csv') exportToCSV(exportData, filename);
+    else if (formatType === 'excel') exportToExcel(exportData, filename);
+    else {
+      const headers = ['Name', 'Phone', 'License No', 'DL Expiry', 'Salary'];
+      const pdfData = exportData.map(d => [d.Name, d.Phone, d['License No'], d['DL Expiry'], d.Salary.toLocaleString('en-IN')]);
+      exportToPDF(headers, pdfData, filename, 'Driver Master List');
+    }
   };
 
   const columns = [
+// ... (columns kept as is)
+// (Note: I will use multi_replace for better precision if needed, but here I'll just replace the whole chunk)
     { 
-      header: 'Driver Name', 
-      accessor: (row: any) => (
-        <div>
-          <p className="font-black text-slate-900">{row.employee?.name}</p>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.employee?.empCode}</p>
+      header: 'Driver Profile', 
+      accessor: (row: Labour) => (
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg shadow-sm border border-blue-100/50">
+            👨‍✈️
+          </div>
+          <div>
+            <p className="font-black text-slate-900 leading-tight">{row.name}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{row.phone || 'No Phone'}</p>
+          </div>
         </div>
       )
     },
     { 
       header: 'License Details', 
-      accessor: (row: any) => (
+      accessor: (row: Labour) => (
         <div>
-          <p className="font-mono text-sm font-black text-slate-700">{row.dlNumber}</p>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm font-black text-slate-700">{row.dlNumber || 'N/A'}</span>
+            {row.dlUrl && (
+              <a href={row.dlUrl} target="_blank" rel="noreferrer" title="View DL Copy" className="text-blue-500 hover:scale-110 transition-transform">
+                📄
+              </a>
+            )}
+          </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.dlCategory || 'No Category'}</p>
         </div>
       )
     },
     { 
       header: 'DL Expiry', 
-      accessor: (row: any) => {
-        const expiryDate = new Date(row.dlExpiry);
+      accessor: (row: Labour) => {
+        if (!row.dlExpiry) return <span className="text-slate-300 font-bold text-[10px] uppercase">Not Set</span>;
+        
+        const expiryDate = parseISO(row.dlExpiry as any);
         const isExpired = isPast(expiryDate);
         const isExpiringSoon = isWithinInterval(expiryDate, { start: new Date(), end: addDays(new Date(), 30) });
         
-        let statusClass = 'text-green-600 bg-green-50';
-        if (isExpired) statusClass = 'text-red-600 bg-red-50 animate-pulse';
-        else if (isExpiringSoon) statusClass = 'text-amber-600 bg-amber-50';
+        let statusClass = 'text-green-600 bg-green-50 border-green-100';
+        if (isExpired) statusClass = 'text-red-600 bg-red-50 border-red-100 animate-pulse';
+        else if (isExpiringSoon) statusClass = 'text-amber-600 bg-amber-50 border-amber-100';
 
         return (
-          <div className={`inline-flex px-3 py-1 rounded-lg text-xs font-black uppercase tracking-tight ${statusClass}`}>
+          <div className={`inline-flex px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-tight border ${statusClass}`}>
             {format(expiryDate, 'dd MMM yyyy')}
           </div>
         );
       }
     },
     { 
-      header: 'Type', 
-      accessor: (row: any) => (
-        <span className={`inline-flex px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${row.isVendorDriver ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
-          {row.isVendorDriver ? 'Vendor' : 'Staff'}
-        </span>
+      header: 'Salary & Finances', 
+      accessor: (row: Labour) => (
+        <div>
+          <p className="font-black text-blue-600 tabular-nums text-sm">
+            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(row.salary / 100)}
+          </p>
+          <p className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400">Monthly Base</p>
+        </div>
       )
     },
+    {
+      header: 'Actions',
+      className: 'text-right',
+      accessor: (row: Labour) => (
+        <div className="flex items-center justify-end gap-2">
+          <button 
+            onClick={() => { setSelectedDriver(row); setIsDetailViewOpen(true); }}
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-600 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
+            title="View Ledger"
+          >
+            👁️
+          </button>
+          <button 
+            onClick={() => { setSelectedDriver(row); setIsExpenseModalOpen(true); }}
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-orange-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
+            title="Record Advance/Expense"
+          >
+            ₹
+          </button>
+          <button 
+            onClick={() => { setEditingItem(row); setIsModalOpen(true); }}
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
+            title="Edit Driver"
+          >
+            ✏️
+          </button>
+        </div>
+      )
+    }
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="p-8 space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Driver Master</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">Manage driver licenses and validity alerts</p>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-3xl">👨‍✈️</span>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Driver Master</h1>
+          </div>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Fleet Crew, Compliance & Operational Settlements</p>
         </div>
-        <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} icon="➕">Register Driver</Button>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 mr-4">
+            <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">CSV</Button>
+            <Button variant="outline" size="sm" onClick={() => handleExport('excel')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">Excel</Button>
+            <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="rounded-xl border-slate-200 text-red-600 bg-red-50/30 hover:bg-red-600 hover:text-white font-bold text-[10px] uppercase">PDF</Button>
+          </div>
+          <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-100 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
+            <span className="text-xl">+</span> Register New Driver
+          </Button>
+        </div>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <Input placeholder="Search by name or DL number..." icon="🔍" value={search} onChange={(e) => setSearch(e.target.value)} className="bg-white border-none focus:ring-0" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { label: 'Total Fleet Crew', value: total, icon: '📋', color: 'bg-blue-50', text: 'text-slate-900' },
+          { label: 'Expiring Licenses', value: data.filter(d => d.dlExpiry && isWithinInterval(parseISO(d.dlExpiry as any), { start: new Date(), end: addDays(new Date(), 30) })).length, icon: '⚠️', color: 'bg-amber-50', text: 'text-amber-600' },
+          { label: 'Expired Licenses', value: data.filter(d => d.dlExpiry && isPast(parseISO(d.dlExpiry as any))).length, icon: '❌', color: 'bg-red-50', text: 'text-red-600' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4">
+            <div className={`h-12 w-12 rounded-2xl ${stat.color} flex items-center justify-center text-xl`}>{stat.icon}</div>
+            <div className="flex-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
+              {loading ? (
+                <div className="h-8 w-16 bg-slate-100 animate-pulse rounded-lg mt-1" />
+              ) : (
+                <p className={`text-2xl font-black ${stat.text}`}>{stat.value}</p>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <DataTable columns={columns as any} data={data} loading={loading} onEdit={(row) => { setEditingItem(row); setIsModalOpen(true); }} onDelete={handleDelete} pagination={{ page, total, limit: 10, onPageChange: setPage }} />
+      <div className="space-y-6">
+        <Input 
+          placeholder="Search by driver name, license or phone..." 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          className="max-w-md bg-white border-none h-14 rounded-2xl shadow-sm px-6"
+        />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Driver Details' : 'Register New Driver'} size="lg">
-        <DriverForm initialData={editingItem || undefined} onSuccess={() => { setIsModalOpen(false); fetchData(); }} onCancel={() => setIsModalOpen(false)} />
+        <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+          <DataTable 
+            columns={columns} 
+            data={data} 
+            loading={loading}
+            pagination={{
+              page,
+              limit,
+              total,
+              onPageChange: setPage,
+              onLimitChange: setLimit
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Driver Form Modal */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Driver Profile' : 'Register New Driver'} size="lg">
+        <LabourForm 
+          initialData={editingItem ? { ...editingItem, skillCategory: 'Driver' } : { skillCategory: 'Driver' }} 
+          onSuccess={() => { setIsModalOpen(false); fetchData(); }} 
+          onCancel={() => setIsModalOpen(false)} 
+        />
       </Modal>
+
+      {/* Advance/Expense Modal */}
+      <Modal isOpen={isExpenseModalOpen} onClose={() => setIsExpenseModalOpen(false)} title="Record Driver Advance / Expense" size="md">
+        {selectedDriver?.id && (
+          <LabourExpenseModal 
+            labourId={selectedDriver.id} 
+            onSuccess={() => { setIsExpenseModalOpen(false); fetchData(); }} 
+            onCancel={() => setIsExpenseModalOpen(false)} 
+          />
+        )}
+      </Modal>
+
+      {/* Detailed Ledger View */}
+      {isDetailViewOpen && selectedDriver && (
+        <div className="fixed inset-0 z-[70] flex justify-end animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsDetailViewOpen(false)} />
+          <div className="relative w-full max-w-4xl bg-white shadow-2xl h-full animate-in slide-in-from-right duration-500">
+            <LabourDetailView labour={selectedDriver} onClose={() => setIsDetailViewOpen(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

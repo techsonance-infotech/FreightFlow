@@ -20,6 +20,7 @@ interface DataTableProps<T> {
     total: number;
     limit: number;
     onPageChange: (page: number) => void;
+    onLimitChange?: (limit: number) => void;
   };
 }
 
@@ -52,12 +53,24 @@ export function DataTable<T extends { id?: string }>({
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr>
-                  <td colSpan={columns.length + 1} className="px-6 py-20 text-center">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-                    <p className="mt-4 text-sm font-bold text-slate-400 uppercase tracking-widest">Loading Records...</p>
-                  </td>
-                </tr>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    {columns.map((_, j) => (
+                      <td key={j} className="px-6 py-4">
+                        <div className="h-4 w-3/4 bg-slate-100 rounded-md mb-2" />
+                        <div className="h-2 w-1/2 bg-slate-50 rounded-md" />
+                      </td>
+                    ))}
+                    {(onEdit || onDelete) && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <div className="h-8 w-8 bg-slate-50 rounded-lg" />
+                          <div className="h-8 w-8 bg-slate-50 rounded-lg" />
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))
               ) : data.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length + 1} className="px-6 py-20 text-center">
@@ -98,9 +111,27 @@ export function DataTable<T extends { id?: string }>({
 
         {pagination && (
           <div className="flex items-center justify-between border-t border-slate-50 bg-slate-50/30 px-6 py-4">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Showing <span className="text-slate-900">{Math.min(data.length, pagination.limit)}</span> of <span className="text-slate-900">{pagination.total}</span> Records
-            </p>
+            <div className="flex items-center gap-6">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Showing <span className="text-slate-900">{Math.min(data.length, pagination.limit)}</span> of <span className="text-slate-900">{pagination.total}</span> Records
+              </p>
+              
+              {pagination.onLimitChange && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-slate-300">Show</span>
+                  <select 
+                    value={pagination.limit}
+                    onChange={(e) => pagination.onLimitChange?.(Number(e.target.value))}
+                    className="bg-transparent text-[11px] font-black text-slate-600 outline-none cursor-pointer hover:text-blue-600 transition-colors"
+                  >
+                    {[10, 25, 50, 100].map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"

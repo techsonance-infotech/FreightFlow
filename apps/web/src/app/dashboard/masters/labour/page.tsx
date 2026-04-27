@@ -12,11 +12,15 @@ import { type Labour } from '@freightflow/shared';
 import { toast } from 'sonner';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
 
+import { LabourAnalytics } from '@/components/masters/labour-analytics';
+
 export default function LabourPage() {
+  const [activeMainTab, setActiveMainTab] = useState<'registry' | 'insights'>('registry');
   const [data, setData] = useState<Labour[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -27,7 +31,7 @@ export default function LabourPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/v1/masters/labour?page=${page}&search=${search}`);
+      const response = await fetch(`/api/v1/masters/labour?page=${page}&limit=${limit}&search=${search}`);
       const result = await response.json();
       if (response.ok) { 
         setData(result.data); 
@@ -43,7 +47,7 @@ export default function LabourPage() {
   useEffect(() => {
     const timer = setTimeout(fetchData, 300);
     return () => clearTimeout(timer);
-  }, [page, search]);
+  }, [page, limit, search]);
 
   const handleDelete = async (item: Labour) => {
     if (!confirm(`Are you sure you want to delete ${item.name}? This action cannot be undone.`)) return;
@@ -90,12 +94,23 @@ export default function LabourPage() {
           </div>
           <div>
             <p className="font-black text-slate-900 leading-tight">{row.name}</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{row.phone || 'No Phone'}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.phone || 'No Phone'}</p>
+              <div className="flex items-center gap-1.5 ml-1">
+                {row.aadharUrl && <span title="Aadhar Doc" className="text-blue-500 cursor-help">📎</span>}
+                {row.panUrl && <span title="PAN Doc" className="text-blue-500 cursor-help">💳</span>}
+              </div>
+              {row.skillCategory && (
+                <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-500 uppercase tracking-wider border border-blue-100">
+                  {row.skillCategory}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )
     },
-    { header: 'Address', accessor: 'address', className: 'max-w-xs truncate text-slate-500 font-medium' },
+    { header: 'Address', accessor: (row: Labour) => row.address, className: 'max-w-xs truncate text-slate-500 font-medium' },
     { 
       header: 'Monthly Salary', 
       accessor: (row: Labour) => (
@@ -151,42 +166,88 @@ export default function LabourPage() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+    <div className="p-8 space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Labour Registry</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">Manage workforce attendance, ledger, and profile registry</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-100 shadow-sm mr-2">
-            <Button variant="ghost" size="sm" onClick={() => handleExport('csv')} className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600">CSV</Button>
-            <Button variant="ghost" size="sm" onClick={() => handleExport('excel')} className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600">Excel</Button>
-            <Button variant="ghost" size="sm" onClick={() => handleExport('pdf')} className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600">PDF</Button>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-3xl">👷</span>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Labour Registry</h1>
           </div>
-          <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100">
-            <span className="mr-2">➕</span> Register Labour
-          </Button>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Worker management, Payroll & Operational Insights</p>
         </div>
+        
+        {activeMainTab === 'registry' && (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 mr-4">
+              <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">CSV</Button>
+              <Button variant="outline" size="sm" onClick={() => handleExport('excel')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="rounded-xl border-slate-200 text-red-600 bg-red-50/30 hover:bg-red-600 hover:text-white font-bold text-[10px] uppercase">PDF</Button>
+            </div>
+            <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-100 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
+              <span className="text-xl">+</span> Register New Worker
+            </Button>
+          </div>
+        )}
       </div>
 
-      <div className="bg-white p-2 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-        <div className="pl-4 text-slate-400">🔍</div>
-        <input 
-          placeholder="Search by worker name, phone or address..." 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
-          className="flex-1 bg-transparent border-none focus:ring-0 h-12 text-sm font-medium text-slate-600 outline-none" 
-        />
+      <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+        <button
+          onClick={() => setActiveMainTab('registry')}
+          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            activeMainTab === 'registry' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          🗂️ Worker Registry
+        </button>
+        <button
+          onClick={() => setActiveMainTab('insights')}
+          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            activeMainTab === 'insights' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          📊 Cost Insights
+        </button>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden">
-        <DataTable 
-          columns={columns as any} 
-          data={data} 
-          loading={loading} 
-          pagination={{ page, total, limit: 10, onPageChange: setPage }} 
-        />
-      </div>
+      {activeMainTab === 'registry' ? (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Input 
+              placeholder="Search by worker name, phone or skill..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="max-w-md bg-white border-none h-14 rounded-2xl shadow-sm px-6"
+            />
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Force</p>
+                {loading ? (
+                  <div className="h-6 w-24 bg-slate-100 animate-pulse rounded-lg mt-1 ml-auto" />
+                ) : (
+                  <p className="text-xl font-black text-slate-900">{total} Workers</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+            <DataTable 
+              columns={columns as any} 
+              data={data} 
+              loading={loading}
+              pagination={{
+                page,
+                limit,
+                total,
+                onPageChange: setPage,
+                onLimitChange: setLimit
+              }}
+            />
+          </div>
+        </div>
+      ) : (
+        <LabourAnalytics />
+      )}
 
       {/* Register / Edit Labour Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Labour Profile' : 'Register New Labour'} size="lg">
