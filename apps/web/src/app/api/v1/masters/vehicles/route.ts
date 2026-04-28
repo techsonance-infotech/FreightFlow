@@ -31,7 +31,28 @@ export async function GET(request: Request) {
     }
 
     const [vehicles, total] = await Promise.all([
-      prisma.vehicle.findMany({ where, skip, take: limit, orderBy: { updatedAt: 'desc' } }),
+      prisma.vehicle.findMany({ 
+        where, 
+        skip, 
+        take: limit, 
+        include: {
+          assignedDriver: {
+            select: {
+              id: true,
+              name: true,
+              phone: true
+            }
+          },
+          vehicleDocuments: {
+            select: {
+              id: true,
+              docType: true,
+              expiryDate: true
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' } 
+      }),
       prisma.vehicle.count({ where }),
     ]);
 
@@ -59,13 +80,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Vehicle with this registration number already exists' }, { status: 400 });
     }
 
+    const { assignedDriverId, ...vehicleData } = validatedData;
+    const initialDriverId = assignedDriverId === 'unassigned' ? null : assignedDriverId;
+
     const vehicle = await prisma.vehicle.create({
       data: {
-        ...validatedData,
+        ...vehicleData,
+        assignedDriverId: initialDriverId,
         tenantId: user.tenantId,
         companyId: user.companyId!,
       },
     });
+
+    if (initialDriverId) {
+      await prisma.driverAssignment.create({
+        data: {
+          tenantId: user.tenantId,
+          companyId: user.companyId!,
+          vehicleId: vehicle.id,
+          labourId: initialDriverId,
+          assignedBy: user.id
+        }
+      });
+    }
 
     return NextResponse.json(vehicle, { status: 201 });
   } catch (error) {

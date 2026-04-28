@@ -36,7 +36,7 @@ const ROLE_REQUIREMENTS: Record<string, string[]> = {
   '/dashboard/admin': ['super_admin'],
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const sessionToken = request.cookies.get('session')?.value;
   const session = sessionToken ? await decrypt(sessionToken) : null;

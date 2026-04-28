@@ -1,6 +1,6 @@
 import { prisma } from '@freightflow/db';
 import { format } from 'date-fns';
-import { startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths, differenceInDays } from 'date-fns';
 
 export class ReportEngine {
   /**
@@ -110,7 +110,7 @@ export class ReportEngine {
     // 4. Fleet Stats
     const [totalVehicles, onTripVehicles, maintenanceVehicles] = await Promise.all([
       prisma.vehicle.count({ where: { companyId } }),
-      prisma.trip.count({ where: { companyId, status: 'on_transit' } }), // Should use in_transit based on phase 4
+      prisma.trip.count({ where: { companyId, status: 'in_transit' } }),
       prisma.maintenanceJob.count({ where: { companyId, status: 'in_progress' } })
     ]);
 
@@ -363,7 +363,4 @@ export class ReportEngine {
   }
 }
 
-function differenceInDays(date1: Date, date2: Date) {
-  const diffTime = Math.abs(date1.getTime() - date2.getTime());
-  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-}
+// End of ReportEngine class

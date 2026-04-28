@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Button } from './button';
+import { cn } from '@/lib/utils';
 
 interface Column<T> {
   header: string;
@@ -53,19 +54,21 @@ export function DataTable<T extends { id?: string }>({
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
+                Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    {columns.map((_, j) => (
-                      <td key={j} className="px-6 py-4">
-                        <div className="h-4 w-3/4 bg-slate-100 rounded-md mb-2" />
-                        <div className="h-2 w-1/2 bg-slate-50 rounded-md" />
+                    {columns.map((col, j) => (
+                      <td key={j} className={cn("px-6 py-5", col.className)}>
+                        <div className="space-y-2">
+                          <div className="h-3 w-2/3 bg-slate-100 rounded-lg" />
+                          <div className="h-2.5 w-1/2 bg-slate-50 rounded-lg" />
+                        </div>
                       </td>
                     ))}
                     {(onEdit || onDelete) && (
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-5 text-right">
                         <div className="flex justify-end gap-2">
-                          <div className="h-8 w-8 bg-slate-50 rounded-lg" />
-                          <div className="h-8 w-8 bg-slate-50 rounded-lg" />
+                          <div className="h-8 w-8 bg-slate-50 rounded-xl" />
+                          <div className="h-8 w-8 bg-slate-50 rounded-xl" />
                         </div>
                       </td>
                     )}

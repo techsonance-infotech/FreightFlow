@@ -49,3 +49,30 @@ export async function uploadMasterDocument(formData: FormData) {
     return { error: 'Internal Server Error' };
   }
 }
+
+export async function deleteMasterDocument(fileUrl: string) {
+  try {
+    if (!fileUrl) return { success: true };
+    const supabase = await createAdminClient();
+    
+    // Extract path from public URL
+    // Format: .../storage/v1/object/public/compliance/PATH
+    const parts = fileUrl.split('/compliance/');
+    if (parts.length < 2) return { success: true };
+    const filePath = parts[1];
+
+    const { error } = await supabase.storage
+      .from('compliance')
+      .remove([filePath]);
+
+    if (error) {
+      console.error('[Supabase Delete Error]:', error);
+      return { error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Document Delete Action Error]:', error);
+    return { error: 'Internal Server Error' };
+  }
+}

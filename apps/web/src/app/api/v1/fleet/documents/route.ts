@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const data = await request.json();
+    if (!data.vehicleId) return NextResponse.json({ error: 'Vehicle ID is required' }, { status: 400 });
     
     const doc = await prisma.vehicleDocument.create({
       data: {
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(doc);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Fleet Document POST Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

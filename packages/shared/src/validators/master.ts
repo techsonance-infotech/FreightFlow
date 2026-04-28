@@ -41,14 +41,44 @@ export type Dealer = z.infer<typeof DealerSchema>;
 
 export const VehicleSchema = z.object({
   id: z.string().uuid().optional(),
-  regNo: z.string().min(1, 'Registration number is required'),
-  make: z.string().optional(),
-  model: z.string().optional(),
+  regNo: z.string().min(1, 'Registration number is required').regex(/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,2}[0-9]{4}$/, 'Invalid registration number format (e.g. MH01AB1234)'),
+  make: z.string().min(1, 'Make is required'),
+  model: z.string().min(1, 'Model is required'),
   type: z.enum(['Truck', 'Trailer', 'Tempo', 'Container', 'Other']).default('Truck'),
   ownership: z.enum(['Own', 'Hired']).default('Own'),
-  chassisNo: z.string().optional(),
-  engineNo: z.string().optional(),
-  odometer: z.number().int().min(0).default(0),
+  
+  // Technical Specs
+  payloadKg: z.preprocess((val) => (typeof val === 'number' && isNaN(val)) ? null : val, z.number().int().min(0, 'Payload must be positive').optional().nullable()),
+  gvWKg: z.preprocess((val) => (typeof val === 'number' && isNaN(val)) ? null : val, z.number().int().min(0, 'GVW must be positive').optional().nullable()),
+  unladenWeightKg: z.preprocess((val) => (typeof val === 'number' && isNaN(val)) ? null : val, z.number().int().min(0, 'Unladen weight must be positive').optional().nullable()),
+  fuelType: z.enum(['Diesel', 'Petrol', 'CNG', 'EV', 'Other']).default('Diesel'),
+  fuelCapacity: z.preprocess((val) => (typeof val === 'number' && isNaN(val)) ? null : val, z.number().int().min(0).optional().nullable()),
+  yom: z.preprocess((val) => (typeof val === 'number' && isNaN(val)) ? null : val, z.number().int().min(1900).max(new Date().getFullYear()).optional().nullable()),
+  
+  // Operational
+  chassisNo: z.string().optional().nullable().or(z.literal('')),
+  engineNo: z.string().optional().nullable().or(z.literal('')),
+  odometer: z.preprocess((val) => (typeof val === 'number' && isNaN(val)) ? 0 : val, z.number().int().min(0).default(0)),
+  fastagNo: z.string().optional().nullable().or(z.literal('')),
+  gpsProvider: z.string().optional().nullable().or(z.literal('')),
+  imageUrl: z.string().optional().nullable().or(z.literal('')),
+  
+  // Ownership Details
+  ownerName: z.string().optional().nullable().or(z.literal('')),
+  purchaseDate: z.preprocess((val) => val === '' ? null : val, z.string().or(z.date()).optional().nullable()),
+  purchaseAmount: z.preprocess((val) => (typeof val === 'number' && isNaN(val)) ? null : val, z.number().int().min(0).optional().nullable()), // stored in paise
+  
+  // Compliance
+  rcNo: z.string().optional().nullable().or(z.literal('')),
+  rcUrl: z.string().optional().nullable().or(z.literal('')),
+  insuranceNo: z.string().optional().nullable().or(z.literal('')),
+  insuranceExpiry: z.preprocess((val) => val === '' ? null : val, z.string().or(z.date()).optional().nullable()),
+  insuranceUrl: z.string().optional().nullable().or(z.literal('')),
+  fitnessExpiry: z.preprocess((val) => val === '' ? null : val, z.string().or(z.date()).optional().nullable()),
+  
+  // Assignment
+  assignedDriverId: z.string().uuid().optional().nullable().or(z.literal('')).or(z.literal('unassigned')),
+  
   status: z.enum(['active', 'maintenance', 'inactive']).default('active'),
 });
 
@@ -271,4 +301,16 @@ export const LabourExpenseSchema = z.object({
 });
 
 export type LabourExpense = z.infer<typeof LabourExpenseSchema>;
+
+export const EmployeeTransactionSchema = z.object({
+  id: z.string().uuid().optional(),
+  employeeId: z.string().uuid(),
+  type: z.enum(['Advance', 'Salary', 'Bonus', 'Deduction', 'Other']),
+  amount: z.number().int().positive('Amount must be positive'), // in paise
+  date: z.string().or(z.date()),
+  message: z.string().min(1, 'Message/Remarks are required'),
+  paymentMode: z.enum(['Cash', 'Bank', 'Online']).default('Cash'),
+});
+
+export type EmployeeTransaction = z.infer<typeof EmployeeTransactionSchema>;
 

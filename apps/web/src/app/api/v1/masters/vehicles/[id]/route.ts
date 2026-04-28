@@ -9,7 +9,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const session = await getSession();
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
-    const vehicle = await prisma.vehicle.findFirst({ where: { id, tenantId: session.user.tenantId, companyId: session.user.companyId, deletedAt: null } });
+    const vehicle = await prisma.vehicle.findFirst({ 
+      where: { id, tenantId: session.user.tenantId, companyId: session.user.companyId, deletedAt: null },
+      include: {
+        assignedDriver: true,
+        vehicleDocuments: true
+      }
+    });
     if (!vehicle) return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
     return NextResponse.json(vehicle);
   } catch (error) {
@@ -17,7 +23,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession();
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -33,7 +39,41 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (duplicate) return NextResponse.json({ error: 'Registration number already in use' }, { status: 400 });
     }
 
-    const updated = await prisma.vehicle.update({ where: { id }, data: validatedData });
+    const { assignedDriverId, ...updateData } = validatedData;
+    const newAssignedDriverId = assignedDriverId === 'unassigned' ? null : assignedDriverId;
+
+    const updated = await prisma.vehicle.update({ 
+      where: { id }, 
+      data: {
+        ...updateData,
+        assignedDriverId: newAssignedDriverId
+      }
+    });
+
+    // Handle Driver Assignment History
+    if (assignedDriverId !== undefined && existing.assignedDriverId !== newAssignedDriverId) {
+      // 1. Close any existing open assignment
+      if (existing.assignedDriverId) {
+        await prisma.driverAssignment.updateMany({
+          where: { vehicleId: id, labourId: existing.assignedDriverId, unassignedAt: null },
+          data: { unassignedAt: new Date() }
+        });
+      }
+
+      // 2. Open new assignment
+      if (newAssignedDriverId) {
+        await prisma.driverAssignment.create({
+          data: {
+            tenantId: session.user.tenantId,
+            companyId: session.user.companyId!,
+            vehicleId: id,
+            labourId: newAssignedDriverId,
+            assignedBy: session.user.id
+          }
+        });
+      }
+    }
+
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: error.errors }, { status: 400 });

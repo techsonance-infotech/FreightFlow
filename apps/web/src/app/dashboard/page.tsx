@@ -107,66 +107,88 @@ export default function ExecutiveDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        {/* Revenue Chart */}
-        <Card className="lg:col-span-4 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg font-bold">Revenue Performance</CardTitle>
-              <CardDescription className="text-xs font-medium uppercase tracking-wider">Last 6 Months Trend</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 rounded-lg text-[10px] font-bold text-blue-600">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                REVENUE
+        {/* Left Column: Analytics & Financial Insights */}
+        <div className="lg:col-span-4 space-y-6">
+          <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg font-bold">Revenue Performance</CardTitle>
+                <CardDescription className="text-xs font-medium uppercase tracking-wider">Last 6 Months Trend</CardDescription>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trend}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="month" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} 
-                    dy={10}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} 
-                    tickFormatter={(value) => `₹${value/1000}k`} 
-                  />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
-                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                    labelStyle={{ fontSize: '10px', fontWeight: '800', marginBottom: '4px', color: '#64748b' }}
-                    formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Revenue']}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#3b82f6" 
-                    strokeWidth={3} 
-                    fillOpacity={1} 
-                    fill="url(#colorRev)" 
-                    animationDuration={2000}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 rounded-lg text-[10px] font-bold text-blue-600">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  REVENUE
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trend}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="month" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} 
+                      tickFormatter={(value) => `₹${value/1000}k`} 
+                    />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
+                      itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                      labelStyle={{ fontSize: '10px', fontWeight: '800', marginBottom: '4px', color: '#64748b' }}
+                      formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#3b82f6" 
+                      strokeWidth={3} 
+                      fillOpacity={1} 
+                      fill="url(#colorRev)" 
+                      animationDuration={2000}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Fleet & Customers */}
+          <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">Top Customers</CardTitle>
+              <CardDescription className="text-xs font-medium uppercase tracking-wider">By Revenue Share</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+              {kpis?.topCustomers?.map((customer: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-slate-500">
+                      {idx + 1}
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">{customer.name}</span>
+                  </div>
+                  <span className="text-sm font-black text-blue-600">₹{(customer.revenue / 1000).toFixed(1)}k</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Fleet & Intelligence */}
         <div className="lg:col-span-3 space-y-6">
           <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden">
             <CardHeader>
@@ -209,27 +231,6 @@ export default function ExecutiveDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">Top Customers</CardTitle>
-              <CardDescription className="text-xs font-medium uppercase tracking-wider">By Revenue Share</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {kpis?.topCustomers?.map((customer: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-slate-500">
-                      {idx + 1}
-                    </div>
-                    <span className="text-sm font-bold text-slate-700">{customer.name}</span>
-                  </div>
-                  <span className="text-sm font-black text-blue-600">₹{(customer.revenue / 1000).toFixed(1)}k</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* New Side Intelligence Widgets */}
           <ActivityFeed />
           <ComplianceCalendarWidget />
         </div>

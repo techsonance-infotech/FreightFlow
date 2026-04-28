@@ -95,9 +95,11 @@ export const NAV_ITEMS: NavGroup[] = [
         allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'maintenance_supervisor'],
         subItems: [
           { id: 'fleet-registry', label: 'Vehicle Registry', icon: '🚚', path: '/dashboard/masters/vehicles', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'] },
-          { id: 'fleet-docs', label: 'Document Compliance', icon: '⚖️', path: '/dashboard/fleet/documents', allowedRoles: ['tenant_owner', 'maintenance_supervisor'] },
+          { id: 'fleet-compliance', label: 'Compliance Engine', icon: '🚨', path: '/dashboard/fleet/compliance', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'] },
+          { id: 'fleet-docs', label: 'Manual Docs (Archive)', icon: '⚖️', path: '/dashboard/fleet/documents', allowedRoles: ['tenant_owner', 'maintenance_supervisor'] },
           { id: 'fleet-fuel', label: 'Fuel Tracking', icon: '⛽', path: '/dashboard/fuel', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'] },
           { id: 'fleet-maintenance', label: 'Maintenance Hub', icon: '🔧', path: '/dashboard/maintenance', allowedRoles: ['tenant_owner', 'maintenance_supervisor'] },
+          { id: 'fleet-analytics', label: 'Vehicle Analytics', icon: '📈', path: '/dashboard/fleet/analytics', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager'] },
         ]
       },
     ]
