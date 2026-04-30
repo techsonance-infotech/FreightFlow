@@ -53,7 +53,7 @@ export function ReportViewer({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="h-10 rounded-xl border-slate-200 hover:bg-slate-50 shadow-sm">
-                <Download className="mr-2 h-4 w-4 text-blue-500" />
+                <Download className="mr-2 h-4 w-4 text-accent-600" />
                 Export
                 <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
               </Button>
@@ -89,7 +89,7 @@ export function ReportViewer({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input 
                   placeholder="Search records..." 
-                  className="pl-10 h-10 bg-slate-50/50 border-none rounded-xl focus-visible:ring-blue-500/20"
+                  className="pl-10 h-10 bg-neutral-50/50 border-none rounded-xl focus-visible:ring-accent-600/20"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -110,7 +110,7 @@ export function ReportViewer({
           <div className="overflow-x-auto">
             {isLoading ? (
               <div className="p-12 flex flex-col items-center justify-center space-y-4">
-                <div className="h-10 w-10 rounded-full border-4 border-slate-100 border-t-blue-500 animate-spin" />
+                <div className="h-10 w-10 rounded-full border-4 border-neutral-100 border-t-accent-600 animate-spin" />
                 <p className="text-sm font-medium text-slate-500">Generating report data...</p>
               </div>
             ) : (

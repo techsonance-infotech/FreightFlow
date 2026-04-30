@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
 import { AccountingEngine } from '@/services/accounting-engine';
 import { ChartOfAccountSchema } from '@freightflow/shared';
+import { getSession } from '@/lib/auth-utils';
 
 export async function GET(request: Request) {
   try {
-    // In a real app, extract these from JWT/session
-    // For now, extract from headers or query params
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
-    const companyId = searchParams.get('companyId') || request.headers.get('x-company-id');
-
-    if (!tenantId || !companyId) {
-      return NextResponse.json({ error: 'Missing tenantId or companyId' }, { status: 400 });
+    const session = await getSession();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { tenantId, companyId } = session.user;
 
     const coaTree = await AccountingEngine.getChartOfAccounts(tenantId, companyId);
     
@@ -25,12 +23,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const tenantId = request.headers.get('x-tenant-id');
-    const companyId = request.headers.get('x-company-id');
-
-    if (!tenantId || !companyId) {
-      return NextResponse.json({ error: 'Missing tenantId or companyId' }, { status: 400 });
+    const session = await getSession();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { tenantId, companyId } = session.user;
 
     const body = await request.json();
     const validatedData = ChartOfAccountSchema.parse(body);

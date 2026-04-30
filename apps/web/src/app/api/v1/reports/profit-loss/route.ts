@@ -16,13 +16,20 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const startStr = searchParams.get('startDate');
-    const endStr = searchParams.get('endDate');
+    const type = searchParams.get('type') || 'standard';
+    const startDate = parseISO(searchParams.get('startDate') || startOfMonth(new Date()).toISOString());
+    const endDate = parseISO(searchParams.get('endDate') || endOfMonth(new Date()).toISOString());
 
-    const startDate = startStr ? parseISO(startStr) : startOfMonth(new Date());
-    const endDate = endStr ? parseISO(endStr) : endOfMonth(new Date());
-
-    const report = await ReportEngine.getProfitLoss(tenantId, companyId, startDate, endDate);
+    let report;
+    if (type === 'standard') {
+      report = await ReportEngine.getProfitLoss(tenantId, companyId, startDate, endDate);
+    } else if (type === 'dealer') {
+      report = await ReportEngine.getDealerPnL(tenantId, companyId, startDate, endDate);
+    } else if (type === 'category') {
+      report = await ReportEngine.getCategoryPnL(tenantId, companyId, startDate, endDate);
+    } else {
+      return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
+    }
 
     return NextResponse.json(report);
   } catch (error: any) {

@@ -2,24 +2,51 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@freightflow/db';
 import { AccountingEngine } from '@/services/accounting-engine';
 import { JournalEntrySchema } from '@freightflow/shared';
+import { getSession } from '@/lib/auth-utils';
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { tenantId, companyId } = session.user;
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
-    const companyId = searchParams.get('companyId') || request.headers.get('x-company-id');
     
     // Pagination
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    if (!tenantId || !companyId) {
-      return NextResponse.json({ error: 'Missing tenantId or companyId' }, { status: 400 });
+    // Filtering & Search
+    const search = searchParams.get('search');
+    const type = searchParams.get('type');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const partyId = searchParams.get('partyId');
+
+    const where: any = { tenantId, companyId };
+    
+    if (type && type !== 'all') {
+      where.voucherType = type;
+    }
+
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate);
+    }
+
+    if (search) {
+      where.OR = [
+        { voucherNo: { contains: search, mode: 'insensitive' } },
+        { narration: { contains: search, mode: 'insensitive' } }
+      ];
     }
 
     const vouchers = await prisma.journalEntry.findMany({
-      where: { tenantId, companyId },
+      where,
       include: {
         lines: {
           include: {
@@ -34,9 +61,7 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    const total = await prisma.journalEntry.count({
-      where: { tenantId, companyId },
-    });
+    const total = await prisma.journalEntry.count({ where });
     
     return NextResponse.json({ 
       data: vouchers,
@@ -50,14 +75,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const tenantId = request.headers.get('x-tenant-id');
-    const companyId = request.headers.get('x-company-id');
-    // Assuming we have auth middleware setting this
-    const userId = request.headers.get('x-user-id') || undefined;
-
-    if (!tenantId || !companyId) {
-      return NextResponse.json({ error: 'Missing tenantId or companyId' }, { status: 400 });
+    const session = await getSession();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { tenantId, companyId, id: userId } = session.user;
 
     const body = await request.json();
     const validatedData = JournalEntrySchema.parse(body);

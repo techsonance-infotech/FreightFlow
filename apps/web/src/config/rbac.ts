@@ -52,7 +52,7 @@ export const NAV_ITEMS: NavGroup[] = [
           { id: 'accounting-ar', label: 'Receivables (AR)', icon: '📥', path: '/dashboard/accounting/ar', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-ap', label: 'Payables (AP)', icon: '📤', path: '/dashboard/accounting/ap', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-invoices', label: 'Sales Invoices', icon: '🧾', path: '/dashboard/accounting/invoices', allowedRoles: ['tenant_owner', 'accountant'] },
-          { id: 'accounting-vouchers', label: 'Payment Vouchers', icon: '💸', path: '/dashboard/accounting/vouchers', allowedRoles: ['tenant_owner', 'accountant'] },
+          { id: 'accounting-vouchers', label: 'Accounting Vouchers', icon: '💸', path: '/dashboard/accounting/vouchers', allowedRoles: ['tenant_owner', 'accountant'] },
           { id: 'accounting-bank', label: 'Bank Recon', icon: '🏦', path: '/dashboard/accounting/bank', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-coa', label: 'Chart of Accounts', icon: '🗂️', path: '/dashboard/accounting/coa', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
         ]

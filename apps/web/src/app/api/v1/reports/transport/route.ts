@@ -28,6 +28,12 @@ export async function GET(request: Request) {
       report = await ReportEngine.getVehiclePnL(tenantId, companyId, startDate, endDate);
     } else if (type === 'route-profit') {
       report = await ReportEngine.getRouteProfitability(tenantId, companyId, startDate, endDate);
+    } else if (type === 'dealer-yield') {
+      report = await ReportEngine.getDealerAnalytics(tenantId, companyId, startDate, endDate);
+    } else if (type === 'driver-performance') {
+      report = await ReportEngine.getDriverAnalytics(tenantId, companyId, startDate, endDate);
+    } else if (type === 'category-analysis') {
+      report = await ReportEngine.getCategoryAnalysis(tenantId, companyId, startDate, endDate);
     } else {
       return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
     }

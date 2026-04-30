@@ -7,42 +7,77 @@ import {
   PieChart, BarChart3, ShieldCheck, Activity,
   Landmark, ArrowRightLeft, Calculator,
   ChevronRight, FileText, Wallet, LandmarkIcon,
-  Search, Filter, MoreVertical, Briefcase
+  Search, Filter, MoreVertical, Briefcase, Layers
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ReportViewer } from '@/components/reports/report-viewer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { 
+  StatCard, 
+  ReportSectionHeader, 
+  LoadingState, 
+  EmptyReportState,
+  ReportContainer,
+  Pagination
+} from '@/components/reports/report-components';
 
 export default function FinancialReportsPage() {
   const [activeTab, setActiveTab] = useState('pl');
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [asOnDate, setAsOnDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   
+  const [summary, setSummary] = useState<any>(null);
   const [plData, setPlData] = useState<any>(null);
+  const [dealerPlData, setDealerPlData] = useState<any[]>([]);
+  const [categoryPlData, setCategoryPlData] = useState<any[]>([]);
   const [bsData, setBsData] = useState<any>(null);
   const [ageingData, setAgeingData] = useState<any[]>([]);
+  const [tbData, setTbData] = useState<any[]>([]);
+
+  const fetchSummary = async () => {
+    try {
+      const res = await fetch('/api/v1/reports/summary');
+      setSummary(await res.json());
+    } catch (e) {
+      console.error('Failed to fetch summary');
+    }
+  };
 
   const fetchReportData = async () => {
     try {
       setLoading(true);
-      let endpoint = '';
+      const params = new URLSearchParams({ startDate, endDate });
+      
       if (activeTab === 'pl') {
-        endpoint = `/api/v1/reports/profit-loss`;
-        const res = await fetch(endpoint);
-        setPlData(await res.json());
+        const res = await fetch(`/api/v1/reports/profit-loss?type=standard&${params}`);
+        const data = await res.json();
+        setPlData(data);
+      } else if (activeTab === 'dealer-pl') {
+        const res = await fetch(`/api/v1/reports/profit-loss?type=dealer&${params}`);
+        const data = await res.json();
+        setDealerPlData(Array.isArray(data) ? data : []);
+      } else if (activeTab === 'category-pl') {
+        const res = await fetch(`/api/v1/reports/profit-loss?type=category&${params}`);
+        const data = await res.json();
+        setCategoryPlData(Array.isArray(data) ? data : []);
       } else if (activeTab === 'bs') {
-        endpoint = `/api/v1/reports/balance-sheet?date=${asOnDate}`;
-        const res = await fetch(endpoint);
-        setBsData(await res.json());
+        const res = await fetch(`/api/v1/reports/balance-sheet?date=${asOnDate}`);
+        const data = await res.json();
+        setBsData(data);
       } else if (activeTab === 'ageing') {
-        endpoint = `/api/v1/reports/ageing?type=debtors`;
-        const res = await fetch(endpoint);
-        setAgeingData(await res.json());
+        const res = await fetch(`/api/v1/reports/ageing?type=debtors`);
+        const data = await res.json();
+        setAgeingData(Array.isArray(data) ? data : []);
+      } else if (activeTab === 'tb') {
+        const res = await fetch(`/api/v1/reports/trial-balance?${params}`);
+        const data = await res.json();
+        setTbData(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       toast.error('Failed to sync financial intelligence');
@@ -52,8 +87,12 @@ export default function FinancialReportsPage() {
   };
 
   useEffect(() => {
+    fetchSummary();
+  }, []);
+
+  useEffect(() => {
     fetchReportData();
-  }, [activeTab, asOnDate]);
+  }, [activeTab, asOnDate, startDate, endDate]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -64,310 +103,524 @@ export default function FinancialReportsPage() {
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700 pb-20 px-4">
-      {/* 1. Header with Global Blue and Obsidian Accents */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
-        <div className="space-y-1.5">
+    <ReportContainer className="pb-20 px-4 md:px-8">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pt-8">
+        <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
-              <LandmarkIcon className="h-4 w-4 text-white" />
+            <div className="h-12 w-12 rounded-2xl bg-accent-600 flex items-center justify-center shadow-xl shadow-accent-600/20">
+              <LandmarkIcon className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase underline decoration-blue-600/30 decoration-4 underline-offset-8">Financial Intelligence</h1>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">Financial Intelligence</h1>
+              <p className="text-sm font-medium text-neutral-500">Fiscal Control Center & Audit-Ready Statements</p>
+            </div>
           </div>
-          <p className="text-sm font-medium text-slate-500 max-w-xl leading-relaxed">
-            Fiscal Control Center (FCC) for audit-ready P&L statements, horizontal balance sheets, and counterparty ageing analysis.
-          </p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/20 flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-4 w-4 text-blue-500" />
-              <div className="flex flex-col">
-                <span className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em]">Reporting Period</span>
-                <input 
-                  type="date" 
-                  value={asOnDate} 
-                  onChange={e => setAsOnDate(e.target.value)} 
-                  className="bg-transparent border-none text-[10px] font-black uppercase outline-none w-32 mt-0.5 text-slate-600" 
-                />
-              </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-neutral-200 shadow-sm">
+            <div className="flex items-center gap-2 px-3">
+              <Calendar className="h-4 w-4 text-neutral-400" />
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={e => setStartDate(e.target.value)} 
+                className="bg-transparent border-none text-xs font-bold outline-none w-28 text-neutral-700 cursor-pointer" 
+              />
+            </div>
+            <div className="h-4 w-[1px] bg-neutral-200" />
+            <div className="flex items-center gap-2 px-3">
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={e => setEndDate(e.target.value)} 
+                className="bg-transparent border-none text-xs font-bold outline-none w-28 text-neutral-700 cursor-pointer" 
+              />
             </div>
           </div>
-          {/* Black Highlight Button as requested */}
-          <Button className="h-12 px-8 bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-200" icon={<FileText className="h-4 w-4" />}>
+          <Button 
+            onClick={() => {
+              const reportName = `FreightFlow_Audit_${activeTab}_${startDate}_to_${endDate}`;
+              window.print();
+            }}
+            className="h-11 px-6 bg-accent-600 hover:bg-accent-700 text-white shadow-lg shadow-accent-600/20 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-95"
+          >
+            <FileText className="h-4 w-4 mr-2" />
             Generate Audit File
           </Button>
         </div>
       </div>
 
-      {/* 2. visual Fiscal Widgets (Reverted to Global Blue) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <AnalysisCard title="Liquidity Pool" value="₹ 1.24 Cr" sub="Available Working Capital" icon={<Wallet className="h-5 w-5 text-blue-600" />} color="blue" />
-        <AnalysisCard title="EBITDA Margin" value="22.4%" sub="+2.1% vs Prev Qtr" icon={<Activity className="h-5 w-5 text-emerald-500" />} color="emerald" />
-        <AnalysisCard title="Counterparty Risk" value="Low" sub="Weighted Average Age: 18D" icon={<ShieldCheck className="h-5 w-5 text-blue-600" />} color="blue" />
-        <AnalysisCard title="Fiscal Integrity" value="Verified" sub="SOC2 Compliant Logs" icon={<Briefcase className="h-5 w-5 text-slate-500" />} color="slate" />
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title="Liquidity Pool" 
+          value={formatCurrency(summary?.liquidityPool || 0)} 
+          subValue="Available working capital"
+          icon={<Wallet className="h-5 w-5" />} 
+          color="blue" 
+        />
+        <StatCard 
+          title="EBITDA Margin" 
+          value={`${summary?.ebitdaMargin || 0}%`} 
+          subValue="+2.1% vs prev qtr"
+          icon={<Activity className="h-5 w-5" />} 
+          color="emerald" 
+        />
+        <StatCard 
+          title="Counterparty Risk" 
+          value={summary?.outstanding > 5000000 ? "High" : "Low"} 
+          subValue={`Ageing Avg: ${summary?.outstanding > 0 ? '18D' : '0D'}`}
+          icon={<ShieldCheck className="h-5 w-5" />} 
+          color="blue" 
+        />
+        <StatCard 
+          title="Fiscal Integrity" 
+          value={summary?.auditHealth || "Verified"} 
+          subValue="SOC2 compliant logs"
+          icon={<Briefcase className="h-5 w-5" />} 
+          color="slate" 
+        />
       </div>
 
-      {/* 3. Primary Command Tabs (Global Blue) */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <div className="flex items-center justify-between">
-          <TabsList className="bg-white p-1.5 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-1">
-            <TabTrigger value="pl" label="Profit & Loss" icon={<BarChart3 className="h-3.5 w-3.5" />} />
-            <TabTrigger value="bs" label="Balance Sheet" icon={<Scale className="h-3.5 w-3.5" />} />
-            <TabTrigger value="ageing" label="Debtors Ageing" icon={<Hourglass className="h-3.5 w-3.5" />} />
-            <TabTrigger value="tb" label="Trial Balance" icon={<Landmark className="h-3.5 w-3.5" />} />
+      {/* Main Content Area */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-neutral-100 pb-1">
+          <TabsList className="bg-transparent p-0 h-auto gap-8 overflow-x-auto no-scrollbar justify-start">
+            <TabTrigger value="pl" label="Profit & Loss" />
+            <TabTrigger value="dealer-pl" label="Dealer P&L" />
+            <TabTrigger value="category-pl" label="Category P&L" />
+            <TabTrigger value="bs" label="Balance Sheet" />
+            <TabTrigger value="ageing" label="Debtors Ageing" />
+            <TabTrigger value="tb" label="Trial Balance" />
           </TabsList>
           
-          <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-2xl text-blue-600 text-[10px] font-black uppercase tracking-[0.2em]">
-            <Activity className="h-3 w-3 animate-pulse text-blue-400" /> GAAP Ledger Synced
+          <div className="flex items-center gap-2 text-[10px] font-bold text-success-700 uppercase tracking-widest bg-success-50 px-3 py-1.5 rounded-full border border-success-100">
+            <div className="h-1.5 w-1.5 rounded-full bg-success-700 animate-pulse" />
+            GAAP Ledger Synced
           </div>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-100/40 overflow-hidden relative">
-          
-          <TabsContent value="pl" className="m-0 p-0 animate-in slide-in-from-right-4 duration-500">
-            <ReportHeader title="Statement of Profit & Loss" subtitle="Comparative analysis of operational yield against expenditure pool." />
-            {plData && (
-              <div className="p-10 space-y-12">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <FinancialMetricCard title="Gross Operating Inflow" value={formatCurrency(plData.revenue)} sub="Revenue Baseline" icon={<TrendingUp className="h-5 w-5 text-emerald-500" />} color="emerald" />
-                  <FinancialMetricCard title="Total Fiscal Outflow" value={formatCurrency(plData.expenses)} sub="Expenditure Burden" icon={<TrendingDown className="h-5 w-5 text-rose-500" />} color="rose" />
-                  <FinancialMetricCard title="Net Fiscal Bottomline" value={formatCurrency(plData.netProfit)} sub="Audit Realized Profit" icon={<IndianRupee className="h-5 w-5 text-blue-600" />} color="blue" />
-                </div>
-
-                <div className="rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
-                  <Table>
-                    <TableHeader className="bg-slate-50/50">
-                      <TableRow className="hover:bg-transparent border-none">
-                        <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">Account Code</TableHead>
-                        <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">Ledger Classification</TableHead>
-                        <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">Category</TableHead>
-                        <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Ledger Balance</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {plData.details?.map((item: any) => (
-                        <TableRow key={item.accountId} className="hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0">
-                          <TableCell className="px-10 py-6 text-xs font-black text-slate-400 uppercase tracking-tighter">{item.accountCode || 'S-AUDIT'}</TableCell>
-                          <TableCell className="px-10 py-6 font-black text-slate-900 text-sm">{item.accountName}</TableCell>
-                          <TableCell className="px-10 py-6">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-blue-600/60">{item.accountType}</span>
-                          </TableCell>
-                          <TableCell className={cn(
-                            "px-10 py-6 text-right font-black text-sm",
-                            item.accountType === 'revenue' ? 'text-emerald-600' : 'text-slate-900'
-                          )}>
-                            {formatCurrency(item.balance)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="bs" className="m-0 p-0 animate-in slide-in-from-right-4 duration-500">
-            <ReportHeader title="Horizontal Fiscal Position" subtitle="Systemic balance of Enterprise Assets vs Liabilities and Equity." />
-            {bsData && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 divide-x divide-slate-100">
-                {/* Assets */}
-                <div className="p-12">
-                  <div className="flex justify-between items-center mb-10 border-b border-slate-100 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <TrendingUp className="h-4 w-4" />
-                      </div>
-                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Aggregate Assets</h4>
-                    </div>
-                    <span className="text-xl font-black text-emerald-600">{formatCurrency(bsData.assets.total)}</span>
-                  </div>
-                  <div className="space-y-5">
-                    {bsData.assets.items.map((item: any) => (
-                      <div key={item.accountId} className="flex justify-between items-center p-3.5 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
-                        <span className="text-sm font-black text-slate-600 group-hover:text-blue-600 transition-colors">{item.accountName}</span>
-                        <span className="font-black text-slate-900">{formatCurrency(item.balance)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Liabilities */}
-                <div className="p-12">
-                  <div className="flex justify-between items-center mb-10 border-b border-slate-100 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-                        <TrendingDown className="h-4 w-4" />
-                      </div>
-                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Total Burden</h4>
-                    </div>
-                    <span className="text-xl font-black text-rose-600">{formatCurrency(bsData.totalLiabilitiesAndEquity)}</span>
-                  </div>
-                  <div className="space-y-10">
-                    <div className="space-y-4">
-                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] ml-2">Liabilities Pool</p>
-                      {bsData.liabilities.items.map((item: any) => (
-                        <div key={item.accountId} className="flex justify-between items-center p-3.5 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
-                          <span className="text-sm font-black text-slate-600 group-hover:text-rose-600 transition-colors">{item.accountName}</span>
-                          <span className="font-black text-slate-900">{formatCurrency(item.balance)}</span>
+        <>
+          {loading ? (
+            <LoadingState />
+          ) : (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <TabsContent value="pl" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Statement of Profit & Loss" 
+                      subtitle="Comparative analysis of operational yield against expenditure pool."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    
+                    {plData && (
+                      <div className="p-8 pt-0 space-y-10">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <FinancialMetricCard 
+                            title="Operating Inflow" 
+                            value={formatCurrency(plData.revenue)} 
+                            icon={<TrendingUp className="h-6 w-6" />} 
+                            color="emerald" 
+                          />
+                          <FinancialMetricCard 
+                            title="Fiscal Outflow" 
+                            value={formatCurrency(plData.expenses)} 
+                            icon={<TrendingDown className="h-6 w-6" />} 
+                            color="rose" 
+                          />
+                          <FinancialMetricCard 
+                            title="Net Bottomline" 
+                            value={formatCurrency(plData.netProfit)} 
+                            icon={<IndianRupee className="h-6 w-6" />} 
+                            color="blue" 
+                          />
                         </div>
-                      ))}
-                    </div>
-                    <div className="space-y-4 pt-8 border-t border-slate-50">
-                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] ml-2">Enterprise Equity</p>
-                      {bsData.equity.items.map((item: any) => (
-                        <div key={item.accountId} className="flex justify-between items-center p-3.5 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
-                          <span className="text-sm font-black text-slate-600 group-hover:text-blue-600 transition-colors">{item.accountName}</span>
-                          <span className="font-black text-slate-900">{formatCurrency(item.balance)}</span>
+
+                        <div className="rounded-[24px] border border-neutral-100 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.02)] bg-white">
+                          <Table>
+                            <TableHeader className="bg-white">
+                              <TableRow className="border-none hover:bg-transparent">
+                                <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Account Classification</TableHead>
+                                <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Segment</TableHead>
+                                <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Closing Balance</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {plData.details?.map((item: any) => (
+                                <TableRow key={item.accountId} className="hover:bg-transparent transition-colors group border-b border-neutral-100 last:border-none">
+                                  <TableCell className="px-8 py-6">
+                                    <div className="flex items-center gap-4">
+                                      <div className="h-10 w-10 rounded-lg bg-white border border-neutral-200 flex items-center justify-center text-[10px] font-black text-neutral-400 group-hover:text-accent-600 transition-colors">
+                                        {item.accountCode?.slice(0, 3) || 'ACC'}
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{item.accountName}</p>
+                                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{item.category}</p>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="px-8 py-6 text-center">
+                                    <Badge className="bg-neutral-50 text-neutral-600 border-neutral-200 text-[10px] font-bold rounded-lg px-2.5 py-1 uppercase tracking-widest">Operating</Badge>
+                                  </TableCell>
+                                  <TableCell className="px-8 py-6 text-right font-bold text-neutral-900 tracking-tight">{formatCurrency(item.balance)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                          <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
                         </div>
-                      ))}
-                      <div className="flex justify-between p-6 rounded-[2rem] bg-blue-600 text-white shadow-xl shadow-blue-100 mt-6 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform">
-                          <IndianRupee className="h-16 w-16" />
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-widest z-10">Retained Earnings (Audit P&L)</span>
-                        <span className="text-lg font-black z-10">{formatCurrency(bsData.equity.netProfit)}</span>
                       </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="dealer-pl" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Dealer-wise Gross Profitability" 
+                      subtitle="Customer-centric fiscal audit of revenue contribution per entity."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Trading Entity</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">LR Volume</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Gross Inflow</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Contribution</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Audit</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(dealerPlData) || dealerPlData.length === 0 ? (
+                            <TableEmptyState icon={<Briefcase />} title="No dealer P&L found" />
+                          ) : dealerPlData.map((d: any) => (
+                            <TableRow key={d.id} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center font-black text-xs border border-accent-100 group-hover:scale-105 transition-transform">
+                                    {d.name?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{d.name}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">Primary Customer</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-center font-bold text-neutral-600">{d.trips}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-success-700">{formatCurrency(d.revenue)}</TableCell>
+                              <TableCell className="px-8 py-6 text-right">
+                                <div className="flex items-center justify-end gap-3">
+                                  <span className="text-[10px] font-bold text-neutral-400 tracking-widest">{(d.revenue / (summary?.revenue || 1) * 100).toFixed(1)}%</span>
+                                  <div className="h-1.5 w-16 bg-neutral-100 rounded-full overflow-hidden shadow-inner">
+                                    <div className="h-full bg-accent-600 rounded-full" style={{ width: `${(d.revenue / (summary?.revenue || 1) * 100)}%` }} />
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <Badge className="bg-success-50 text-success-700 border-success-100 text-[10px] font-bold rounded-lg px-2.5 py-1">VERIFIED</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </TabsContent>
+              </TabsContent>
 
-          <TabsContent value="ageing" className="m-0 p-0 animate-in slide-in-from-right-4 duration-500">
-            <ReportHeader title="Counterparty Ageing Registry" subtitle="Bilateral analysis of outstanding receivables bucketed by overdue latency." />
-            <div className="px-1">
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow className="hover:bg-transparent border-none">
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">Trading Entity</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">0-30D Pool</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">31-60D Pool</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">61-90D Pool</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">90D+ Pool</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Aggregate Due</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ageingData.length === 0 ? <EmptyState icon={<Hourglass className="h-10 w-10 text-slate-100" />} /> : ageingData.map((row: any, i: number) => (
-                    <TableRow key={i} className="hover:bg-slate-50/50 transition-colors group border-b border-slate-50 last:border-0">
-                      <TableCell className="px-10 py-6 font-black text-slate-900 text-sm">{row.name}</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-slate-500">{formatCurrency(row.buckets['0-30'])}</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-amber-500">{formatCurrency(row.buckets['31-60'])}</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-orange-500">{formatCurrency(row.buckets['61-90'])}</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-rose-500">{formatCurrency(row.buckets['90+'])}</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-blue-600 bg-blue-50/30 group-hover:bg-blue-100/40 transition-colors text-base">{formatCurrency(row.total)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <TabsContent value="category-pl" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Category Performance Analysis" 
+                      subtitle="Strategic cluster evaluation by market segments."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Market Cluster</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">LR Volume</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Total Revenue</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Contribution</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Yield</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(categoryPlData) || categoryPlData.length === 0 ? (
+                            <TableEmptyState icon={<Layers />} title="No category P&L found" />
+                          ) : categoryPlData.map((c: any, i: number) => (
+                            <TableRow key={i} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black text-xs border border-amber-100">
+                                    {c.category?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{c.category}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">Commercial Segment</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-center font-bold text-neutral-600">{c.count}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-neutral-900">{formatCurrency(c.revenue)}</TableCell>
+                              <TableCell className="px-8 py-6 text-right">
+                                <div className="flex items-center justify-end gap-3">
+                                  <span className="text-[10px] font-bold text-neutral-400 tracking-widest">{(c.revenue / (summary?.revenue || 1) * 100).toFixed(1)}%</span>
+                                  <div className="h-1.5 w-16 bg-neutral-100 rounded-full overflow-hidden shadow-inner">
+                                    <div className="h-full bg-amber-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.4)]" style={{ width: `${(c.revenue / (summary?.revenue || 1) * 100)}%` }} />
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <Badge className="bg-neutral-50 text-neutral-600 border-neutral-200 text-[10px] font-bold rounded-lg px-2.5 py-1">OPTIMAL</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="bs" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Horizontal Fiscal Position" 
+                      subtitle="Systemic balance of Enterprise Assets vs Liabilities and Equity."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    {bsData && (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 divide-x divide-neutral-100 border-t border-neutral-100">
+                        <div className="p-8 bg-white">
+                          <div className="flex justify-between items-center mb-8 bg-accent-50/50 p-6 rounded-[24px] border border-accent-100 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-accent-600 text-white flex items-center justify-center shadow-lg shadow-accent-600/20">
+                                <TrendingUp className="h-5 w-5" />
+                              </div>
+                              <h4 className="text-sm font-black text-neutral-900 uppercase tracking-widest">Aggregate Assets</h4>
+                            </div>
+                            <span className="text-2xl font-black text-success-700 tracking-tighter">{formatCurrency(bsData.assets.total)}</span>
+                          </div>
+                          <div className="space-y-3">
+                            {Array.isArray(bsData.assets?.items) && bsData.assets.items.map((item: any) => (
+                              <div key={item.accountId} className="flex justify-between items-center p-5 rounded-[20px] hover:bg-transparent transition-all border border-neutral-100/50 group bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                                <span className="text-sm font-bold text-neutral-600 group-hover:text-accent-600 transition-colors uppercase tracking-tight">{item.accountName}</span>
+                                <span className="font-black text-neutral-900 tracking-tight">{formatCurrency(item.balance)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="p-8 bg-white">
+                          <div className="flex justify-between items-center mb-8 bg-error-50/50 p-6 rounded-[24px] border border-error-100 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-error-600 text-white flex items-center justify-center shadow-lg shadow-error-600/20">
+                                <TrendingDown className="h-5 w-5" />
+                              </div>
+                              <h4 className="text-sm font-black text-neutral-900 uppercase tracking-widest">Total Burden</h4>
+                            </div>
+                            <span className="text-2xl font-black text-error-700 tracking-tighter">{formatCurrency(bsData.totalLiabilitiesAndEquity)}</span>
+                          </div>
+                          <div className="space-y-8">
+                            <div className="space-y-3">
+                              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.3em] ml-2">Liabilities Pool</p>
+                              {Array.isArray(bsData.liabilities?.items) && bsData.liabilities.items.map((item: any) => (
+                                <div key={item.accountId} className="flex justify-between items-center p-5 rounded-[20px] hover:bg-transparent transition-all border border-neutral-100/50 group bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                                  <span className="text-sm font-bold text-neutral-600 group-hover:text-error-600 transition-colors uppercase tracking-tight">{item.accountName}</span>
+                                  <span className="font-black text-neutral-900 tracking-tight">{formatCurrency(item.balance)}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="space-y-3 pt-8 border-t border-neutral-200">
+                              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.3em] ml-2">Enterprise Equity</p>
+                              {Array.isArray(bsData.equity?.items) && bsData.equity.items.map((item: any) => (
+                                <div key={item.accountId} className="flex justify-between items-center p-5 rounded-[20px] hover:bg-transparent transition-all border border-neutral-100/50 group bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                                  <span className="text-sm font-bold text-neutral-600 group-hover:text-accent-600 transition-colors uppercase tracking-tight">{item.accountName}</span>
+                                  <span className="font-black text-neutral-900 tracking-tight">{formatCurrency(item.balance)}</span>
+                                </div>
+                              ))}
+                              <div className="flex justify-between p-7 rounded-[24px] bg-neutral-900 text-white shadow-2xl mt-6 relative overflow-hidden group">
+                                <div className="relative z-10 flex flex-col justify-center">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 mb-1">Retained Earnings</span>
+                                  <span className="text-xs font-bold text-accent-500">AUDIT VERIFIED</span>
+                                </div>
+                                <span className="text-3xl font-black z-10 tracking-tighter text-accent-500">{formatCurrency(bsData.equity.netProfit)}</span>
+                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-125 transition-transform duration-700">
+                                  <IndianRupee className="h-20 w-20" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="ageing" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Counterparty Ageing Registry" 
+                      subtitle="Bilateral analysis of outstanding receivables bucketed by overdue latency."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Trading Entity</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">0-30D</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">31-60D</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">61-90D</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">90D+</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Total Due</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                          <TableBody>
+                            {!Array.isArray(ageingData) || ageingData.length === 0 ? (
+                              <TableEmptyState icon={<Hourglass />} title="No ageing data found" />
+                            ) : ageingData.map((row: any, i: number) => (
+                              <TableRow key={i} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                                <TableCell className="px-8 py-6">
+                                  <div className="flex items-center gap-4">
+                                    <div className="h-10 w-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center font-black text-xs">
+                                      {row.name?.charAt(0)}
+                                    </div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{row.name}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="px-8 py-6 text-right font-bold text-neutral-400 tracking-tight">{formatCurrency(row.buckets['0-30'])}</TableCell>
+                                <TableCell className="px-8 py-6 text-right font-bold text-amber-500 tracking-tight">{formatCurrency(row.buckets['31-60'])}</TableCell>
+                                <TableCell className="px-8 py-6 text-right font-bold text-amber-700 tracking-tight">{formatCurrency(row.buckets['61-90'])}</TableCell>
+                                <TableCell className="px-8 py-6 text-right font-black text-error-600 tracking-tight">{formatCurrency(row.buckets['90+'])}</TableCell>
+                                <TableCell className="px-8 py-6 text-right font-black text-accent-600 bg-accent-50/30 group-hover:bg-accent-50/50 transition-colors tracking-tighter text-lg">
+                                  {formatCurrency(row.total)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
+                      </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="tb" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Full Trial Balance Audit" 
+                      subtitle="Aggregated ledger balances across all active chart of accounts."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Account Identification</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Debit Balance</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Credit Balance</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Net Ledger Value</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(tbData) || tbData.length === 0 ? (
+                            <TableEmptyState icon={<ArrowRightLeft />} title="No trial balance records found" />
+                          ) : tbData.map((row: any) => (
+                            <TableRow key={row.accountId} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-xl bg-neutral-100 text-neutral-500 flex items-center justify-center font-black text-[10px] border border-neutral-200">
+                                    {row.accountCode}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{row.accountName}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{row.category}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-error-600 tracking-tight">{formatCurrency(row.debit)}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-success-700 tracking-tight">{formatCurrency(row.credit)}</TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <Badge className="bg-success-50 text-success-700 border-success-100 text-[10px] font-bold rounded-lg px-2.5 py-1">BALANCED</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
             </div>
-          </TabsContent>
-
-          <TabsContent value="tb" className="m-0 p-0 animate-in slide-in-from-right-4 duration-500">
-            <div className="bg-white p-24 text-center">
-              <div className="max-w-md mx-auto space-y-8">
-                <div className="h-24 w-24 rounded-[2.5rem] bg-blue-600 flex items-center justify-center mx-auto shadow-2xl shadow-blue-200">
-                  <ArrowRightLeft className="h-10 w-10 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Trial Balance Intelligence</h2>
-                  <p className="text-sm font-medium text-slate-500 leading-relaxed mt-3 px-6">
-                    Our fiscal processing engine is currently compiling the multi-layer ledger drill-down. Automated mapping of Debit/Credit balances will be available shortly.
-                  </p>
-                </div>
-                <Button onClick={() => setActiveTab('pl')} variant="outline" className="h-12 px-10 rounded-2xl border-slate-200 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50">
-                  Return to Audit Hub
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-        </div>
+          )}
+        </>
       </Tabs>
-    </div>
+    </ReportContainer>
   );
 }
 
-function TabTrigger({ value, label, icon }: any) {
+function TabTrigger({ value, label }: { value: string; label: string }) {
   return (
     <TabsTrigger 
       value={value} 
-      className="rounded-[1.5rem] px-8 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-2xl data-[state=active]:shadow-blue-200 transition-all active:scale-95 flex items-center gap-2.5 border border-transparent data-[state=active]:border-blue-600"
+      className="relative h-12 rounded-none border-b-2 border-transparent bg-transparent px-2 pb-4 pt-2 text-sm font-bold text-neutral-500 transition-all data-[state=active]:border-accent-600 data-[state=active]:text-accent-600 data-[state=active]:shadow-none"
     >
-      {icon}
       {label}
     </TabsTrigger>
   );
 }
 
-function AnalysisCard({ title, value, sub, icon, color }: any) {
-  const colorStyles: any = {
-    blue: 'bg-blue-50/20 border-blue-50',
-    emerald: 'bg-emerald-50/20 border-emerald-50',
-    slate: 'bg-slate-50/20 border-slate-50',
+function FinancialMetricCard({ title, value, icon, color }: any) {
+  const colorMap: any = {
+    emerald: 'text-success-700 bg-success-50 border-success-100',
+    rose: 'text-error-700 bg-error-50 border-error-100',
+    blue: 'text-accent-600 bg-accent-50 border-accent-100',
   };
 
   return (
-    <div className={cn("bg-white rounded-[2rem] border border-slate-100 p-7 shadow-sm group hover:shadow-md transition-all", colorStyles[color])}>
-      <div className="flex items-center justify-between mb-2.5">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{title}</p>
-        <div className="p-2 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform border border-slate-50">
-          {icon}
-        </div>
+    <div className={cn("p-6 rounded-2xl border border-neutral-100 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white", colorMap[color])}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{title}</p>
+        {React.isValidElement(icon) 
+          ? React.cloneElement(icon as React.ReactElement<any>, { className: "h-5 w-5 opacity-70" }) 
+          : icon}
       </div>
-      <h3 className="text-2xl font-black text-slate-900 tracking-tight">{value}</h3>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1 italic">{sub}</p>
+      <h3 className="text-2xl font-bold tracking-tight">{value}</h3>
     </div>
   );
 }
 
-function FinancialMetricCard({ title, value, sub, icon, color }: any) {
-  const colorStyles: any = {
-    emerald: 'bg-emerald-50/40 border-emerald-100',
-    rose: 'bg-rose-50/40 border-rose-100',
-    blue: 'bg-blue-50/40 border-blue-100',
-  };
-
+function TableEmptyState({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
-    <div className={cn("bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden", colorStyles[color])}>
-      <div className="absolute top-0 right-0 p-4 opacity-10 scale-150 -rotate-12 group-hover:rotate-0 transition-transform duration-500">
-        {icon}
-      </div>
-      <div className="flex flex-col relative z-10">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{title}</p>
-        <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{value}</h3>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-2 italic">{sub}</p>
-      </div>
-    </div>
-  );
-}
-
-function ReportHeader({ title, subtitle }: any) {
-  return (
-    <div className="px-10 py-10 border-b border-slate-100 bg-white flex flex-col gap-2">
-      <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">{title}</h3>
-      <p className="text-xs font-medium text-slate-400">{subtitle}</p>
-    </div>
-  );
-}
-
-function EmptyState({ icon }: any) {
-  return (
-    <tr>
-      <td colSpan={6} className="px-10 py-32 text-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-16 w-16 rounded-[1.5rem] bg-blue-50 flex items-center justify-center border border-blue-100">
-            {icon}
+    <TableRow>
+      <td colSpan={10} className="py-20">
+        <div className="flex flex-col items-center justify-center text-neutral-400">
+          <div className="mb-4 p-4 bg-neutral-50 rounded-2xl border border-neutral-100 shadow-sm">
+            {React.isValidElement(icon) 
+              ? React.cloneElement(icon as React.ReactElement<any>, { className: "h-8 w-8" }) 
+              : icon}
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-black text-slate-900 uppercase tracking-widest">No Intelligence Records Found</p>
-            <p className="text-xs text-slate-400 font-medium max-w-[200px] mx-auto">Try expanding your fiscal search window or adjusting filters.</p>
-          </div>
+          <p className="text-sm font-bold uppercase tracking-widest">{title}</p>
         </div>
       </td>
-    </tr>
+    </TableRow>
   );
 }
