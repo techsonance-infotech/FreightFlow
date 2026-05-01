@@ -12,8 +12,9 @@ export const OrderDetailSchema = z.object({
 
 export const OrderSchema = z.object({
   id: z.string().uuid().optional(),
-  lrNo: z.number().int().optional(),
+  lrNo: z.string().optional(),
   gstBillNo: z.string().optional(),
+  companyName: z.string().optional(),
   dealerId: z.string().uuid('Invalid dealer'),
   consigneeId: z.string().uuid('Invalid consignee'),
   ewayBillNo: z.string().regex(/^\d{12}$/, 'E-Way Bill must be 12 digits').optional().or(z.literal('')),
@@ -33,7 +34,11 @@ export const OrderSchema = z.object({
 
 export const PalletDetailSchema = z.object({
   id: z.string().uuid().optional(),
-  qty: z.number().int().min(1),
+  palletDisplayId: z.string().optional(),
+  boxQty: z.number().int().min(0).default(0),
+  weight: z.number().min(0).default(0),
+  consigneeName: z.string().optional(),
+  qty: z.number().int().min(0).default(1),
   rate: z.number().int().min(0), // in paise
 });
 
@@ -46,7 +51,7 @@ export const PalletConsigneeDetailSchema = z.object({
 
 export const PalletSchema = z.object({
   id: z.string().uuid().optional(),
-  lrNo: z.number().int().optional(),
+  lrNo: z.string().optional(),
   dealerId: z.string().uuid(),
   vehicleId: z.string().uuid(),
   date: z.string().or(z.date()),

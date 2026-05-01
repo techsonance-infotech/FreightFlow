@@ -3,17 +3,59 @@ import { prisma } from '@freightflow/db';
 
 export class LREngine {
   /**
-   * Generates the next LR number for a company.
-   * If no LRs exist, starts from 1001 or as configured.
+   * Generates the next LR number for a company, factoring in Financial Year.
+   * Format: LR/YYYY-YY/SEQUENCE (e.g. LR/2026-27/1001)
    */
-  static async getNextLRNo(companyId: string): Promise<number> {
+  static async getNextLRNo(companyId: string, dateStr?: string | null): Promise<string> {
+    let today = new Date();
+    if (dateStr && dateStr !== 'undefined' && dateStr !== 'null') {
+      const parsed = new Date(dateStr);
+      if (!isNaN(parsed.getTime())) {
+        today = parsed;
+      }
+    }
+    
+    const month = today.getMonth(); // 0-indexed, 0 = Jan
+    const currentYear = today.getFullYear();
+    
+    // FY starts in April (3)
+    let fyStart, fyEnd;
+    if (month >= 3) {
+      fyStart = currentYear;
+      fyEnd = (currentYear + 1) % 100;
+    } else {
+      fyStart = currentYear - 1;
+      fyEnd = currentYear % 100;
+    }
+    const fyString = `${fyStart}-${fyEnd.toString().padStart(2, '0')}`;
+    const prefix = `LR/${fyString}/`;
+
+    // Get the max sequence for this company and this FY
     const lastOrder = await prisma.order.findFirst({
-      where: { companyId },
-      orderBy: { lrNo: 'desc' },
-      select: { lrNo: true },
+      where: {
+        companyId,
+        lrNo: {
+          startsWith: prefix,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        lrNo: true,
+      },
     });
 
-    return lastOrder ? lastOrder.lrNo + 1 : 1001;
+    let nextSequence = 1001; // Default starting sequence
+    if (lastOrder && lastOrder.lrNo) {
+      const parts = lastOrder.lrNo.split('/');
+      const lastSeq = parseInt(parts[parts.length - 1]);
+      if (!isNaN(lastSeq)) {
+        nextSequence = lastSeq + 1;
+      }
+    }
+
+    return `${prefix}${nextSequence}`;
   }
 
   /**

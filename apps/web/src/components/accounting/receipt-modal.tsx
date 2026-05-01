@@ -94,6 +94,10 @@ export function ReceiptModal({ isOpen, onClose, invoice, onSuccess }: ReceiptMod
         voucherType: 'receipt',
         narration: `Payment received for Invoice ${invoice.invoiceNo}. ${formData.referenceNo ? 'Ref: ' + formData.referenceNo : ''}. ${formData.notes || ''}`,
         voucherNo: `RV-${invoice.invoiceNo}-${Date.now().toString().slice(-4)}`,
+        metadata: {
+          billId: invoice.id,
+          referenceNo: formData.referenceNo
+        },
         lines: [
           {
             accountId: formData.bankAccountId,

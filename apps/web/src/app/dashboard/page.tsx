@@ -17,6 +17,8 @@ import { SystemPulse } from '@/components/dashboard/system-pulse';
 import { ActionCommandCenter } from '@/components/dashboard/action-command-center';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
 import { ComplianceCalendarWidget } from '@/components/dashboard/compliance-widget';
+import { TodayLRWidget } from '@/components/dashboard/TodayLRWidget';
+import { TodayPalletWidget } from '@/components/dashboard/TodayPalletWidget';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -72,6 +74,7 @@ export default function ExecutiveDashboard() {
 
       {/* KPI Row */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* ... existing KPI cards ... */}
         <KPICard 
           title="Today's LRs" 
           value={kpis?.todayLrs || 0} 
@@ -104,6 +107,12 @@ export default function ExecutiveDashboard() {
           color="rose"
           footer="docs expiring in 30d"
         />
+      </div>
+
+      {/* Operational Widgets Row */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <TodayLRWidget />
+        <TodayPalletWidget />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">

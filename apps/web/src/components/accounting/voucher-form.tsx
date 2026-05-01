@@ -13,6 +13,7 @@ interface VoucherFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   accountOptions: { id: string; name: string; code: string }[];
+  initialData?: any;
 }
 
 import { 
@@ -21,17 +22,24 @@ import {
   ChevronDown, Hash, IndianRupee
 } from 'lucide-react';
 
-export function VoucherForm({ onSuccess, onCancel, accountOptions }: VoucherFormProps) {
+export function VoucherForm({ onSuccess, onCancel, accountOptions, initialData }: VoucherFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [totalDebit, setTotalDebit] = useState(0);
   const [totalCredit, setTotalCredit] = useState(0);
 
-  const { register, control, handleSubmit, watch, formState: { errors } } = useForm<any>({
+  const { register, control, handleSubmit, watch, reset, formState: { errors } } = useForm<any>({
     resolver: zodResolver(JournalEntrySchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
-      voucherType: 'journal',
-      lines: [
+      date: initialData?.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      voucherType: initialData?.voucherType || 'journal',
+      voucherNo: initialData?.voucherNo || '',
+      narration: initialData?.narration || '',
+      lines: initialData?.lines?.map((l: any) => ({
+        accountId: l.accountId,
+        debit: l.debit / 100,
+        credit: l.credit / 100,
+        description: l.description || ''
+      })) || [
         { accountId: '', debit: 0, credit: 0, description: '' },
         { accountId: '', debit: 0, credit: 0, description: '' },
       ]
@@ -79,10 +87,11 @@ export function VoucherForm({ onSuccess, onCancel, accountOptions }: VoucherForm
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/v1/accounting/vouchers', {
-        method: 'POST',
+        method: initialData ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
+          id: initialData?.id,
           lines: formattedLines,
           totalAmount: totalD // Include total in paise
         }),
@@ -93,7 +102,7 @@ export function VoucherForm({ onSuccess, onCancel, accountOptions }: VoucherForm
         throw new Error(error.error || 'Failed to save voucher');
       }
 
-      toast.success('Voucher posted successfully');
+      toast.success(`Voucher ${initialData ? 'updated' : 'posted'} successfully`);
       onSuccess();
     } catch (error: any) {
       toast.error(error.message || 'An error occurred');

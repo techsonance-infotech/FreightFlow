@@ -11,6 +11,12 @@ export async function GET(request: Request) {
     }
 
     const { tenantId, companyId } = session.user;
+    const { searchParams } = new URL(request.url);
+
+    if (searchParams.get('nextCode') === 'true') {
+      const nextCode = await AccountingEngine.getNextAccountCode(tenantId, companyId);
+      return NextResponse.json({ data: nextCode });
+    }
 
     const coaTree = await AccountingEngine.getChartOfAccounts(tenantId, companyId);
     
@@ -42,5 +48,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     return NextResponse.json({ error: error.message || 'Failed to create account' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const session = await getSession();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { tenantId, companyId } = session.user;
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const account = await AccountingEngine.updateAccount(tenantId, companyId, id, body);
+    
+    return NextResponse.json({ data: account });
+  } catch (error: any) {
+    console.error('Error updating account:', error);
+    return NextResponse.json({ error: error.message || 'Failed to update account' }, { status: 500 });
   }
 }

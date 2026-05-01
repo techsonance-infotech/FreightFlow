@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { FreightInvoiceModal } from '@/components/accounting/freight-invoice-modal';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -20,6 +22,9 @@ export default function TripDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [expenseData, setExpenseData] = useState({ type: 'fuel', amount: 0, description: '' });
+  
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const fetchTrip = async () => {
     try {
@@ -229,11 +234,33 @@ export default function TripDetailPage() {
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                   <Package className="h-4 w-4 text-blue-600" /> Assigned Lorry Receipts ({trip.orders?.length})
                 </h3>
+                {selectedOrderIds.length > 0 && (
+                  <button
+                    onClick={() => setIsInvoiceModalOpen(true)}
+                    className="flex items-center gap-2 px-5 py-2 bg-accent-600 text-white rounded-xl hover:bg-accent-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-accent-600/20"
+                  >
+                    <Receipt className="h-4 w-4" /> Generate Invoice ({selectedOrderIds.length})
+                  </button>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-slate-400 font-black uppercase text-[9px] tracking-widest">
                     <tr>
+                      <th className="px-8 py-4 text-left w-10">
+                        <input 
+                          type="checkbox"
+                          checked={selectedOrderIds.length === trip.orders?.length && trip.orders?.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedOrderIds(trip.orders?.map((o: any) => o.id) || []);
+                            } else {
+                              setSelectedOrderIds([]);
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-600/20"
+                        />
+                      </th>
                       <th className="px-8 py-4 text-left">LR Number</th>
                       <th className="px-8 py-4 text-left">Parties</th>
                       <th className="px-8 py-4 text-right">Weight</th>
@@ -242,7 +269,21 @@ export default function TripDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {trip.orders?.map((order: any) => (
-                      <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={order.id} className={cn("hover:bg-slate-50/50 transition-colors", selectedOrderIds.includes(order.id) && "bg-accent-50/30")}>
+                        <td className="px-8 py-5">
+                          <input 
+                            type="checkbox"
+                            checked={selectedOrderIds.includes(order.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedOrderIds(prev => [...prev, order.id]);
+                              } else {
+                                setSelectedOrderIds(prev => prev.filter(id => id !== order.id));
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-600/20"
+                          />
+                        </td>
                         <td className="px-8 py-5">
                           <div className="font-black text-slate-900">LR #{order.lrNo}</div>
                           <div className="text-[10px] text-slate-400 font-bold uppercase">{format(new Date(order.date), 'dd MMM yyyy')}</div>
@@ -490,6 +531,17 @@ export default function TripDetailPage() {
           </div>
         </div>
       )}
+      {/* Freight Invoice Modal */}
+      <FreightInvoiceModal 
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        selectedOrders={trip.orders?.filter((o: any) => selectedOrderIds.includes(o.id)) || []}
+        onSuccess={() => {
+          setIsInvoiceModalOpen(false);
+          setSelectedOrderIds([]);
+          fetchTrip();
+        }}
+      />
     </div>
   );
 }

@@ -28,10 +28,26 @@ export function COAForm({ initialData, onSuccess, onCancel, parentOptions }: COA
     }
   });
 
-  const { register, handleSubmit, formState: { errors }, reset } = methods;
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = methods;
+
+  const fetchNextCode = async () => {
+    try {
+      const res = await fetch('/api/v1/accounting/coa?nextCode=true');
+      const json = await res.json();
+      if (json.data) {
+        setValue('code', json.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch next account code');
+    }
+  };
 
   useEffect(() => {
-    if (initialData) reset(initialData);
+    if (initialData) {
+      reset(initialData);
+    } else {
+      fetchNextCode();
+    }
   }, [initialData, reset]);
 
   const onSubmit = async (data: ChartOfAccount) => {

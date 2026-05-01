@@ -27,7 +27,7 @@ export async function GET(request: Request) {
           tenantId,
           companyId,
           OR: [
-            { lrNo: isNaN(parseInt(query)) ? undefined : parseInt(query) },
+            { lrNo: { contains: query, mode: 'insensitive' } },
             { gstBillNo: { contains: query, mode: 'insensitive' } },
           ],
         },

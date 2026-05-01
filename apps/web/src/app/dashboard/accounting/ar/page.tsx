@@ -5,7 +5,7 @@ import {
   CreditCard, Clock, Users, Search, RefreshCcw, 
   Download, Filter, ChevronRight, AlertCircle,
   CheckCircle2, Landmark, ArrowRight, FileText,
-  Mail, Calendar, BarChart3
+  Mail, Calendar, BarChart3, TrendingUp, Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -15,6 +15,8 @@ import {
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { ReceiptModal } from '@/components/accounting/receipt-modal';
+import { InvoiceModal } from '@/components/accounting/invoice-modal';
+import { SOAModal } from '@/components/accounting/soa-modal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +34,8 @@ export default function AccountsReceivablePage() {
   const [limit, setLimit] = useState(10);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [isSOAModalOpen, setIsSOAModalOpen] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -91,11 +95,29 @@ export default function AccountsReceivablePage() {
       header: 'Invoice Details',
       accessor: (row: any) => (
         <div className="flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-neutral-50 flex items-center justify-center border border-neutral-100 group-hover:bg-accent-50 transition-colors">
+          <div className="h-10 w-10 rounded-xl bg-neutral-50 flex items-center justify-center border border-neutral-100 group-hover:bg-accent-50 transition-colors relative">
             <FileText className="h-5 w-5 text-neutral-400 group-hover:text-accent-600" />
+            {row.metadata?.attachments?.length > 0 && (
+              <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-accent-600 border-2 border-white rounded-full flex items-center justify-center">
+                <div className="h-1 w-1 bg-white rounded-full" />
+              </div>
+            )}
           </div>
           <div>
-            <p className="font-black text-neutral-900 leading-tight">{row.invoiceNo}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-black text-neutral-900 leading-tight">{row.invoiceNo}</p>
+              {row.metadata?.attachments?.length > 0 && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(row.metadata.attachments[0]);
+                  }}
+                  className="text-[8px] font-black text-accent-600 uppercase hover:underline"
+                >
+                  View Doc
+                </button>
+              )}
+            </div>
             <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">
               {new Date(row.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
             </p>
@@ -200,6 +222,19 @@ export default function AccountsReceivablePage() {
             <RefreshCcw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
             Refresh Ageing
           </Button>
+          <Button 
+            className="bg-accent-600 hover:bg-accent-700 text-white font-black uppercase tracking-widest text-[10px] h-10 px-6 rounded-xl shadow-lg shadow-accent-600/20"
+            onClick={() => setIsInvoiceModalOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" /> Raise Invoice
+          </Button>
+          <Button 
+            variant="outline"
+            className="border-accent-200 text-accent-600 font-black uppercase tracking-widest text-[10px] h-10 px-6 rounded-xl"
+            onClick={() => setIsSOAModalOpen(true)}
+          >
+            <FileText className="h-4 w-4 mr-2" /> Generate Statement
+          </Button>
         </div>
       </div>
 
@@ -223,16 +258,16 @@ export default function AccountsReceivablePage() {
         <StatCard 
           title="Avg. Ageing"
           value={`${data.meta?.averageAgeing || 0} Days`}
-          subValue="Current Collection Cycle"
+          subValue="Collection Velocity"
           icon={<Clock className="h-6 w-6" />}
-          color="amber"
+          color="blue"
         />
         <StatCard 
-          title="Collection Efficiency"
-          value={`${data.meta?.collectionEfficiency || 0}%`}
-          subValue="Vs. Target 90%"
-          icon={<BarChart3 className="h-6 w-6" />}
-          color="emerald"
+          title="GST Liability"
+          value={formatAmount(data.meta?.gstSummary?.total || 0)}
+          subValue={`IGST: ${formatAmount(data.meta?.gstSummary?.igst || 0)}`}
+          icon={<TrendingUp className="h-6 w-6" />}
+          color="blue"
         />
       </div>
 
@@ -375,7 +410,17 @@ export default function AccountsReceivablePage() {
         invoice={selectedInvoice}
         onSuccess={fetchData}
       />
+
+      <InvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        onSuccess={fetchData}
+      />
+      <SOAModal 
+        isOpen={isSOAModalOpen}
+        onClose={() => setIsSOAModalOpen(false)}
+        dealers={dealers}
+      />
     </ReportContainer>
   );
 }
-

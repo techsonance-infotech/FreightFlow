@@ -18,6 +18,9 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const status = searchParams.get('status');
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -28,13 +31,23 @@ export async function GET(request: Request) {
 
     if (search) {
       where.OR = [
-        { lrNo: isNaN(parseInt(search)) ? undefined : parseInt(search) },
+        { lrNo: { contains: search, mode: 'insensitive' } },
         { gstBillNo: { contains: search, mode: 'insensitive' } },
         { fromLocation: { contains: search, mode: 'insensitive' } },
         { toLocation: { contains: search, mode: 'insensitive' } },
         { dealer: { name: { contains: search, mode: 'insensitive' } } },
         { consignee: { name: { contains: search, mode: 'insensitive' } } },
       ].filter(Boolean);
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate);
     }
 
     const [orders, total] = await Promise.all([
@@ -93,7 +106,7 @@ export async function POST(request: Request) {
     });
 
     // Get next LR number
-    const lrNo = await LREngine.getNextLRNo(user.companyId!);
+    const lrNo = await LREngine.getNextLRNo(user.companyId!, validatedData.date as any);
 
     // Create order within a transaction
     const order = await prisma.$transaction(async (tx) => {
@@ -103,6 +116,7 @@ export async function POST(request: Request) {
           companyId: user.companyId!,
           lrNo,
           gstBillNo: validatedData.gstBillNo,
+          companyName: validatedData.companyName,
           dealerId: validatedData.dealerId,
           consigneeId: validatedData.consigneeId,
           ewayBillNo: validatedData.ewayBillNo,

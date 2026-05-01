@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Landmark, Calendar, CreditCard, Hash, FileText, Users, Percent } from 'lucide-react';
+import { Landmark, Calendar, CreditCard, Hash, FileText, Users, Percent, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BillModalProps {
@@ -16,9 +16,24 @@ interface BillModalProps {
 
 export function BillModal({ isOpen, onClose, onSuccess }: BillModalProps) {
   const [loading, setLoading] = useState(false);
+  const [attachmentLoading, setAttachmentLoading] = useState(false);
+  const [attachments, setAttachments] = useState<string[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [expenseAccounts, setExpenseAccounts] = useState<any[]>([]);
   const [apAccounts, setApAccounts] = useState<any[]>([]);
+
+  const [formData, setFormData] = useState({
+    vendorId: '',
+    billNo: '',
+    date: new Date().toISOString().split('T')[0],
+    amount: 0,
+    gstRate: 0,
+    gstType: 'intra' as 'intra' | 'inter',
+    tdsRate: 0,
+    expenseAccountId: '',
+    apAccountId: '',
+    narration: ''
+  });
 
   const fetchVendors = async () => {
     try {
@@ -73,19 +88,6 @@ export function BillModal({ isOpen, onClose, onSuccess }: BillModalProps) {
       console.error('Failed to fetch accounts');
     }
   };
-
-  const [formData, setFormData] = useState({
-    vendorId: '',
-    billNo: '',
-    date: new Date().toISOString().split('T')[0],
-    amount: 0,
-    gstRate: 0,
-    gstType: 'intra' as 'intra' | 'inter',
-    tdsRate: 0,
-    expenseAccountId: '',
-    apAccountId: '',
-    narration: ''
-  });
 
   useEffect(() => {
     if (isOpen) {
@@ -152,6 +154,14 @@ export function BillModal({ isOpen, onClose, onSuccess }: BillModalProps) {
         voucherType: 'purchase',
         narration: `${vendor?.name} - Bill ${formData.billNo}. ${formData.narration}`,
         voucherNo: `PB-${formData.billNo}-${Date.now().toString().slice(-4)}`,
+        metadata: {
+          partyId: formData.vendorId,
+          partyType: 'vendor',
+          attachments: attachments,
+          baseAmount: basePaise,
+          gstAmount: gstPaise,
+          tdsAmount: tdsPaise
+        },
         lines: [
           {
             accountId: formData.expenseAccountId,
@@ -430,6 +440,60 @@ export function BillModal({ isOpen, onClose, onSuccess }: BillModalProps) {
             placeholder="Additional details..."
             className="w-full p-4 bg-neutral-50 border border-neutral-100 rounded-xl text-sm font-bold text-neutral-700 outline-none focus:ring-2 focus:ring-accent-600/10 focus:border-accent-600 transition-all resize-none"
           />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest px-1">Attachments (Bill Copy)</label>
+          <div className="flex items-center gap-4 p-4 bg-neutral-50 border border-dashed border-neutral-200 rounded-xl">
+            <input 
+              type="file" 
+              id="bill-file"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setAttachmentLoading(true);
+                  try {
+                    const uploadData = new FormData();
+                    uploadData.append('file', file);
+                    uploadData.append('type', 'bill');
+                    uploadData.append('masterId', formData.billNo || 'pending');
+                    uploadData.append('masterType', 'accounting');
+
+                    const { uploadMasterDocument } = await import('@/app/actions/masters/labour');
+                    const res = await uploadMasterDocument(uploadData);
+                    if (res.error) throw new Error(res.error);
+                    if (res.publicUrl) {
+                      setAttachments(prev => [...prev, res.publicUrl!]);
+                    }
+                    toast.success('Document uploaded');
+                  } catch (err: any) {
+                    toast.error(err.message);
+                  } finally {
+                    setAttachmentLoading(false);
+                  }
+                }
+              }}
+            />
+            <label htmlFor="bill-file" className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 rounded-lg text-[10px] font-black uppercase cursor-pointer hover:bg-neutral-50 transition-all">
+              {attachmentLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3 text-accent-600" />}
+              Attach Document
+            </label>
+            <div className="flex gap-2">
+              {attachments.map((url, i) => (
+                <div key={i} className="h-8 w-8 rounded-lg bg-accent-100 flex items-center justify-center relative group">
+                  <FileText className="h-4 w-4 text-accent-600" />
+                  <button 
+                    type="button"
+                    onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
+                    className="absolute -top-1 -right-1 h-4 w-4 bg-rose-500 text-white rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="pt-4 flex gap-3">

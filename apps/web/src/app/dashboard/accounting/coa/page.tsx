@@ -32,22 +32,36 @@ export default function ChartOfAccountsPage() {
     setLoading(true);
     try {
       const response = await fetch('/api/v1/accounting/coa');
-      const result = await response.json();
+      const text = await response.text();
+      
+      if (!text) {
+        throw new Error('Empty response from server');
+      }
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        throw new Error('Invalid JSON response from server');
+      }
+
       if (response.ok) {
-        setData(result.data);
+        setData(result.data || []);
         const flatten = (nodes: any[], res: any[] = []) => {
+          if (!nodes || !Array.isArray(nodes)) return res;
           nodes.forEach(node => {
             res.push({ id: node.id, name: node.name, code: node.code });
             if (node.children) flatten(node.children, res);
           });
           return res;
         };
-        setParentOptions(flatten(result.data));
+        setParentOptions(flatten(result.data || []));
       } else {
-        throw new Error(result.error);
+        throw new Error(result.error || 'Failed to fetch data');
       }
-    } catch (error) {
-      toast.error('Failed to fetch Chart of Accounts');
+    } catch (error: any) {
+      console.error('COA Fetch Error:', error);
+      toast.error(error.message || 'Failed to fetch Chart of Accounts');
     } finally {
       setLoading(false);
     }
@@ -273,45 +287,61 @@ export default function ChartOfAccountsPage() {
       {/* COA Tree Container */}
       <div className="bg-white rounded-[40px] border border-neutral-100 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between py-4 px-8 bg-neutral-50/50 border-b border-neutral-100">
-          <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Account Hierarchy</span>
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Account Hierarchy</span>
+            <div className="h-4 w-[1px] bg-neutral-200" />
+            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-tight">{totalItems} Total Ledgers</span>
+          </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span className="text-[9px] font-bold text-neutral-400 uppercase">Balanced</span>
+              <span className="text-[9px] font-bold text-neutral-400 uppercase">Balanced Architecture</span>
             </div>
           </div>
         </div>
 
-        <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+        <div className="min-h-[400px] max-h-[700px] overflow-y-auto custom-scrollbar bg-white">
           {loading ? (
-            <div className="p-8"><LoadingState rows={10} /></div>
+            <div className="p-8"><LoadingState rows={12} /></div>
           ) : paginatedData.length === 0 ? (
             <div className="p-20 text-center">
-              <div className="h-20 w-20 bg-neutral-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-neutral-100 shadow-inner">
-                <AlertCircle className="h-10 w-10 text-neutral-300" />
+              <div className="h-24 w-24 bg-neutral-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-neutral-100 shadow-inner">
+                <AlertCircle className="h-12 w-12 text-neutral-300" />
               </div>
-              <h4 className="text-base font-black text-neutral-900 uppercase tracking-widest">No Ledgers Found</h4>
-              <p className="text-sm font-bold text-neutral-400 mt-2 max-w-[280px] mx-auto">Try adjusting your filters or search terms to find specific accounts.</p>
+              <h4 className="text-lg font-black text-neutral-900 uppercase tracking-widest">No Records Match</h4>
+              <p className="text-sm font-bold text-neutral-400 mt-2 max-w-[320px] mx-auto">Expand your search criteria or create a new ledger entry above.</p>
             </div>
           ) : (
-            <div className="divide-y divide-neutral-100">
+            <div className="divide-y divide-neutral-100/50">
               {renderTree(paginatedData)}
             </div>
           )}
         </div>
 
         <div className="px-8 py-6 bg-neutral-50/50 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-6 order-2 sm:order-1">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-accent-500 animate-pulse" />
-              <span className="text-[10px] font-black text-accent-600 uppercase tracking-widest">Live Architecture</span>
+          <div className="flex items-center gap-8 order-2 sm:order-1">
+            <div className="flex items-center gap-3">
+              <div className="h-2.5 w-2.5 rounded-full bg-accent-500 animate-pulse shadow-sm shadow-accent-500/50" />
+              <span className="text-[10px] font-black text-accent-600 uppercase tracking-widest">Live Engine</span>
             </div>
-            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest hidden md:block">
-              Double-Entry Compliant Hierarchy
-            </p>
+            <div className="hidden md:flex items-center gap-4 text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
+              <span>Tenant Isolated</span>
+              <div className="h-1 w-1 rounded-full bg-neutral-300" />
+              <span>Audit Ready</span>
+            </div>
           </div>
           
-          <div className="w-full sm:w-auto order-1 sm:order-2">
+          <div className="w-full sm:w-auto order-1 sm:order-2 flex items-center gap-4">
+            <select 
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+              className="h-9 px-3 bg-white border border-neutral-200 rounded-lg text-[10px] font-black text-neutral-500 uppercase tracking-widest outline-none focus:ring-2 focus:ring-accent-600/10 transition-all cursor-pointer"
+            >
+              <option value={10}>10 / Page</option>
+              <option value={20}>20 / Page</option>
+              <option value={50}>50 / Page</option>
+              <option value={100}>100 / Page</option>
+            </select>
             <Pagination 
               currentPage={page}
               totalPages={Math.ceil(totalItems / limit)}

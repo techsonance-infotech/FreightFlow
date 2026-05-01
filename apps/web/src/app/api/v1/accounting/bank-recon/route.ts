@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth-utils';
 import { BankReconService } from '@/services/bank-recon';
 
 export async function POST(request: Request) {
   try {
-    const tenantId = request.headers.get('x-tenant-id');
-    const companyId = request.headers.get('x-company-id');
-
-    if (!tenantId || !companyId) {
-      return NextResponse.json({ error: 'Missing tenantId or companyId' }, { status: 400 });
-    }
+    const session = await getSession();
+    if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    const tenantId = session.user.tenantId;
+    const companyId = session.user.companyId;
 
     const body = await request.json();
     const { accountId, statementRows } = body;

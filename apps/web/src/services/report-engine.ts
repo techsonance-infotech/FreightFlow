@@ -11,6 +11,7 @@ export class ReportEngine {
       journalEntry: {
         tenantId,
         companyId,
+        status: 'posted',
       },
     };
 

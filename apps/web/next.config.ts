@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
+import path from 'path';
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ['@prisma/client', '@freightflow/db', 'prisma'],
 };
 
 export default nextConfig;

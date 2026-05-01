@@ -35,6 +35,13 @@ export const JournalEntrySchema = z.object({
   voucherNo: z.string().optional(),
   narration: z.string().optional(),
   lines: z.array(JournalLineSchema).min(2, 'At least two ledger lines are required'),
+  // Transport-specific operational fields
+  category: z.string().optional(),
+  vehicleId: z.string().uuid().optional().nullable(),
+  tripId: z.string().uuid().optional().nullable(),
+  employeeId: z.string().uuid().optional().nullable(),
+  status: z.enum(['draft', 'pending', 'posted']).default('posted'),
+  metadata: z.any().optional(),
 });
 
 export type JournalEntry = z.infer<typeof JournalEntrySchema>;

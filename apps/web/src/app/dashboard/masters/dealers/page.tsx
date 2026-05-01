@@ -136,40 +136,37 @@ export default function DealersPage() {
       )
     },
     { 
-      header: 'Financial & Banking', 
+      header: 'Short Name', 
+      accessor: (row: Dealer) => <span className="font-mono text-xs">{row.shortName || '-'}</span>
+    },
+    { 
+      header: 'Address Details', 
       accessor: (row: Dealer) => (
-        <div>
-          <p className="text-[11px] font-black text-slate-700 uppercase tracking-tighter">
-            {row.bankName ? `🏦 ${row.bankName}` : '❌ No Bank Info'}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-green-50 text-green-600 border border-green-100">
-              TDS: {row.tdsRate}%
-            </span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100 uppercase">
-              {row.tdsSection || 'NA'}
-            </span>
+        <div className="max-w-[200px]">
+          <p className="text-[10px] text-slate-600 line-clamp-1">{row.address || '-'}</p>
+          <div className="flex gap-2 text-[9px] font-bold text-slate-400 uppercase mt-0.5">
+            <span>Pin: {row.pincode || '-'}</span>
+            <span>Area: {row.area || '-'}</span>
           </div>
         </div>
       )
     },
     { 
-      header: 'Logistics Profile', 
+      header: 'Compliance & Tax', 
       accessor: (row: Dealer) => (
-        <div>
-          <p className="text-xs font-bold text-slate-700">🚛 Fleet: {row.fleetSize}</p>
-          <p className="text-[10px] font-medium text-slate-400 line-clamp-1 mt-0.5">📍 {row.primaryRoutes || 'National'}</p>
+        <div className="space-y-1">
+          <p className="text-[10px] font-black text-slate-700">GST: <span className="font-mono">{row.gstin || 'N/A'}</span></p>
+          <p className="text-[10px] font-black text-slate-700">PAN: <span className="font-mono">{row.pan || 'N/A'}</span></p>
+          {row.serviceTaxNo && <p className="text-[9px] font-bold text-blue-600 uppercase">ST No: {row.serviceTaxNo}</p>}
         </div>
       )
     },
     { 
-      header: 'Compliance', 
+      header: 'Dealer Type', 
       accessor: (row: Dealer) => (
-        <div className="flex items-center gap-2">
-          {row.gstUrl && <span title="GST Verified" className="text-blue-600 text-lg cursor-pointer" onClick={() => window.open(row.gstUrl!, '_blank')}>📝</span>}
-          {row.panUrl && <span title="PAN Verified" className="text-orange-600 text-lg cursor-pointer" onClick={() => window.open(row.panUrl!, '_blank')}>💳</span>}
-          {row.bankProofUrl && <span title="Bank Verified" className="text-green-600 text-lg cursor-pointer" onClick={() => window.open(row.bankProofUrl!, '_blank')}>🏦</span>}
-        </div>
+        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 uppercase tracking-tighter border border-slate-200">
+          {row.dealerType || 'Regular'}
+        </span>
       )
     },
     { 

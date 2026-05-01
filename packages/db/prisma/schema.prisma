@@ -5,6 +5,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -74,6 +75,7 @@ model Tenant {
   driverAssignments   DriverAssignment[]
   employeeTransactions EmployeeTransaction[]
   leaveAllocations    LeaveAllocation[]
+  accountingSettings  AccountingSetting[]
 
   @@map("tenants")
 }
@@ -163,6 +165,22 @@ model Company {
   phone                      String?  @db.VarChar(20)
   email                      String?  @db.VarChar(255)
   logoUrl                    String?  @map("logo_url") @db.Text
+  signatureUrl               String?  @map("signature_url") @db.Text
+  printHeader                String?  @map("print_header") @db.Text
+  printFooter                String?  @map("print_footer") @db.Text
+  printTerms                 String?  @map("print_terms") @db.Text
+  
+  // Advanced Branding & Financials
+  bankName                   String?  @map("bank_name") @db.VarChar(255)
+  accountNo                  String?  @map("account_no") @db.VarChar(50)
+  ifscCode                   String?  @map("ifsc_code") @db.VarChar(20)
+  branchName                 String?  @map("branch_name") @db.VarChar(255)
+  primaryColor               String?  @default("#3b82f6") @map("primary_color") @db.VarChar(7)
+  whatsappNo                 String?  @map("whatsapp_no") @db.VarChar(20)
+  enableQrCode               Boolean  @default(false) @map("enable_qr_code")
+  enableWatermark            Boolean  @default(false) @map("enable_watermark")
+  watermarkText              String?  @default("ORIGINAL") @map("watermark_text") @db.VarChar(50)
+  
   fiscalYearStart            Int      @default(4) @map("fiscal_year_start")
   isActive                   Boolean  @default(true) @map("is_active")
   registrationCertificateUrl String?  @map("registration_certificate_url") @db.Text
@@ -198,6 +216,7 @@ model Company {
   employeeTransactions EmployeeTransaction[]
 
   orderDetails           OrderDetail[]
+  accountingSettings     AccountingSetting[]
   palletDetails          PalletDetail[]
   palletConsigneeDetails PalletConsigneeDetail[]
   lrStatusLogs           LrStatusLog[]
@@ -474,6 +493,8 @@ model Vehicle {
   maintenanceJobs  MaintenanceJob[]
   fuelEntries      FuelEntry[]
   assignments      DriverAssignment[]
+  journalEntries   JournalEntry[]
+
 
   @@unique([companyId, regNo])
   @@index([tenantId])
@@ -633,6 +654,8 @@ model Employee {
   leaves          Leave[]
   transactions    EmployeeTransaction[]
   leaveAllocations LeaveAllocation[]
+  journalEntries   JournalEntry[]
+
 
   @@index([tenantId])
   @@index([companyId, status])
@@ -821,7 +844,7 @@ model Order {
   id           String    @id @default(uuid()) @db.Uuid
   tenantId     String    @map("tenant_id") @db.Uuid
   companyId    String    @map("company_id") @db.Uuid
-  lrNo         Int       @map("lr_no")
+  lrNo         String    @map("lr_no") @db.VarChar(50)
   gstBillNo    String?   @map("gst_bill_no") @db.VarChar(50)
   dealerId     String?   @map("dealer_id") @db.Uuid
   consigneeId  String?   @map("consignee_id") @db.Uuid
@@ -842,7 +865,9 @@ model Order {
   cgstAmount   Int       @default(0) @map("cgst_amount") // paise
   sgstAmount   Int       @default(0) @map("sgst_amount") // paise
   totalAmount  Int       @default(0) @map("total_amount") // paise
+  companyName  String?   @map("company_name") @db.VarChar(255)
   status       String    @default("created") @db.VarChar(20)
+  metadata     Json?     @db.JsonB
   createdBy    String?   @map("created_by") @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -879,6 +904,7 @@ model OrderDetail {
   packingType String? @map("packing_type") @db.VarChar(50)
   weight      Decimal @default(0) @db.Decimal(10, 2)
   dcpiNo      String? @map("dcpi_no") @db.VarChar(50)
+  boxDetails  Json?   @map("box_details") @db.JsonB
   sortOrder   Int     @default(0) @map("sort_order")
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -893,7 +919,7 @@ model OrderPallet {
   id          String    @id @default(uuid()) @db.Uuid
   tenantId    String    @map("tenant_id") @db.Uuid
   companyId   String    @map("company_id") @db.Uuid
-  lrNo        Int?      @map("lr_no")
+  lrNo        String?   @map("lr_no") @db.VarChar(50)
   dealerId    String?   @map("dealer_id") @db.Uuid
   vehicleId   String?   @map("vehicle_id") @db.Uuid
   date        DateTime  @db.Date
@@ -901,6 +927,7 @@ model OrderPallet {
   partyCode   String?   @map("party_code") @db.VarChar(50)
   gstPct      Decimal   @default(0) @map("gst_pct") @db.Decimal(5, 2)
   status      String    @default("created") @db.VarChar(20)
+  metadata    Json?     @db.JsonB
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
@@ -920,9 +947,13 @@ model OrderPallet {
 model PalletDetail {
   id        String @id @default(uuid()) @db.Uuid
   companyId String @map("company_id") @db.Uuid
-  palletId  String @map("pallet_id") @db.Uuid
-  qty       Int    @default(0)
-  rate      Int    @default(0) // paise
+  palletId      String  @map("pallet_id") @db.Uuid
+  palletDisplayId String? @map("pallet_display_id") @db.VarChar(50)
+  boxQty        Int     @default(0) @map("box_qty")
+  weight        Decimal @default(0) @db.Decimal(10, 2)
+  consigneeName String? @map("consignee_name") @db.VarChar(255)
+  qty           Int     @default(0)
+  rate          Int     @default(0) // paise
 
   pallet  OrderPallet @relation(fields: [palletId], references: [id], onDelete: Cascade)
   company Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -1252,6 +1283,8 @@ model Trip {
   expenses   TripExpense[]
   advances   DriverAdvance[]
   settlement TripSettlement?
+  journalEntries JournalEntry[]
+
 
   @@index([tenantId])
   @@index([companyId, status])
@@ -1371,6 +1404,15 @@ model JournalEntry {
   voucherNo   String   @map("voucher_no") @db.VarChar(50)
   narration   String?  @db.Text
   totalAmount Int      @map("total_amount") // paise
+  
+  // Operational Links
+  category    String?  @db.VarChar(50)
+  vehicleId   String?  @map("vehicle_id") @db.Uuid
+  tripId      String?  @map("trip_id") @db.Uuid
+  employeeId  String?  @map("employee_id") @db.Uuid
+  metadata    Json?
+  status      String   @default("posted") @db.VarChar(20) // draft, pending, posted
+
   createdBy   String?  @map("created_by") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
@@ -1381,8 +1423,15 @@ model JournalEntry {
   branchId String?       @map("branch_id") @db.Uuid
   lines    JournalLine[]
 
+  vehicle  Vehicle?      @relation(fields: [vehicleId], references: [id])
+  trip     Trip?         @relation(fields: [tripId], references: [id])
+  employee Employee?     @relation(fields: [employeeId], references: [id])
+
   @@index([tenantId])
   @@index([companyId, date])
+  @@index([vehicleId])
+  @@index([tripId])
+  @@index([employeeId])
   @@map("journal_entries")
 }
 
@@ -1596,4 +1645,23 @@ model ReportCache {
 
   @@index([companyId, reportType, parametersHash])
   @@map("report_caches")
+}
+
+model AccountingSetting {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  fiscalYearStart Int      @default(4) @map("fiscal_year_start")
+  gstEnabled      Boolean  @default(true) @map("gst_enabled")
+  defaultGstRate  Decimal  @default(5.00) @map("default_gst_rate") @db.Decimal(5, 2)
+  voucherPrefixes Json?    @map("voucher_prefixes")
+  autoPostInvoices Boolean @default(true) @map("auto_post_invoices")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, companyId])
+  @@map("accounting_settings")
 }

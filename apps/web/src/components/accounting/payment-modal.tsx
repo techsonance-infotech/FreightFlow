@@ -94,6 +94,10 @@ export function PaymentModal({ isOpen, onClose, bill, onSuccess }: PaymentModalP
         voucherType: 'payment',
         narration: `Payment made for Bill ${bill.invoiceNo}. ${formData.referenceNo ? 'Ref: ' + formData.referenceNo : ''}. ${formData.notes || ''}`,
         voucherNo: `PV-${bill.invoiceNo}-${Date.now().toString().slice(-4)}`,
+        metadata: {
+          billId: bill.id,
+          referenceNo: formData.referenceNo
+        },
         lines: [
           {
             accountId: apAccountId,
