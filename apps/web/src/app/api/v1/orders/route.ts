@@ -94,15 +94,22 @@ export async function POST(request: Request) {
     // Validate request body
     const validatedData = OrderSchema.parse(body);
 
+    // Convert to paise for calculation and storage (Decimal from frontend -> Integer in DB)
+    const freightPaise = Math.round(Number(validatedData.freight || 0) * 100);
+    const hamaliPaise = Math.round(Number(validatedData.hamali || 0) * 100);
+    const ratePaise = Math.round(Number(validatedData.rate || 0) * 100);
+
     // Calculate totals server-side for integrity
     const totals = LREngine.calculateOrderTotals({
       details: validatedData.details,
-      freight: validatedData.freight,
-      hamali: validatedData.hamali,
+      freight: freightPaise,
+      hamali: hamaliPaise,
       cgstPct: validatedData.cgstPct,
       sgstPct: validatedData.sgstPct,
-      rateOn: validatedData.rateOn,
-      rate: validatedData.rate,
+      igstPct: validatedData.igstPct,
+      gstType: validatedData.gstType as any,
+      rateOn: validatedData.rateOn as any,
+      rate: ratePaise,
     });
 
     // Get next LR number
@@ -123,13 +130,17 @@ export async function POST(request: Request) {
           vehicleId: validatedData.vehicleId,
           date: new Date(validatedData.date),
           fromLocation: validatedData.fromLocation,
+          fromAddress: validatedData.fromAddress,
           toLocation: validatedData.toLocation,
-          freight: validatedData.freight,
-          hamali: validatedData.hamali,
+          toAddress: validatedData.toAddress,
+          freight: freightPaise,
+          hamali: hamaliPaise,
           rateOn: validatedData.rateOn,
-          rate: validatedData.rate,
+          rate: ratePaise,
           cgstPct: validatedData.cgstPct,
           sgstPct: validatedData.sgstPct,
+          igstPct: validatedData.igstPct,
+          gstType: validatedData.gstType,
           totalWeight: totals.totalWeight,
           totalBoxes: totals.totalBoxes,
           subtotal: totals.subtotal,

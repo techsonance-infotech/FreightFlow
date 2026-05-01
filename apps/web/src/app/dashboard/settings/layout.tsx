@@ -10,9 +10,6 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
 
   const tabs = [
-    { id: 'profile', label: 'My Profile', href: '/dashboard/settings/profile', icon: <User className="h-4 w-4" /> },
-    { id: 'organizations', label: 'Organizations', href: '/dashboard/settings/organizations', icon: <Building2 className="h-4 w-4" /> },
-    { id: 'branding', label: 'Branding & Print', href: '/dashboard/settings/branding', icon: <Palette className="h-4 w-4" /> },
     { id: 'security', label: 'Security', href: '/dashboard/settings/security', icon: <ShieldCheck className="h-4 w-4" /> },
     { id: 'billing', label: 'Billing', href: '/dashboard/settings/billing', icon: <CreditCard className="h-4 w-4" /> },
   ];

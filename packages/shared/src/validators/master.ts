@@ -314,3 +314,14 @@ export const EmployeeTransactionSchema = z.object({
 
 export type EmployeeTransaction = z.infer<typeof EmployeeTransactionSchema>;
 
+export const PalletMasterSchema = z.object({
+  id: z.string().uuid().optional(),
+  palletId: z.string().min(1, 'Pallet ID is required'),
+  name: z.string().optional().nullable().or(z.literal('')),
+  dimensions: z.string().optional().nullable().or(z.literal('')),
+  weightCapacity: z.coerce.number().int().min(0).optional().nullable(),
+  isActive: z.boolean().default(true),
+});
+
+export type PalletMaster = z.infer<typeof PalletMasterSchema>;
+

@@ -76,6 +76,7 @@ model Tenant {
   employeeTransactions EmployeeTransaction[]
   leaveAllocations    LeaveAllocation[]
   accountingSettings  AccountingSetting[]
+  palletMasters       PalletMaster[]
 
   @@map("tenants")
 }
@@ -240,6 +241,7 @@ model Company {
   drivers                Driver[]
   driverAssignments      DriverAssignment[]
   leaveAllocations       LeaveAllocation[]
+  palletMasters          PalletMaster[]
 
   @@index([tenantId])
   @@map("companies")
@@ -430,6 +432,7 @@ model Consignee {
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   orders  Order[]
+  palletizedOrders OrderPallet[]
 
   @@index([tenantId])
   @@index([companyId, name])
@@ -836,6 +839,27 @@ model Product {
   @@map("products")
 }
 
+model PalletMaster {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  palletId     String   @map("pallet_id") @db.VarChar(50)
+  name         String?  @db.VarChar(255)
+  dimensions   String?  @db.VarChar(100)
+  weightCapacity Int?   @map("weight_capacity")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, palletId])
+  @@index([tenantId])
+  @@index([companyId])
+  @@map("pallet_masters")
+}
+
 // ============================================
 // LR / ORDER TABLES
 // ============================================
@@ -852,18 +876,23 @@ model Order {
   vehicleId    String?   @map("vehicle_id") @db.Uuid
   date         DateTime  @db.Date
   fromLocation String?   @map("from_location") @db.VarChar(255)
+  fromAddress  String?   @map("from_address") @db.Text
   toLocation   String?   @map("to_location") @db.VarChar(255)
+  toAddress    String?   @map("to_address") @db.Text
   freight      Int       @default(0) // paise
   hamali       Int       @default(0) // paise
   rateOn       String    @default("weight") @map("rate_on") @db.VarChar(20)
   rate         Int       @default(0) // paise
   cgstPct      Decimal   @default(0) @map("cgst_pct") @db.Decimal(5, 2)
   sgstPct      Decimal   @default(0) @map("sgst_pct") @db.Decimal(5, 2)
+  igstPct      Decimal   @default(0) @map("igst_pct") @db.Decimal(5, 2)
+  gstType      String    @default("intra") @map("gst_type") @db.VarChar(20)
   totalWeight  Decimal   @default(0) @map("total_weight") @db.Decimal(10, 2)
   totalBoxes   Int       @default(0) @map("total_boxes")
   subtotal     Int       @default(0) // paise
   cgstAmount   Int       @default(0) @map("cgst_amount") // paise
   sgstAmount   Int       @default(0) @map("sgst_amount") // paise
+  igstAmount   Int       @default(0) @map("igst_amount") // paise
   totalAmount  Int       @default(0) @map("total_amount") // paise
   companyName  String?   @map("company_name") @db.VarChar(255)
   status       String    @default("created") @db.VarChar(20)
@@ -921,10 +950,35 @@ model OrderPallet {
   companyId   String    @map("company_id") @db.Uuid
   lrNo        String?   @map("lr_no") @db.VarChar(50)
   dealerId    String?   @map("dealer_id") @db.Uuid
+  consigneeId  String?   @map("consignee_id") @db.Uuid
   vehicleId   String?   @map("vehicle_id") @db.Uuid
   date        DateTime  @db.Date
   companyName String?   @map("company_name") @db.VarChar(255)
   partyCode   String?   @map("party_code") @db.VarChar(50)
+  
+  fromLocation String?   @map("from_location") @db.VarChar(255)
+  fromAddress  String?   @map("from_address") @db.Text
+  toLocation   String?   @map("to_location") @db.VarChar(255)
+  toAddress    String?   @map("to_address") @db.Text
+  
+  freight      Int       @default(0) // paise
+  hamali       Int       @default(0) // paise
+  rateOn       String    @default("weight") @map("rate_on") @db.VarChar(20)
+  rate         Int       @default(0) // paise
+  
+  cgstPct      Decimal   @default(0) @map("cgst_pct") @db.Decimal(5, 2)
+  sgstPct      Decimal   @default(0) @map("sgst_pct") @db.Decimal(5, 2)
+  igstPct      Decimal   @default(0) @map("igst_pct") @db.Decimal(5, 2)
+  gstType      String    @default("intra") @map("gst_type") @db.VarChar(20)
+  
+  totalWeight  Decimal   @default(0) @map("total_weight") @db.Decimal(10, 2)
+  totalBoxes   Int       @default(0) @map("total_boxes")
+  subtotal     Int       @default(0) // paise
+  cgstAmount   Int       @default(0) @map("cgst_amount") // paise
+  sgstAmount   Int       @default(0) @map("sgst_amount") // paise
+  igstAmount   Int       @default(0) @map("igst_amount") // paise
+  totalAmount  Int       @default(0) @map("total_amount") // paise
+
   gstPct      Decimal   @default(0) @map("gst_pct") @db.Decimal(5, 2)
   status      String    @default("created") @db.VarChar(20)
   metadata    Json?     @db.JsonB
@@ -935,6 +989,7 @@ model OrderPallet {
   company          Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
   tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   dealer           Dealer?                 @relation(fields: [dealerId], references: [id])
+  consignee        Consignee?              @relation(fields: [consigneeId], references: [id])
   vehicle          Vehicle?                @relation(fields: [vehicleId], references: [id])
   palletDetails    PalletDetail[]
   consigneeDetails PalletConsigneeDetail[]
