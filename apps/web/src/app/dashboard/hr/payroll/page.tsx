@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { exportPaySlip } from '@/lib/export-utils';
 
 export default function PayrollPage() {
   const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString());
@@ -66,7 +67,16 @@ export default function PayrollPage() {
         )}
       </div>
 
-      {!payrollRun ? (
+      {loading ? (
+        <div className="space-y-10 animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-40 bg-slate-50 rounded-[2.5rem] border border-slate-100" />
+             ))}
+          </div>
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 h-96" />
+        </div>
+      ) : !payrollRun ? (
         <div className="bg-white rounded-[2.5rem] border border-slate-100 p-16 shadow-2xl shadow-slate-100/50 text-center max-w-3xl mx-auto relative overflow-hidden">
           <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12">
             <Calculator className="h-64 w-64" />
@@ -160,34 +170,107 @@ export default function PayrollPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" size="sm" icon={<MoreHorizontal className="h-4 w-4" />}>
-                  Audit Logs
+                <Button variant="outline" size="sm" onClick={() => setPayrollRun(null)} icon={<RefreshCcw className="h-4 w-4" />}>
+                  Re-calculate
                 </Button>
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100" icon={<Landmark className="h-4 w-4" />}>
-                  Approve & Disburse
-                </Button>
+                {payrollRun.status === 'draft' && (
+                  <Button 
+                    size="sm" 
+                    onClick={async () => {
+                      const confirm = window.confirm('Are you sure you want to finalize and disburse this payroll?');
+                      if (!confirm) return;
+                      try {
+                        const res = await fetch(`/api/v1/hr/payroll/${payrollRun.id}/finalize`, { method: 'POST' });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error);
+                        toast.success('Payroll Disbursed Successfully');
+                        setPayrollRun({ ...payrollRun, status: 'approved' });
+                      } catch (err: any) {
+                        toast.error(err.message);
+                      }
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100" 
+                    icon={<Landmark className="h-4 w-4" />}
+                  >
+                    Approve & Disburse
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="p-20 text-center">
-              <div className="max-w-md mx-auto space-y-6">
-                <div className="h-20 w-20 rounded-[2rem] bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-                </div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">System Ready for Disbursement</h2>
-                <p className="text-sm font-medium text-slate-500 leading-relaxed">
-                  The payroll calculation is complete. All pro-rata adjustments for {payrollRun.count || 0} employees have been cross-verified against the attendance ledger.
-                </p>
-                <div className="pt-6 flex flex-col gap-3">
-                  <button onClick={() => setPayrollRun(null)} className="text-[11px] font-black text-blue-600 uppercase tracking-widest hover:underline transition-all">
-                    Re-run Calculation Engine
-                  </button>
-                  <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest pt-4 border-t border-slate-50">
-                    <ShieldCheck className="h-3 w-3" /> Audit Reference: PAY-{year}-{month}-X04
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-50 bg-slate-50/20">
+                    <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Present Days</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gross Pay</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Stat. Deductions</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-emerald-600">Net Payable</th>
+                    <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payrollRun.payrollLines?.map((line: any) => (
+                    <tr key={line.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-10 py-6">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-400 text-xs uppercase">
+                            {line.employee?.name?.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900">{line.employee?.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{line.employee?.empCode || 'FF-STAFF'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-6 text-sm font-bold text-slate-600">
+                        {line.presentDays} / {line.workingDays}
+                      </td>
+                      <td className="px-6 py-6 text-sm font-bold text-slate-900">
+                        {formatAmount(line.gross)}
+                      </td>
+                      <td className="px-6 py-6 text-sm font-bold text-rose-500">
+                        - {formatAmount(line.totalDeductions)}
+                      </td>
+                      <td className="px-6 py-6 text-sm font-black text-emerald-600">
+                        {formatAmount(line.netPay)}
+                      </td>
+                      <td className="px-10 py-6 text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-9 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => exportPaySlip({ ...line, month, year })}
+                        >
+                          <Download className="h-3 w-3 mr-2" />
+                          Pay Slip
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {payrollRun.status === 'approved' && (
+              <div className="p-16 text-center bg-emerald-50/10">
+                <div className="max-w-md mx-auto space-y-6">
+                  <div className="h-20 w-20 rounded-[2rem] bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Payroll Disbursed</h2>
+                  <p className="text-sm font-medium text-slate-500 leading-relaxed">
+                    This payroll has been finalized and settlements have been marked as paid. Individual pay slips are now available for download.
+                  </p>
+                  <div className="pt-6">
+                    <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest pt-4 border-t border-slate-50">
+                      <ShieldCheck className="h-3 w-3" /> Approved on: {new Date(payrollRun.processedAt).toLocaleDateString()}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

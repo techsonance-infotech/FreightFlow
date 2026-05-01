@@ -181,3 +181,62 @@ export function getResetSuccessEmailTemplate(name: string) {
     </div>
   `;
 }
+
+export function getEmployeeWelcomeEmailTemplate({ name, email, password, role }: any) {
+  const loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`;
+  
+  return `
+    <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);">
+      <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 48px 32px; text-align: center;">
+        <div style="display: inline-block; padding: 16px; background: rgba(255, 255, 255, 0.1); border-radius: 20px; margin-bottom: 24px;">
+           <span style="color: white; font-size: 32px; font-weight: bold;">FF</span>
+        </div>
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">Welcome to the Team!</h1>
+        <p style="color: rgba(255, 255, 255, 0.8); margin: 8px 0 0 0; font-size: 16px;">FreightFlow Digital Workplace</p>
+      </div>
+      
+      <div style="padding: 40px; background-color: #ffffff;">
+        <p style="color: #1f2937; font-size: 18px; font-weight: 600; margin-bottom: 16px;">Hello ${name},</p>
+        <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
+          Congratulations on joining our organization! We have set up your digital workspace on <b>FreightFlow</b>. You can now access your dashboard using the credentials below:
+        </p>
+        
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; margin-bottom: 32px;">
+          <div style="margin-bottom: 20px;">
+            <p style="color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 4px 0;">Login Email</p>
+            <p style="color: #0f172a; font-size: 16px; font-weight: 600; margin: 0;">${email}</p>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <p style="color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 4px 0;">Temporary Password</p>
+            <p style="color: #3b82f6; font-size: 24px; font-weight: 800; margin: 0; font-family: monospace;">${password}</p>
+          </div>
+          <div>
+            <p style="color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 4px 0;">Assigned Role</p>
+            <span style="display: inline-block; background-color: #eff6ff; color: #1e40af; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 700;">${role?.toUpperCase() || 'STAFF'}</span>
+          </div>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 32px;">
+          <a href="${loginUrl}" style="background-color: #0f172a; color: #ffffff; padding: 18px 36px; border-radius: 14px; text-decoration: none; font-weight: 700; font-size: 16px; display: inline-block; transition: all 0.2s;">Secure Login</a>
+        </div>
+        
+        <div style="background-color: #fff7ed; border-left: 4px solid #f97316; padding: 16px 20px; border-radius: 4px; margin-bottom: 32px;">
+          <p style="color: #9a3412; font-size: 14px; font-weight: 600; margin: 0;">
+            ⚠️ For security, you will be required to change this password upon your first successful login.
+          </p>
+        </div>
+        
+        <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+          If you have any questions regarding your access or roles, please reach out to the HR department.
+        </p>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+        <p style="color: #94a3b8; font-size: 12px; margin: 0 0 12px 0;">FreightFlow Inc. &bull; Manage. Move Ahead.</p>
+        <div style="display: flex; justify-content: center; gap: 12px;">
+           <span style="color: #cbd5e1; font-size: 14px;">&copy; 2026</span>
+        </div>
+      </div>
+    </div>
+  `;
+}

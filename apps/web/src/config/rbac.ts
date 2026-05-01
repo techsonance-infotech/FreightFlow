@@ -49,10 +49,11 @@ export const NAV_ITEMS: NavGroup[] = [
         path: '/dashboard/accounting', 
         allowedRoles: ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'],
         subItems: [
+          { id: 'accounting-dashboard', label: 'Intelligence Dashboard', icon: '📈', path: '/dashboard/accounting', allowedRoles: ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'] },
           { id: 'accounting-ar', label: 'Receivables (AR)', icon: '📥', path: '/dashboard/accounting/ar', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-ap', label: 'Payables (AP)', icon: '📤', path: '/dashboard/accounting/ap', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-invoices', label: 'Sales Invoices', icon: '🧾', path: '/dashboard/accounting/invoices', allowedRoles: ['tenant_owner', 'accountant'] },
-          { id: 'accounting-vouchers', label: 'Payment Vouchers', icon: '💸', path: '/dashboard/accounting/vouchers', allowedRoles: ['tenant_owner', 'accountant'] },
+          { id: 'accounting-vouchers', label: 'Accounting Vouchers', icon: '💸', path: '/dashboard/accounting/vouchers', allowedRoles: ['tenant_owner', 'accountant'] },
           { id: 'accounting-bank', label: 'Bank Recon', icon: '🏦', path: '/dashboard/accounting/bank', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-coa', label: 'Chart of Accounts', icon: '🗂️', path: '/dashboard/accounting/coa', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
         ]
@@ -64,7 +65,9 @@ export const NAV_ITEMS: NavGroup[] = [
         path: '/dashboard/compliance', 
         allowedRoles: ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'],
         subItems: [
+          { id: 'compliance-hub', label: 'Compliance Hub', icon: '🏛️', path: '/dashboard/compliance', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'compliance-gst', label: 'GSTR-1 Review', icon: '📊', path: '/dashboard/compliance/gst/gstr1', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
+          { id: 'compliance-gst3b', label: 'GSTR-3B Summary', icon: '🧮', path: '/dashboard/compliance/gst/gstr3b', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'compliance-einvoice', label: 'e-Invoice Management', icon: '🧾', path: '/dashboard/compliance/gst/einvoice', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'compliance-tds', label: 'TDS Registers', icon: '✂️', path: '/dashboard/compliance/tds', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
         ]
@@ -95,9 +98,11 @@ export const NAV_ITEMS: NavGroup[] = [
         allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'maintenance_supervisor'],
         subItems: [
           { id: 'fleet-registry', label: 'Vehicle Registry', icon: '🚚', path: '/dashboard/masters/vehicles', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'] },
-          { id: 'fleet-docs', label: 'Document Compliance', icon: '⚖️', path: '/dashboard/fleet/documents', allowedRoles: ['tenant_owner', 'maintenance_supervisor'] },
+          { id: 'fleet-compliance', label: 'Compliance Engine', icon: '🚨', path: '/dashboard/fleet/compliance', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'] },
+          { id: 'fleet-docs', label: 'Manual Docs (Archive)', icon: '⚖️', path: '/dashboard/fleet/documents', allowedRoles: ['tenant_owner', 'maintenance_supervisor'] },
           { id: 'fleet-fuel', label: 'Fuel Tracking', icon: '⛽', path: '/dashboard/fuel', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'] },
           { id: 'fleet-maintenance', label: 'Maintenance Hub', icon: '🔧', path: '/dashboard/maintenance', allowedRoles: ['tenant_owner', 'maintenance_supervisor'] },
+          { id: 'fleet-analytics', label: 'Vehicle Analytics', icon: '📈', path: '/dashboard/fleet/analytics', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager'] },
         ]
       },
     ]
@@ -131,6 +136,14 @@ export const NAV_ITEMS: NavGroup[] = [
           { id: 'masters-labour', label: 'Labour Registry', icon: '👷', path: '/dashboard/masters/labour', allowedRoles: ['tenant_owner', 'fleet_owner', 'hr_manager', 'ops_manager'] },
         ]
       }
+    ]
+  },
+  {
+    group: 'System Settings',
+    items: [
+      { id: 'settings-org', label: 'Organization', icon: '🏢', path: '/dashboard/settings/organization', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager'] },
+      { id: 'settings-branding', label: 'Branding & Print', icon: '🎨', path: '/dashboard/settings/branding', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'accountant'] },
+      { id: 'settings-profile', label: 'My Profile', icon: '👤', path: '/dashboard/settings/profile', allowedRoles: ['super_admin', 'tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'dispatch_officer', 'maintenance_supervisor', 'auditor', 'driver'] },
     ]
   }
 ];

@@ -31,7 +31,7 @@ const ACTIONS = [
     title: 'Add Fuel',
     desc: 'Record fuel expense',
     icon: <IndianRupee className="h-5 w-5" />,
-    href: '/dashboard/fleet/fuel',
+    href: '/dashboard/fuel',
     color: 'text-amber-600',
     bg: 'bg-amber-50',
     border: 'border-amber-100 hover:border-amber-200',

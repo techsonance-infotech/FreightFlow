@@ -89,19 +89,19 @@ export default function LabourPage() {
       header: 'Worker Profile', 
       accessor: (row: Labour) => (
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg shadow-sm border border-slate-200/50">
+          <div className="h-9 w-9 rounded-xl bg-neutral-100 flex items-center justify-center text-lg shadow-sm border border-neutral-200/50">
             👤
           </div>
           <div>
-            <p className="font-black text-slate-900 leading-tight">{row.name}</p>
+            <p className="font-bold text-neutral-900 leading-tight">{row.name}</p>
             <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.phone || 'No Phone'}</p>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{row.phone || 'No Phone'}</p>
               <div className="flex items-center gap-1.5 ml-1">
-                {row.aadharUrl && <span title="Aadhar Doc" className="text-blue-500 cursor-help">📎</span>}
-                {row.panUrl && <span title="PAN Doc" className="text-blue-500 cursor-help">💳</span>}
+                {row.aadharUrl && <span title="Aadhar Doc" className="text-accent-600 cursor-help">📎</span>}
+                {row.panUrl && <span title="PAN Doc" className="text-accent-600 cursor-help">💳</span>}
               </div>
               {row.skillCategory && (
-                <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-500 uppercase tracking-wider border border-blue-100">
+                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-accent-50 text-accent-600 uppercase tracking-wider border border-accent-100">
                   {row.skillCategory}
                 </span>
               )}
@@ -110,11 +110,11 @@ export default function LabourPage() {
         </div>
       )
     },
-    { header: 'Address', accessor: (row: Labour) => row.address, className: 'max-w-xs truncate text-slate-500 font-medium' },
+    { header: 'Address', accessor: (row: Labour) => row.address, className: 'max-w-xs truncate text-neutral-500 font-medium' },
     { 
       header: 'Monthly Salary', 
       accessor: (row: Labour) => (
-        <div className="font-black text-blue-600 tabular-nums">
+        <div className="font-bold text-accent-600 tabular-nums">
           {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(row.salary / 100)}
         </div>
       )
@@ -179,30 +179,30 @@ export default function LabourPage() {
         {activeMainTab === 'registry' && (
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 mr-4">
-              <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">CSV</Button>
-              <Button variant="outline" size="sm" onClick={() => handleExport('excel')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">Excel</Button>
-              <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="rounded-xl border-slate-200 text-red-600 bg-red-50/30 hover:bg-red-600 hover:text-white font-bold text-[10px] uppercase">PDF</Button>
+              <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="rounded-xl border-neutral-200 text-neutral-600 font-bold text-[10px] uppercase">CSV</Button>
+              <Button variant="outline" size="sm" onClick={() => handleExport('excel')} className="rounded-xl border-neutral-200 text-neutral-600 font-bold text-[10px] uppercase">Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="rounded-xl border-neutral-200 text-error-600 bg-error-50/30 hover:bg-error-600 hover:text-white font-bold text-[10px] uppercase">PDF</Button>
             </div>
-            <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-100 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
+            <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="rounded-2xl h-14 px-8 bg-accent-600 text-white hover:bg-accent-700 shadow-xl shadow-accent-600/10 font-bold uppercase tracking-widest text-[11px] flex items-center gap-3">
               <span className="text-xl">+</span> Register New Worker
             </Button>
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+      <div className="flex items-center gap-2 bg-neutral-100 p-1.5 rounded-2xl w-fit">
         <button
           onClick={() => setActiveMainTab('registry')}
-          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-            activeMainTab === 'registry' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+          className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+            activeMainTab === 'registry' ? 'bg-white text-accent-600 shadow-sm' : 'text-neutral-400 hover:text-neutral-600'
           }`}
         >
           🗂️ Worker Registry
         </button>
         <button
           onClick={() => setActiveMainTab('insights')}
-          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-            activeMainTab === 'insights' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+          className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+            activeMainTab === 'insights' ? 'bg-white text-accent-600 shadow-sm' : 'text-neutral-400 hover:text-neutral-600'
           }`}
         >
           📊 Cost Insights
@@ -230,7 +230,7 @@ export default function LabourPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-[40px] border border-neutral-100 shadow-sm overflow-hidden">
             <DataTable 
               columns={columns as any} 
               data={data} 

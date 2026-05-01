@@ -135,6 +135,10 @@ export const DealerForm: React.FC<DealerFormProps> = ({ initialData, onSuccess, 
             <Input label="Pincode" placeholder="6-digit" error={errors.pincode?.message} {...register('pincode')} />
             <Input label="Area/City" placeholder="e.g. Bhiwandi" error={errors.area?.message} {...register('area')} />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Service Tax No" placeholder="Enter SerTaxNo" error={errors.serviceTaxNo?.message} {...register('serviceTaxNo')} />
+            <Input label="Dealer Type" placeholder="e.g. Regular, Composition" error={errors.dealerType?.message} {...register('dealerType')} />
+          </div>
         </div>
 
         {/* Section 2: Banking & Tax */}

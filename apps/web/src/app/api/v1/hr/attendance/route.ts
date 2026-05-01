@@ -10,13 +10,31 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get('date');
+    const mode = searchParams.get('mode'); // 'daily' or 'monthly'
+    const employeeId = searchParams.get('employeeId');
     const date = dateStr ? new Date(dateStr) : new Date();
 
+    let whereClause: any = {
+      companyId: session.user.companyId,
+    };
+
+    if (employeeId) {
+      whereClause.employeeId = employeeId;
+    }
+
+    if (mode === 'monthly') {
+      const start = new Date(date.getFullYear(), date.getMonth(), 1);
+      const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      whereClause.date = {
+        gte: start,
+        lte: end
+      };
+    } else {
+      whereClause.date = date;
+    }
+
     const attendances = await prisma.attendance.findMany({
-      where: {
-        companyId: session.user.companyId,
-        date: date
-      },
+      where: whereClause,
       include: {
         employee: { select: { name: true, empCode: true } }
       }

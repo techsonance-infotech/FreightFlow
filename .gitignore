@@ -62,3 +62,4 @@ docs/
 /ChatGPT*
 /FreightFlowPro_ColorPalette*
 /Transport invoice*
+packages/db/src/generated

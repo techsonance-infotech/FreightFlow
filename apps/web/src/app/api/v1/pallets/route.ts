@@ -94,6 +94,10 @@ export async function POST(request: Request) {
         palletDetails: {
           create: validatedData.palletDetails.map((d) => ({
             companyId: user.companyId!,
+            palletDisplayId: d.palletDisplayId,
+            boxQty: d.boxQty,
+            weight: d.weight,
+            consigneeName: d.consigneeName,
             qty: d.qty,
             rate: d.rate,
           })),

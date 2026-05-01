@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@freightflow/db';
 import { getSession } from '@/lib/auth-utils';
+import bcrypt from 'bcryptjs';
+import { sendEmail, getEmployeeWelcomeEmailTemplate } from '@/lib/email';
 
 export async function GET() {
   try {
@@ -9,7 +11,7 @@ export async function GET() {
 
     const employees = await prisma.employee.findMany({
       where: { companyId: session.user.companyId },
-      include: { salaryStructure: true },
+      include: { salaryStructure: true, user: true },
       orderBy: { name: 'asc' }
     });
 
@@ -27,16 +29,49 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { salaryStructure, ...employeeData } = body;
 
+    // 1. Generate Temporary Password
+    const tempPassword = Math.random().toString(36).slice(-10) + '!';
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
     const result = await prisma.$transaction(async (tx) => {
+      // 2. Create User Record if Role is assigned
+      let userId = null;
+      if (employeeData.role && employeeData.email) {
+        const existingUser = await tx.user.findUnique({ where: { email: employeeData.email } });
+        if (!existingUser) {
+          const user = await tx.user.create({
+            data: {
+              email: employeeData.email,
+              name: employeeData.name,
+              passwordHash: hashedPassword,
+              role: employeeData.role,
+              tenantId: session.user.tenantId,
+              companyId: session.user.companyId,
+              isActive: true,
+            }
+          });
+          userId = user.id;
+        } else {
+          userId = existingUser.id;
+        }
+      }
+
+      // 3. Create Employee Record
       const employee = await tx.employee.create({
         data: {
           ...employeeData,
           tenantId: session.user.tenantId,
           companyId: session.user.companyId,
-          joiningDate: employeeData.joiningDate ? new Date(employeeData.joiningDate) : null
+          userId: userId,
+          joiningDate: employeeData.joiningDate ? new Date(employeeData.joiningDate) : null,
+          // New compliance and bank fields
+          bankAccountName: employeeData.bankAccountName || null,
+          bankPassbookUrl: employeeData.bankPassbookUrl || null,
+          gender: employeeData.gender || 'male',
         }
       });
 
+      // 4. Create Salary Structure
       if (salaryStructure) {
         await tx.salaryStructure.create({
           data: {
@@ -49,11 +84,33 @@ export async function POST(request: Request) {
         });
       }
 
-      return employee;
+      return { employee, tempPassword };
     });
 
-    return NextResponse.json({ data: result });
+    // 5. Send Welcome Email
+    if (employeeData.email) {
+      try {
+        const html = getEmployeeWelcomeEmailTemplate({
+          name: employeeData.name,
+          email: employeeData.email,
+          password: result.tempPassword,
+          role: employeeData.role
+        });
+
+        await sendEmail({
+          to: employeeData.email,
+          subject: 'Welcome to FreightFlow - Your Account Credentials',
+          html
+        });
+      } catch (emailError) {
+        console.error('[Email Notification Error]:', emailError);
+        // We don't fail the whole request if email fails, but log it
+      }
+    }
+
+    return NextResponse.json({ data: result.employee });
   } catch (error: any) {
+    console.error('[Employee Registration Error]:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

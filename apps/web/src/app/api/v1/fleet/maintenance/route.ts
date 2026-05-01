@@ -9,26 +9,25 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const vehicleId = searchParams.get('vehicleId');
-    const status = searchParams.get('status');
+    const limit = parseInt(searchParams.get('limit') || '50');
 
-    const where: any = {
+    const whereClause: any = {
       tenantId: session.user.tenantId,
-      companyId: session.user.companyId!,
+      companyId: session.user.companyId,
     };
-    if (vehicleId) where.vehicleId = vehicleId;
-    if (status) where.status = status;
+
+    if (vehicleId) whereClause.vehicleId = vehicleId;
 
     const jobs = await prisma.maintenanceJob.findMany({
-      where,
+      where: whereClause,
       include: {
-        vehicle: {
-          select: { regNo: true }
-        }
+        vehicle: { select: { regNo: true, make: true, model: true } }
       },
-      orderBy: { startedAt: 'desc' }
+      orderBy: { startedAt: 'desc' },
+      take: limit,
     });
 
-    return NextResponse.json(jobs);
+    return NextResponse.json({ data: jobs });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -46,46 +45,31 @@ export async function POST(request: Request) {
         tenantId: session.user.tenantId,
         companyId: session.user.companyId!,
         vehicleId: data.vehicleId,
-        jobType: data.jobType,
+        jobType: data.jobType, // 'scheduled' | 'breakdown'
         description: data.description,
-        mechanicAssigned: data.mechanicAssigned,
-        odometer: data.odometer,
-        estimatedCost: data.estimatedCost,
+        mechanicAssigned: data.mechanicAssigned || null,
+        odometer: Number(data.odometer),
+        estimatedCost: data.estimatedCost ? Number(data.estimatedCost) * 100 : null,
+        actualCost: data.actualCost ? Number(data.actualCost) * 100 : null,
         startedAt: new Date(data.startedAt),
-        status: 'open',
+        status: data.status || 'open',
       }
     });
 
-    return NextResponse.json(job);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+    // Also update vehicle's current odometer and set status if breakdown
+    const vehicleUpdate: any = { odometer: Number(data.odometer) };
+    if (data.jobType === 'breakdown' && data.status !== 'completed') {
+       vehicleUpdate.status = 'maintenance';
+    }
 
-export async function PUT(request: Request) {
-  try {
-    const session = await getSession();
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const data = await request.json();
-    const { id, status, actualCost, completedAt, invoiceUrl, partsUsed } = data;
-
-    const job = await prisma.maintenanceJob.update({
-      where: { 
-        id,
-        companyId: session.user.companyId! 
-      },
-      data: {
-        status,
-        actualCost,
-        completedAt: completedAt ? new Date(completedAt) : undefined,
-        invoiceUrl,
-        partsUsed
-      }
+    await prisma.vehicle.update({
+      where: { id: data.vehicleId },
+      data: vehicleUpdate
     });
 
-    return NextResponse.json(job);
+    return NextResponse.json({ success: true, data: job });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Maintenance Entry Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

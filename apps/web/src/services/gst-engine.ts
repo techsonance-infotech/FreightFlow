@@ -74,15 +74,18 @@ export class GSTEngine {
       where: {
         tenantId,
         companyId,
-        date: {
-          gte: startDate,
-          lte: endDate
-        },
+        date: { gte: startDate, lte: endDate },
         status: { in: ['sent', 'paid', 'partial', 'overdue'] }
-      },
-      include: {
-        // In a real system, we'd include Customer with GSTIN to split into B2B and B2C
-        // For now, we simulate everything as B2B if it has tax
+      }
+    });
+
+    const salesVouchers = await prisma.journalEntry.findMany({
+      where: {
+        tenantId,
+        companyId,
+        date: { gte: startDate, lte: endDate },
+        voucherType: 'sales',
+        status: 'posted'
       }
     });
 
@@ -101,7 +104,6 @@ export class GSTEngine {
       payload.totalSGST += inv.sgst;
       payload.totalIGST += inv.igst;
 
-      // Simplistic B2B assumption for demonstration
       payload.b2b.push({
         invoiceNo: inv.invoiceNo,
         date: inv.date.toISOString().split('T')[0],
@@ -113,6 +115,116 @@ export class GSTEngine {
       });
     });
 
+    salesVouchers.forEach(v => {
+      const taxableValue = (v.metadata as any)?.baseAmount || v.totalAmount;
+      const totalTax = v.totalAmount - taxableValue;
+      
+      // Rough split if not in metadata
+      const cgst = (v.metadata as any)?.cgst || (totalTax > 0 ? Math.round(totalTax / 2) : 0);
+      const sgst = (v.metadata as any)?.sgst || (totalTax > 0 ? Math.round(totalTax / 2) : 0);
+      const igst = (v.metadata as any)?.igst || 0;
+
+      payload.totalTaxableValue += taxableValue;
+      payload.totalCGST += cgst;
+      payload.totalSGST += sgst;
+      payload.totalIGST += igst;
+
+      payload.b2b.push({
+        invoiceNo: v.voucherNo,
+        date: v.date.toISOString().split('T')[0],
+        taxableValue,
+        cgst,
+        sgst,
+        igst,
+        total: v.totalAmount,
+        isManual: true
+      });
+    });
+
     return payload;
+  }
+
+  /**
+   * Generates a GSTR-3B summary comparing Output Tax (Sales) vs Input Tax Credit (ITC from Purchases).
+   */
+  static async generateGSTR3B(tenantId: string, companyId: string, period: string) {
+    // 1. Get GSTR-1 Data (Output Liability)
+    const outward = await this.generateGSTR1(tenantId, companyId, period);
+
+    // 2. Calculate Date Range for Purchases
+    const [year, month] = period.split('-');
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+
+    // 3. Fetch Purchase Vouchers (ITC)
+    const purchaseVouchers = await prisma.journalEntry.findMany({
+      where: {
+        tenantId,
+        companyId,
+        status: 'posted',
+        voucherType: { in: ['purchase', 'expense'] },
+        date: { gte: startDate, lte: endDate }
+      },
+      include: {
+        lines: {
+          include: {
+            account: true
+          }
+        }
+      }
+    });
+
+    const itc = {
+      cgst: 0,
+      sgst: 0,
+      igst: 0,
+      total: 0,
+      details: [] as any[]
+    };
+
+    purchaseVouchers.forEach(v => {
+      let vCgst = 0, vSgst = 0, vIgst = 0;
+      v.lines.forEach(line => {
+        const accName = line.account.name.toUpperCase();
+        if (accName.includes('GST') && (accName.includes('INPUT') || accName.includes('PURCHASE'))) {
+          if (accName.includes('CGST')) vCgst += line.debit;
+          else if (accName.includes('SGST')) vSgst += line.debit;
+          else if (accName.includes('IGST')) vIgst += line.debit;
+        }
+      });
+      
+      const vTax = vCgst + vSgst + vIgst;
+      if (vTax > 0) {
+        itc.cgst += vCgst;
+        itc.sgst += vSgst;
+        itc.igst += vIgst;
+        itc.details.push({
+          date: v.date,
+          voucherNo: v.voucherNo,
+          partyName: (v.metadata as any)?.vendorName || 'General Expense',
+          taxAmount: vTax
+        });
+      }
+    });
+
+    itc.total = itc.cgst + itc.sgst + itc.igst;
+
+    return {
+      period,
+      outward: {
+        taxableValue: outward.totalTaxableValue,
+        cgst: outward.totalCGST,
+        sgst: outward.totalSGST,
+        igst: outward.totalIGST,
+        totalTax: outward.totalCGST + outward.totalSGST + outward.totalIGST
+      },
+      inward: itc,
+      netPayable: {
+        cgst: Math.max(0, outward.totalCGST - itc.cgst),
+        sgst: Math.max(0, outward.totalSGST - itc.sgst),
+        igst: Math.max(0, outward.totalIGST - itc.igst),
+        total: Math.max(0, (outward.totalCGST + outward.totalSGST + outward.totalIGST) - itc.total)
+      }
+    };
   }
 }

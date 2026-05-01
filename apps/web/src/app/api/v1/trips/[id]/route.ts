@@ -27,8 +27,9 @@ export async function GET(
         driver: { include: { employee: { select: { name: true, empCode: true } } } },
         orders: {
           include: {
-            dealer: { select: { name: true } },
+            dealer: { select: { id: true, name: true, gstin: true } },
             consignee: { select: { name: true } },
+            details: true,
           },
         },
         expenses: {

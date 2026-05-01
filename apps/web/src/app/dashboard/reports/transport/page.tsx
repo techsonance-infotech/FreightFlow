@@ -7,16 +7,25 @@ import {
   Download, RefreshCw, Truck, IndianRupee,
   Activity, BarChart3, PieChart, ShieldCheck,
   ChevronRight, ArrowRight, Gauge, Layers,
-  Globe, Clock, History, MoreHorizontal
+  Globe, Clock, History, MoreHorizontal, Briefcase,
+  Search, Box
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ReportViewer } from '@/components/reports/report-viewer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { 
+  StatCard, 
+  ReportSectionHeader, 
+  LoadingState, 
+  EmptyReportState,
+  ReportContainer,
+  Pagination
+} from '@/components/reports/report-components';
+import { Input } from '@/components/ui/input';
 
 export default function TransportReportsPage() {
   const [activeTab, setActiveTab] = useState('vehicle');
@@ -24,33 +33,57 @@ export default function TransportReportsPage() {
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
+  const [summary, setSummary] = useState<any>(null);
   const [vehicleData, setVehicleData] = useState<any[]>([]);
   const [routeData, setRouteData] = useState<any[]>([]);
   const [lrData, setLrData] = useState<any[]>([]);
   const [fuelData, setFuelData] = useState<any>(null);
+  const [dealerData, setDealerData] = useState<any[]>([]);
+  const [driverData, setDriverData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+
+  const fetchSummary = async () => {
+    try {
+      const res = await fetch('/api/v1/reports/summary');
+      setSummary(await res.json());
+    } catch (e) {
+      console.error('Failed to fetch summary');
+    }
+  };
 
   const fetchReportData = async () => {
     try {
       setLoading(true);
-      let endpoint = '';
       const params = new URLSearchParams({ startDate, endDate });
 
       if (activeTab === 'vehicle') {
-        endpoint = `/api/v1/reports/transport?type=vehicle-pnl&${params}`;
-        const res = await fetch(endpoint);
-        setVehicleData(await res.json());
+        const res = await fetch(`/api/v1/reports/transport?type=vehicle-pnl&${params}`);
+        const result = await res.json();
+        setVehicleData(Array.isArray(result) ? result : result.data || []);
       } else if (activeTab === 'route') {
-        endpoint = `/api/v1/reports/transport?type=route-profit&${params}`;
-        const res = await fetch(endpoint);
-        setRouteData(await res.json());
+        const res = await fetch(`/api/v1/reports/transport?type=route-profit&${params}`);
+        const result = await res.json();
+        setRouteData(Array.isArray(result) ? result : result.data || []);
       } else if (activeTab === 'lr') {
-        endpoint = `/api/v1/reports/lr-register?${params}`;
-        const res = await fetch(endpoint);
-        setLrData(await res.json());
+        const res = await fetch(`/api/v1/reports/lr-register?${params}`);
+        const result = await res.json();
+        setLrData(Array.isArray(result) ? result : result.data || []);
       } else if (activeTab === 'fuel') {
-        endpoint = `/api/v1/reports/transport/fuel?${params}`;
-        const res = await fetch(endpoint);
-        setFuelData(await res.json());
+        const res = await fetch(`/api/v1/reports/transport/fuel?${params}`);
+        const result = await res.json();
+        setFuelData(result);
+      } else if (activeTab === 'dealer') {
+        const res = await fetch(`/api/v1/reports/transport?type=dealer-yield&${params}`);
+        const result = await res.json();
+        setDealerData(Array.isArray(result) ? result : result.data || []);
+      } else if (activeTab === 'driver') {
+        const res = await fetch(`/api/v1/reports/transport?type=driver-performance&${params}`);
+        const result = await res.json();
+        setDriverData(Array.isArray(result) ? result : result.data || []);
+      } else if (activeTab === 'category') {
+        const res = await fetch(`/api/v1/reports/transport?type=category-analysis&${params}`);
+        const result = await res.json();
+        setCategoryData(Array.isArray(result) ? result : result.data || []);
       }
     } catch (error) {
       toast.error('Failed to load intelligence data');
@@ -58,6 +91,10 @@ export default function TransportReportsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSummary();
+  }, []);
 
   useEffect(() => {
     fetchReportData();
@@ -72,320 +109,559 @@ export default function TransportReportsPage() {
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700 pb-20 px-4">
-      {/* 1. Header with Global Blue and Obsidian Accents */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
-        <div className="space-y-1.5">
+    <ReportContainer className="pb-20 px-4 md:px-8">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pt-8">
+        <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
-              <BarChart3 className="h-4 w-4 text-white" />
+            <div className="h-12 w-12 rounded-2xl bg-accent-600 flex items-center justify-center shadow-xl shadow-accent-600/20">
+              <Truck className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase underline decoration-blue-600/30 decoration-4 underline-offset-8">Transport Analytics</h1>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">Transport Analytics</h1>
+              <p className="text-sm font-medium text-neutral-500">Operational Intelligence & Fleet Efficiency Metrics</p>
+            </div>
           </div>
-          <p className="text-sm font-medium text-slate-500 max-w-xl leading-relaxed">
-            Operational Intelligence System (OIS) for real-time logistics auditing, route yield analysis, and fleet efficiency metrics.
-          </p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/20 flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-500" />
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest outline-none w-28 text-slate-600" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-neutral-200 shadow-sm">
+            <div className="flex items-center gap-2 px-3">
+              <Calendar className="h-4 w-4 text-neutral-400" />
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={e => setStartDate(e.target.value)} 
+                className="bg-transparent border-none text-xs font-bold outline-none w-28 text-neutral-700 cursor-pointer" 
+              />
             </div>
-            <div className="w-px h-4 bg-slate-100" />
-            <div className="flex items-center gap-2 text-slate-600 font-black text-[10px] uppercase">
-              TO
-            </div>
-            <div className="flex items-center gap-2">
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest outline-none w-28 text-slate-600" />
+            <div className="h-4 w-[1px] bg-neutral-200" />
+            <div className="flex items-center gap-2 px-3">
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={e => setEndDate(e.target.value)} 
+                className="bg-transparent border-none text-xs font-bold outline-none w-28 text-neutral-700 cursor-pointer" 
+              />
             </div>
           </div>
-          {/* Black Highlight Button as requested */}
-          <Button className="h-12 px-8 bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-200" icon={<Download className="h-4 w-4" />}>
+          <Button 
+            onClick={() => {
+              const reportName = `FreightFlow_MIS_${activeTab}_${startDate}_to_${endDate}`;
+              window.print(); // Fallback to print if no dedicated export service
+            }}
+            className="h-11 px-6 bg-accent-600 hover:bg-accent-700 text-white shadow-lg shadow-accent-600/20 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-95"
+          >
+            <Download className="h-4 w-4 mr-2" />
             Export MIS
           </Button>
         </div>
       </div>
 
-      {/* 2. visual Metric Grid (Reverted to Global Blue) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <AnalysisCard title="Global Revenue" value="₹ 48.2L" sub="+12.4% vs Last Month" icon={<TrendingUp className="h-5 w-5 text-emerald-500" />} color="emerald" />
-        <AnalysisCard title="Fleet Efficiency" value="94.2%" sub="Operational Uptime" icon={<Gauge className="h-5 w-5 text-blue-500" />} color="blue" />
-        <AnalysisCard title="Route High-Yield" value="8/12" sub="Optimized Clusters" icon={<Globe className="h-5 w-5 text-amber-500" />} color="amber" />
-        <AnalysisCard title="Audit Health" value="A+" sub="Zero Compliance Lapses" icon={<ShieldCheck className="h-5 w-5 text-emerald-600" />} color="emerald" />
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title="Global Revenue" 
+          value={formatCurrency(summary?.revenue || 0)} 
+          subValue="Revenue this period"
+          icon={<TrendingUp className="h-5 w-5" />} 
+          color="emerald"
+          trend={{ value: "+12.4%", isUp: true }}
+        />
+        <StatCard 
+          title="Fleet Efficiency" 
+          value={`${(summary?.fleetUtilization || 0).toFixed(1)}%`} 
+          subValue="Operational uptime"
+          icon={<Gauge className="h-5 w-5" />} 
+          color="blue" 
+        />
+        <StatCard 
+          title="Order Density" 
+          value={summary?.orderCount || 0} 
+          subValue="LR Volume this month"
+          icon={<Globe className="h-5 w-5" />} 
+          color="blue" 
+        />
+        <StatCard 
+          title="Audit Health" 
+          value={summary?.auditHealth || "A+"} 
+          subValue="Zero compliance lapses"
+          icon={<ShieldCheck className="h-5 w-5" />} 
+          color="emerald" 
+        />
       </div>
 
-      {/* 3. Primary Command Tabs (Global Blue) */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <div className="flex items-center justify-between">
-          <TabsList className="bg-white p-1.5 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-1">
-            <TabTrigger value="vehicle" label="Vehicle P&L" icon={<Truck className="h-3.5 w-3.5" />} />
-            <TabTrigger value="route" label="Route Yield" icon={<MapPin className="h-3.5 w-3.5" />} />
-            <TabTrigger value="lr" label="LR Register" icon={<Layers className="h-3.5 w-3.5" />} />
-            <TabTrigger value="fuel" label="Fuel Intelligence" icon={<Fuel className="h-3.5 w-3.5" />} />
+      {/* Main Content Area */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-neutral-100 pb-1">
+          <TabsList className="bg-transparent p-0 h-auto gap-8 overflow-x-auto no-scrollbar justify-start">
+            <TabTrigger value="vehicle" label="Vehicle P&L" />
+            <TabTrigger value="route" label="Route Yield" />
+            <TabTrigger value="dealer" label="Dealer Yield" />
+            <TabTrigger value="driver" label="Driver Performance" />
+            <TabTrigger value="category" label="Strategic Clusters" />
+            <TabTrigger value="lr" label="LR Register" />
+            <TabTrigger value="fuel" label="Fuel Intelligence" />
           </TabsList>
           
-          <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-2xl text-blue-600 text-[10px] font-black uppercase tracking-[0.2em]">
-            <Activity className="h-3 w-3 animate-pulse" /> Live Analysis Active
+          <div className="flex items-center gap-2 text-[10px] font-bold text-accent-600 uppercase tracking-widest bg-accent-50 px-3 py-1.5 rounded-full border border-accent-100">
+            <div className="h-1.5 w-1.5 rounded-full bg-accent-600 animate-pulse" />
+            Live Intelligence
           </div>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-100/40 overflow-hidden relative">
-          
-          <TabsContent value="vehicle" className="m-0 p-0 animate-in slide-in-from-right-4 duration-500">
-            <ReportHeader title="Vehicle Operational Profitability" subtitle="Detailed audit of revenue vs operational expenditure per unit." />
-            <div className="px-1">
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow className="hover:bg-transparent border-none">
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">Unit Identification</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Inflow (Revenue)</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Fuel Impact</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Maint. Impact</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Net Liquidity</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-center">Margin Index</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {vehicleData.length === 0 ? <EmptyState icon={<Truck className="h-10 w-10 text-slate-100" />} /> : vehicleData.map((v: any, i: number) => (
-                    <TableRow key={i} className="hover:bg-slate-50/50 transition-colors group border-b border-slate-50 last:border-0">
-                      <TableCell className="px-10 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs border border-blue-100 group-hover:bg-white group-hover:shadow-sm transition-all">
-                            {v.regNo?.slice(-2)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-900">{v.regNo}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{v.model}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-slate-900">{formatCurrency(v.revenue)}</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-rose-500">({formatCurrency(v.fuelCost)})</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-rose-500">({formatCurrency(v.maintCost)})</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-emerald-600">{formatCurrency(v.netProfit)}</TableCell>
-                      <TableCell className="px-10 py-6 text-center">
-                        <span className="px-3 py-1.5 rounded-full bg-blue-600 text-white text-[10px] font-black shadow-lg shadow-blue-100">
-                          {v.margin?.toFixed(1) || '0.0'}%
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="route" className="m-0 p-0 animate-in slide-in-from-right-4 duration-500">
-            <ReportHeader title="Route Efficiency & Yield" subtitle="Analyzing performance clusters by Origin-Destination pairs." />
-            <div className="px-1">
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow className="hover:bg-transparent border-none">
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">Strategic Route Pair</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-center">Operational Trips</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Aggregate Revenue</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Avg Revenue / Trip</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-center">Yield Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {routeData.length === 0 ? <EmptyState icon={<Globe className="h-10 w-10 text-slate-100" />} /> : routeData.map((r: any, i: number) => (
-                    <TableRow key={i} className="hover:bg-slate-50/50 transition-colors group border-b border-slate-50 last:border-0">
-                      <TableCell className="px-10 py-6">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                            <MapPin className="h-4 w-4" />
-                          </div>
-                          <span className="text-sm font-black text-slate-900 uppercase tracking-tight">{r.route || `${r.from} → ${r.to}`}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-10 py-6 text-center font-black text-slate-700">{r.orderCount || 0}</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-slate-900">{formatCurrency(r.revenue)}</TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-blue-600">{formatCurrency(r.avgRevenue)}</TableCell>
-                      <TableCell className="px-10 py-6 text-center">
-                        <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[10px] font-black uppercase tracking-widest py-1.5 px-4 rounded-xl">High Yield</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="lr" className="m-0 p-0 animate-in slide-in-from-right-4 duration-500">
-            <ReportHeader title="Logistics Receipt Ledger" subtitle="Comprehensive audit of all outward freight movements." />
-            <div className="px-1">
-              <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow className="hover:bg-transparent border-none">
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">LR Reference</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">Customer Entity</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400">Assigned Fleet</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-slate-400 text-right">Freight Charges</TableHead>
-                    <TableHead className="px-10 py-6 text-[11px] font-black uppercase tracking-widest text-center">Compliance Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lrData.length === 0 ? <EmptyState icon={<Layers className="h-10 w-10 text-slate-100" />} /> : lrData.map((lr: any) => (
-                    <TableRow key={lr.id} className="hover:bg-slate-50/50 transition-colors group border-b border-slate-50 last:border-0">
-                      <TableCell className="px-10 py-6">
-                        <p className="text-sm font-black text-blue-600 group-hover:text-blue-700">{lr.orderNo}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{format(new Date(lr.date), 'dd MMM yyyy')}</p>
-                      </TableCell>
-                      <TableCell className="px-10 py-6">
-                        <div className="space-y-1">
-                          <p className="text-xs font-black text-slate-900 truncate max-w-[180px]">{lr.dealer?.name}</p>
-                          <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-tight">
-                            <span className="text-blue-600/60 font-black">{lr.fromLocation}</span>
-                            <ChevronRight className="h-2 w-2" />
-                            <span className="text-blue-600/60 font-black">{lr.toLocation}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-10 py-6">
-                        <div className="flex items-center gap-2">
-                          <Truck className="h-3.5 w-3.5 text-blue-400" />
-                          <span className="text-xs font-black text-slate-700">{lr.vehicle?.regNo || 'POOL VEHICLE'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-10 py-6 text-right font-black text-slate-900">{formatCurrency(lr.totalAmount)}</TableCell>
-                      <TableCell className="px-10 py-6 text-center">
-                        <Badge className={cn(
-                          "text-[9px] font-black uppercase py-1 px-3 rounded-lg border",
-                          lr.podRecord ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-200"
-                        )}>
-                          {lr.podRecord ? 'POD Archived' : 'POD Outstanding'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="fuel" className="m-0 p-0 animate-in slide-in-from-right-4 duration-500">
-            <ReportHeader title="Fleet Fuel Intelligence" subtitle="Monitoring consumption efficiency and operational cost spikes." />
-            {fuelData && (
-              <div className="p-10 space-y-10">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <MetricSummaryCard title="Avg KMPL" value={fuelData.avgKmpl} sub="Efficiency Index" icon={<Activity className="h-4 w-4 text-blue-500" />} />
-                  <MetricSummaryCard title="Total Volume" value={`${fuelData.totalLitres} L`} sub="Inventory Inflow" icon={<Fuel className="h-4 w-4 text-slate-400" />} />
-                  <MetricSummaryCard title="Aggregate Cost" value={formatCurrency(fuelData.totalCost)} sub="Expenditure Audit" icon={<IndianRupee className="h-4 w-4 text-rose-500" />} />
-                  <MetricSummaryCard title="Alert Count" value="3" sub="Anomaly Detection" icon={<BadgeAlert className="h-4 w-4 text-amber-500" />} />
+        <>
+          {loading ? (
+            <LoadingState />
+          ) : (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <TabsContent value="vehicle" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Vehicle Operational Profitability" 
+                      subtitle="Detailed audit of revenue vs operational expenditure per unit."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Unit Identification</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Revenue</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Fuel Impact</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Maint. Impact</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Net Profit</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Margin</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(vehicleData) || vehicleData.length === 0 ? (
+                            <TableEmptyState icon={<Truck />} title="No vehicle data found" />
+                          ) : vehicleData.map((v: any) => (
+                            <TableRow key={v.vehicleId} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-full bg-neutral-100 flex items-center justify-center text-xs font-bold text-neutral-500 border border-neutral-200 shadow-sm group-hover:scale-105 transition-transform">
+                                    {v.vehicleNumber?.slice(-2) || '00'}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{v.vehicleNumber}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{v.model || 'Heavy Carrier'}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-neutral-900">{formatCurrency(v.revenue)}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-error-500">({formatCurrency(v.fuelCost)})</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-error-500">({formatCurrency(v.maintCost)})</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-success-700">{formatCurrency(v.netProfit)}</TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <Badge className="bg-accent-600 text-white text-[10px] font-bold rounded-lg px-2.5 py-1 shadow-sm">
+                                  {v.margin?.toFixed(1) || '0.0'}%
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
-                  <Table>
-                    <TableHeader className="bg-slate-50/50">
-                      <TableRow className="hover:bg-transparent border-none">
-                        <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Refill Date</TableHead>
-                        <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Assigned Unit</TableHead>
-                        <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Refill Qty</TableHead>
-                        <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Performance</TableHead>
-                        <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-center">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {fuelData.entries?.map((entry: any) => (
-                        <TableRow key={entry.id} className="hover:bg-slate-50/50 transition-colors group border-b border-slate-50 last:border-0">
-                          <td className="px-8 py-5 text-xs font-black text-slate-500">{format(new Date(entry.date), 'dd MMM yy')}</td>
-                          <td className="px-8 py-5 font-black text-slate-900 text-sm">{entry.vehicle?.regNo}</td>
-                          <td className="px-8 py-5 text-right font-black text-slate-700">{entry.quantity} L</td>
-                          <td className="px-8 py-5 text-right font-black text-blue-600">{entry.kmpl || '0.0'} KMPL</td>
-                          <td className="px-8 py-5 text-center">
-                            <Badge className={cn(
-                              "text-[9px] font-black uppercase py-1 px-3 rounded-lg border shadow-sm",
-                              entry.kmpl > 3.5 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
-                            )}>
-                              {entry.kmpl > 3.5 ? 'Optimal' : 'Inefficient'}
-                            </Badge>
-                          </td>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              </TabsContent>
+
+              <TabsContent value="route" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Route Efficiency & Yield" 
+                      subtitle="Analyzing performance clusters by Origin-Destination pairs."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Strategic Route Pair</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Trips</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Agg. Revenue</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Avg / Trip</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(routeData) || routeData.length === 0 ? (
+                            <TableEmptyState icon={<Globe />} title="No route records found" />
+                          ) : routeData.map((r: any, i: number) => (
+                            <TableRow key={i} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-xl bg-success-50 text-success-700 flex items-center justify-center border border-success-100 group-hover:scale-105 transition-transform">
+                                    <MapPin className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{r.route || `${r.from} → ${r.to}`}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">Primary Corridor</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-center font-bold text-neutral-600">{r.orderCount || 0}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-neutral-900">{formatCurrency(r.revenue)}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-accent-600">{formatCurrency(r.avgRevenue)}</TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <Badge className="bg-success-50 text-success-700 border-success-100 text-[10px] font-bold rounded-lg px-2.5 py-1">High Yield</Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </TabsContent>
-        </div>
+              </TabsContent>
+
+              <TabsContent value="dealer" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Customer Yield Analytics" 
+                      subtitle="Customer-centric analysis of revenue and compliance."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Customer Entity</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Trips</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Revenue</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Avg Yield</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Compliance</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(dealerData) || dealerData.length === 0 ? (
+                            <TableEmptyState icon={<Briefcase />} title="No dealer records found" />
+                          ) : dealerData.map((d: any) => (
+                            <TableRow key={d.id} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center font-bold text-xs border border-accent-100 group-hover:scale-105 transition-transform">
+                                    {d.name?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{d.name}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{d.city || 'Operational Hub'}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-center font-bold text-neutral-600">{d.trips}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-success-700">{formatCurrency(d.revenue)}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-neutral-900">{formatCurrency(d.avgYield)}</TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <Badge className="bg-success-50 text-success-700 border-success-100 text-[10px] font-bold rounded-lg px-2.5 py-1">
+                                  100% SECURE
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="driver" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Captain Performance Registry" 
+                      subtitle="Trip frequency, advances and expense audit."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Driver Intelligence</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Active Trips</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Expenses</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Avg / Trip</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(driverData) || driverData.length === 0 ? (
+                            <TableEmptyState icon={<Activity />} title="No driver records found" />
+                          ) : driverData.map((d: any) => (
+                            <TableRow key={d.id} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-xs shadow-sm border-2 border-white group-hover:scale-105 transition-transform">
+                                    {d.name?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{d.name}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">Fleet Captain</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-center font-bold text-neutral-600">{d.trips}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-error-500">{formatCurrency(d.totalExpenses)}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-neutral-900">{formatCurrency(d.avgExpensePerTrip)}</TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <Badge className="bg-accent-50 text-accent-700 border-accent-100 text-[10px] font-bold rounded-lg px-2.5 py-1">
+                                  {d.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="category" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Strategic Load Clusters" 
+                      subtitle="Analyzing revenue contribution by load type."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Market Category</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Volume</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Agg. Revenue</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Avg Unit Value</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Strategic Yield</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(categoryData) || categoryData.length === 0 ? (
+                            <TableEmptyState icon={<Layers />} title="No category analysis found" />
+                          ) : categoryData.map((c: any, i: number) => (
+                            <TableRow key={i} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 group-hover:scale-105 transition-transform">
+                                    <Box className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">{c.category}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">Commercial Segment</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-center font-bold text-neutral-600">{c.count}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-neutral-900">{formatCurrency(c.revenue)}</TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-success-700">{formatCurrency(c.avgValue)}</TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <div className="h-1.5 w-32 bg-neutral-100 rounded-full overflow-hidden mx-auto shadow-inner">
+                                  <div className="h-full bg-accent-600 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.4)]" style={{ width: '75%' }} />
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="lr" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Logistics Receipt Ledger" 
+                      subtitle="Comprehensive audit of all outward freight movements."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-white">
+                          <TableRow className="border-none hover:bg-transparent">
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">LR Reference</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Consignee Intelligence</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Fleet Asset</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Freight Value</TableHead>
+                            <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Archival Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(lrData) || lrData.length === 0 ? (
+                            <TableEmptyState icon={<Layers />} title="No LR records found" />
+                          ) : lrData.map((lr: any) => (
+                            <TableRow key={lr.id} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                              <TableCell className="px-8 py-6">
+                                <p className="text-sm font-black text-accent-600 tracking-tight">{lr.orderNo}</p>
+                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{format(new Date(lr.date), 'dd MMM yyyy')}</p>
+                              </TableCell>
+                              <TableCell className="px-8 py-6">
+                                <div className="space-y-1">
+                                  <p className="text-sm font-bold text-neutral-900 truncate max-w-[200px] uppercase tracking-tight">{lr.dealer?.name}</p>
+                                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+                                    <span>{lr.fromLocation}</span>
+                                    <ChevronRight className="h-2.5 w-2.5 text-accent-600" />
+                                    <span>{lr.toLocation}</span>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="h-8 w-8 rounded-lg bg-neutral-100 flex items-center justify-center border border-neutral-200">
+                                    <Truck className="h-4 w-4 text-neutral-500" />
+                                  </div>
+                                  <span className="text-xs font-bold text-neutral-700 uppercase tracking-tight">{lr.vehicle?.regNo || 'POOL'}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-8 py-6 text-right font-bold text-neutral-900">{formatCurrency(lr.totalAmount)}</TableCell>
+                              <TableCell className="px-8 py-6 text-center">
+                                <Badge className={cn(
+                                  "text-[10px] font-bold rounded-lg px-2.5 py-1",
+                                  lr.podRecord ? "bg-success-50 text-success-700 border-success-100" : "bg-neutral-50 text-neutral-400 border-neutral-200"
+                                )}>
+                                  {lr.podRecord ? 'ARCHIVED' : 'OUTSTANDING'}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="fuel" className="m-0 border-none outline-none">
+                <div className="px-4 pb-8">
+                  <div className="bg-white rounded-[32px] border border-neutral-100 shadow-sm overflow-hidden">
+                    <ReportSectionHeader 
+                      title="Fleet Fuel Intelligence" 
+                      subtitle="Monitoring consumption efficiency and cost spikes."
+                      className="px-8 pt-8 mb-4"
+                    />
+                    {fuelData && (
+                      <div className="p-8 pt-0 space-y-10">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                          <MetricCard title="Avg KMPL" value={fuelData.avgKmpl} icon={<Activity />} color="blue" />
+                          <MetricCard title="Total Volume" value={`${fuelData.totalLitres} L`} icon={<Fuel />} color="slate" />
+                          <MetricCard title="Aggregate Cost" value={formatCurrency(fuelData.totalCost)} icon={<IndianRupee />} color="rose" />
+                          <MetricCard title="Alerts" value="3" icon={<BadgeAlert />} color="amber" />
+                        </div>
+                        
+                        <div className="rounded-[24px] border border-neutral-100 overflow-hidden shadow-sm bg-white">
+                          <Table>
+                            <TableHeader className="bg-white">
+                              <TableRow className="border-none hover:bg-transparent">
+                                <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Transaction Date</TableHead>
+                                <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400">Fleet Asset</TableHead>
+                                <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Refill Qty</TableHead>
+                                <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-right">Performance</TableHead>
+                                <TableHead className="px-8 py-6 text-xs font-bold uppercase tracking-wider text-neutral-400 text-center">Efficiency</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {!Array.isArray(fuelData?.transactions) || fuelData.transactions.length === 0 ? (
+                                <TableEmptyState icon={<Fuel />} title="No fuel transactions found" />
+                              ) : fuelData.transactions.map((t: any, i: number) => (
+                                <TableRow key={i} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
+                                  <TableCell className="px-8 py-6">
+                                    <p className="text-sm font-bold text-neutral-900">{format(new Date(t.date), 'dd MMM yyyy')}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{t.pumpName || 'Commercial Pump'}</p>
+                                  </TableCell>
+                                  <TableCell className="px-8 py-6">
+                                    <div className="flex items-center gap-3">
+                                      <div className="h-8 w-8 rounded-lg bg-neutral-100 flex items-center justify-center border border-neutral-200">
+                                        <Truck className="h-4 w-4 text-neutral-500" />
+                                      </div>
+                                      <span className="font-bold text-neutral-900 text-sm uppercase tracking-tight">{t.vehicleNumber}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="px-8 py-6 text-right font-bold text-neutral-700 text-sm">{t.quantity} <span className="text-[10px] text-neutral-400 ml-0.5">LITRES</span></TableCell>
+                                  <TableCell className="px-8 py-6 text-right font-bold text-accent-600 text-sm">{t.kmpl || '0.0'} <span className="text-[10px] text-neutral-400 ml-0.5">KMPL</span></TableCell>
+                                  <TableCell className="px-8 py-6 text-center">
+                                    <Badge className={cn(
+                                      "text-[10px] font-bold rounded-lg px-2.5 py-1",
+                                      t.kmpl > 3.5 ? "bg-success-50 text-success-700 border-success-100" : "bg-error-50 text-error-700 border-error-100"
+                                    )}>
+                                      {t.kmpl > 3.5 ? 'OPTIMAL' : 'INEFFICIENT'}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                          <div className="px-6 py-4 border-t border-neutral-100">
+                            <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            </div>
+          )}
+        </>
       </Tabs>
-    </div>
+    </ReportContainer>
   );
 }
 
-function TabTrigger({ value, label, icon }: any) {
+function TabTrigger({ value, label }: { value: string; label: string }) {
   return (
     <TabsTrigger 
       value={value} 
-      className="rounded-[1.5rem] px-8 py-3 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-2xl data-[state=active]:shadow-blue-200 transition-all active:scale-95 flex items-center gap-2.5 border border-transparent data-[state=active]:border-blue-600"
+      className="relative h-12 rounded-none border-b-2 border-transparent bg-transparent px-2 pb-4 pt-2 text-sm font-bold text-neutral-500 transition-all data-[state=active]:border-accent-600 data-[state=active]:text-accent-600 data-[state=active]:shadow-none"
     >
-      {icon}
       {label}
     </TabsTrigger>
   );
 }
 
-function AnalysisCard({ title, value, sub, icon, color }: any) {
-  const colorStyles: any = {
-    emerald: 'bg-emerald-50/20 border-emerald-50',
-    blue: 'bg-blue-50/20 border-blue-50',
-    amber: 'bg-amber-50/20 border-amber-50',
+function MetricCard({ title, value, icon, color }: any) {
+  const colorMap: any = {
+    blue: 'text-accent-600 bg-accent-50',
+    rose: 'text-error-700 bg-error-50',
+    amber: 'text-amber-700 bg-amber-50',
+    slate: 'text-neutral-700 bg-neutral-50',
   };
 
   return (
-    <div className={cn("bg-white rounded-[2rem] border border-slate-100 p-7 shadow-sm group hover:shadow-md transition-all", colorStyles[color])}>
-      <div className="flex items-center justify-between mb-2.5">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{title}</p>
-        <div className="p-2 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform border border-slate-50">
-          {icon}
+    <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{title}</p>
+        <div className={cn("p-2 rounded-lg", colorMap[color])}>
+          {React.isValidElement(icon) 
+            ? React.cloneElement(icon as React.ReactElement<any>, { className: "h-4 w-4" }) 
+            : icon}
         </div>
       </div>
-      <h3 className="text-2xl font-black text-slate-900 tracking-tight">{value}</h3>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1 italic">{sub}</p>
+      <h3 className="text-xl font-bold text-neutral-900 tracking-tight">{value}</h3>
     </div>
   );
 }
 
-function MetricSummaryCard({ title, value, sub, icon }: any) {
+function TableEmptyState({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all group">
-      <div className="flex items-center justify-between mb-1.5">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-        <div className="p-1.5 bg-slate-50 rounded-lg shadow-sm group-hover:bg-blue-50 transition-colors border border-slate-100/50">{icon}</div>
-      </div>
-      <h3 className="text-xl font-black text-slate-900">{value}</h3>
-      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{sub}</p>
-    </div>
-  );
-}
-
-function ReportHeader({ title, subtitle }: any) {
-  return (
-    <div className="px-10 py-10 border-b border-slate-100 bg-white flex flex-col gap-2">
-      <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">{title}</h3>
-      <p className="text-xs font-medium text-slate-400">{subtitle}</p>
-    </div>
-  );
-}
-
-function EmptyState({ icon }: any) {
-  return (
-    <tr>
-      <td colSpan={6} className="px-10 py-32 text-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-16 w-16 rounded-[1.5rem] bg-blue-50 flex items-center justify-center border border-blue-100">
-            {icon}
+    <TableRow>
+      <td colSpan={10} className="py-20">
+        <div className="flex flex-col items-center justify-center text-neutral-400">
+          <div className="mb-4 p-4 bg-neutral-50 rounded-2xl border border-neutral-100 shadow-sm">
+            {React.isValidElement(icon) 
+              ? React.cloneElement(icon as React.ReactElement<any>, { className: "h-8 w-8" }) 
+              : icon}
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-black text-slate-900 uppercase tracking-widest">No Intelligence Records Found</p>
-            <p className="text-xs text-slate-400 font-medium max-w-[200px] mx-auto">Try expanding your fiscal search window or adjusting filters.</p>
-          </div>
+          <p className="text-sm font-bold uppercase tracking-widest">{title}</p>
         </div>
       </td>
-    </tr>
+    </TableRow>
   );
 }

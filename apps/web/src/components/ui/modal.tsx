@@ -43,7 +43,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
         <div className="flex items-center justify-between border-b border-slate-50 px-8 py-6">
           <div>
             <h3 className="text-xl font-black tracking-tight text-slate-900">{title}</h3>
-            <div className="mt-1 h-1 w-10 bg-blue-600 rounded-full" />
+            <div className="mt-1 h-1 w-10 bg-accent-600 rounded-full" />
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             ✕
