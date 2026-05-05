@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-utils';
 import { prisma } from '@freightflow/db';
 import { TripSchema } from '@freightflow/shared';
+import { TripEngine } from '@/services/trip-engine';
 import { z } from 'zod';
 
-// GET /api/v1/trips - List all trips
+// GET /api/v1/trips - List all trips with search, filters, and optional KPI stats
 export async function GET(request: Request) {
   try {
     const session = await getSession();
@@ -14,9 +15,24 @@ export async function GET(request: Request) {
 
     const { user } = session;
     const { searchParams } = new URL(request.url);
+
+    // If stats=true, return aggregated KPI data only
+    if (searchParams.get('stats') === 'true') {
+      const stats = await TripEngine.getKpiStats({
+        tenantId: user.tenantId,
+        companyId: user.companyId,
+      });
+      return NextResponse.json({ data: stats });
+    }
+
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
+    const search = searchParams.get('q');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
+    const vehicleId = searchParams.get('vehicleId');
+    const driverId = searchParams.get('driverId');
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -29,15 +45,49 @@ export async function GET(request: Request) {
       where.status = status;
     }
 
+    if (vehicleId) {
+      where.vehicleId = vehicleId;
+    }
+
+    if (driverId) {
+      where.driverId = driverId;
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    // Search across trip ID, vehicle regNo, driver name, from/to locations
+    if (search) {
+      where.OR = [
+        { id: { contains: search, mode: 'insensitive' } },
+        { fromLocation: { contains: search, mode: 'insensitive' } },
+        { toLocation: { contains: search, mode: 'insensitive' } },
+        { vehicle: { regNo: { contains: search, mode: 'insensitive' } } },
+        { driver: { employee: { name: { contains: search, mode: 'insensitive' } } } },
+      ];
+    }
+
     const [trips, total] = await Promise.all([
       prisma.trip.findMany({
         where,
         skip,
         take: limit,
         include: {
-          vehicle: { select: { regNo: true } },
-          driver: { include: { employee: { select: { name: true } } } },
-          _count: { select: { orders: true } },
+          vehicle: { select: { regNo: true, type: true } },
+          driver: {
+            include: {
+              employee: { select: { name: true, empCode: true } },
+            },
+          },
+          _count: { select: { orders: true, pallets: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -91,6 +141,9 @@ export async function POST(request: Request) {
           createdBy: user.id,
           orders: {
             connect: validatedData.orderIds.map((id) => ({ id })),
+          },
+          pallets: {
+            connect: (validatedData.palletIds || []).map((id) => ({ id })),
           },
         },
       });
