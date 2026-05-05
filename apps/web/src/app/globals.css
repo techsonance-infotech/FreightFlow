@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+/* ============================================
+   FreightFlow Pro — Design System Tokens
+   ============================================ */
+
+@theme inline {
+  /* --- Brand: Navy (Trust & Authority) --- */
+  --color-brand-950: #0A1628;
+  --color-brand-900: #0F2B5B;
+  --color-brand-800: #1A3A6B;
+  --color-brand-700: #1E4D8C;
+
+  /* --- Accent: Blue (Technology & Speed) --- */
+  --color-accent-600: #2563EB;
+  --color-accent-500: #1E88E5;
+  --color-accent-400: #42A5F5;
+  --color-accent-100: #BBDEFB;
+  --color-accent-50: #E3F2FD;
+
+  /* --- Energy: Amber (Action & India) --- */
+  --color-amber-900: #E65100;
+  --color-amber-700: #F57F17;
+  --color-amber-500: #FFB300;
+  --color-amber-100: #FFF8E1;
+
+  /* --- Semantic --- */
+  --color-success-700: #2E7D32;
+  --color-success-500: #43A047;
+  --color-success-50: #E8F5E9;
+  --color-warning-700: #F57F17;
+  --color-warning-50: #FFF3E0;
+  --color-error-700: #C62828;
+  --color-error-500: #E53935;
+  --color-error-50: #FFEBEE;
+  --color-info-700: #0277BD;
+  --color-info-50: #E1F5FE;
+
+  /* --- Neutral --- */
+  --color-neutral-900: #1A1A2E;
+  --color-neutral-700: #37474F;
+  --color-neutral-500: #607D8B;
+  --color-neutral-400: #90A4AE;
+  --color-neutral-200: #CFD8DC;
+  --color-neutral-100: #ECEFF1;
+  --color-neutral-50: #F5F7FA;
+
+  /* --- Surfaces --- */
+  --color-background: #F5F7FA;
+  --color-foreground: #1A1A2E;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #37474F;
+  --color-border: #CFD8DC;
+  --color-input: #ECEFF1;
+  --color-ring: #42A5F5;
+  --color-muted: #607D8B;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1A1A2E;
+  --color-accent: #E3F2FD;
+  --color-accent-foreground: #1565C0;
+
+  /* --- Sidebar --- */
+  --color-sidebar: #0A1628;
+  --color-sidebar-hover: #1A3A6B;
+  --color-sidebar-active: #1E4D8C;
+  --color-sidebar-text: rgba(255, 255, 255, 0.7);
+  --color-sidebar-text-active: #FFFFFF;
+
+  /* --- Font --- */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* --- Radius --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-200);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
+}
+
+/* --- Focus ring --- */
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- Status badges --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-xl);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
+/* --- Custom Utilities --- */
+.mask-image-vignette {
+  mask-image: radial-gradient(circle, black 60%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle, black 60%, transparent 100%);
+}
+
+.glass-surface {
+  @apply bg-white/10 backdrop-blur-md border border-white/10;
+}
+
+.soft-shadow-blue {
+  box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.4);
+}
+
+/* --- Print styles --- */
+@media print {
+  body { background: white; }
+  .no-print { display: none !important; }
+}

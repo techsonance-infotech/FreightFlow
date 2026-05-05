@@ -1,0 +1,55 @@
+import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth-utils';
+import { prisma } from '@freightflow/db';
+import { LabourSchema } from '@freightflow/shared';
+import { z } from 'zod';
+
+// Refreshing route for schema sync
+export async function GET(request: Request) {
+  try {
+    const session = await getSession();
+    if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+    const skillCategory = searchParams.get('skillCategory') || '';
+    const skip = (page - 1) * limit;
+
+    const where: any = { tenantId: session.user.tenantId, companyId: session.user.companyId, deletedAt: null };
+    if (skillCategory) where.skillCategory = skillCategory;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.labour.findMany({ where, skip, take: limit, orderBy: { updatedAt: 'desc' } }),
+      prisma.labour.count({ where }),
+    ]);
+
+    return NextResponse.json({ data: items, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getSession();
+    if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const body = await request.json();
+    const validatedData = LabourSchema.parse(body);
+
+    const item = await prisma.labour.create({
+      data: { ...validatedData, tenantId: session.user.tenantId, companyId: session.user.companyId! },
+    });
+
+    return NextResponse.json(item, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) return NextResponse.json({ error: error.errors }, { status: 400 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
