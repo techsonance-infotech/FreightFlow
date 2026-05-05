@@ -6,7 +6,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "build": "pnpm generate",
-    "generate": "prisma generate && node ./patch-prisma.js",
+    "generate": "prisma generate",
     "push": "prisma db push",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
