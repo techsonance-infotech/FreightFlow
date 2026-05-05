@@ -4,75 +4,42 @@ import { prisma } from '@freightflow/db';
 import { PalletSchema } from '@freightflow/shared';
 import { z } from 'zod';
 
-// GET /api/v1/pallets - List all pallet records
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const session = await getSession();
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { user } = session;
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
-    const status = searchParams.get('status');
-    const skip = (page - 1) * limit;
-
-    const where: any = {
-      tenantId: user.tenantId,
-      companyId: user.companyId,
-      deletedAt: null,
-    };
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (search) {
-      where.OR = [
-        { lrNo: isNaN(parseInt(search)) ? undefined : parseInt(search) },
-        { companyName: { contains: search, mode: 'insensitive' } },
-        { partyCode: { contains: search, mode: 'insensitive' } },
-        { dealer: { name: { contains: search, mode: 'insensitive' } } },
-      ].filter(Boolean);
-    }
-
-    const [pallets, total] = await Promise.all([
-      prisma.orderPallet.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          dealer: { select: { name: true } },
-          vehicle: { select: { regNo: true } },
-          palletDetails: true,
-          consigneeDetails: true,
-        },
-        orderBy: { updatedAt: 'desc' },
-      }),
-      prisma.orderPallet.count({ where }),
-    ]);
-
-    return NextResponse.json({
-      data: pallets,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+    const pallet = await prisma.orderPallet.findUnique({
+      where: { id },
+      include: {
+        palletDetails: true,
+        consigneeDetails: true,
       },
     });
+
+    if (!pallet || pallet.tenantId !== session.user.tenantId) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(pallet);
   } catch (error) {
-    console.error('[PALLETS_GET]', error);
+    console.error('[PALLET_GET]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// POST /api/v1/pallets - Create a new pallet record
-export async function POST(request: Request) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const session = await getSession();
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -80,14 +47,12 @@ export async function POST(request: Request) {
 
     const { user } = session;
     const body = await request.json();
-
-    // Validate request body
     const validatedData = PalletSchema.parse(body);
 
-    const pallet = await prisma.orderPallet.create({
+    // Update order pallet
+    const pallet = await prisma.orderPallet.update({
+      where: { id },
       data: {
-        tenantId: user.tenantId,
-        companyId: user.companyId!,
         lrNo: validatedData.lrNo,
         dealerId: validatedData.dealerId,
         consigneeId: validatedData.consigneeId,
@@ -117,6 +82,7 @@ export async function POST(request: Request) {
         gstPct: validatedData.gstPct,
         status: validatedData.status,
         palletDetails: {
+          deleteMany: {},
           create: validatedData.palletDetails.map((d) => ({
             companyId: user.companyId!,
             palletDisplayId: d.palletDisplayId,
@@ -126,17 +92,37 @@ export async function POST(request: Request) {
           })),
         },
       },
-      include: {
-        palletDetails: true,
-      },
     });
 
-    return NextResponse.json(pallet, { status: 201 });
+    return NextResponse.json(pallet);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
-    console.error('[PALLETS_POST]', error);
+    console.error('[PALLET_PATCH]', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const session = await getSession();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await prisma.orderPallet.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[PALLET_DELETE]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

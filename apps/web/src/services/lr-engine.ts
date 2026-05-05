@@ -60,6 +60,7 @@ export class LREngine {
 
   /**
    * Calculates totals for an order based on details and rates.
+   * Rates and amounts are handled in Paise (integers).
    */
   static calculateOrderTotals(params: {
     details: { weight: number; boxCount: number }[];
@@ -67,11 +68,13 @@ export class LREngine {
     hamali: number;  // in paise
     cgstPct: number;
     sgstPct: number;
+    igstPct: number;
+    gstType: 'intra' | 'inter';
     rateOn: 'weight' | 'box';
     rate: number;    // in paise
   }) {
-    const totalWeight = params.details.reduce((sum, d) => sum + d.weight, 0);
-    const totalBoxes = params.details.reduce((sum, d) => sum + d.boxCount, 0);
+    const totalWeight = params.details.reduce((sum, d) => sum + Number(d.weight || 0), 0);
+    const totalBoxes = params.details.reduce((sum, d) => sum + Number(d.boxCount || 0), 0);
 
     let subtotal = 0;
     if (params.rateOn === 'weight') {
@@ -83,9 +86,18 @@ export class LREngine {
     // Add fixed components
     subtotal += params.freight + params.hamali;
 
-    const cgstAmount = Math.round((subtotal * params.cgstPct) / 100);
-    const sgstAmount = Math.round((subtotal * params.sgstPct) / 100);
-    const totalAmount = subtotal + cgstAmount + sgstAmount;
+    let cgstAmount = 0;
+    let sgstAmount = 0;
+    let igstAmount = 0;
+
+    if (params.gstType === 'intra') {
+      cgstAmount = Math.round((subtotal * params.cgstPct) / 100);
+      sgstAmount = Math.round((subtotal * params.sgstPct) / 100);
+    } else {
+      igstAmount = Math.round((subtotal * params.igstPct) / 100);
+    }
+
+    const totalAmount = subtotal + cgstAmount + sgstAmount + igstAmount;
 
     return {
       totalWeight,
@@ -93,6 +105,7 @@ export class LREngine {
       subtotal,
       cgstAmount,
       sgstAmount,
+      igstAmount,
       totalAmount,
     };
   }

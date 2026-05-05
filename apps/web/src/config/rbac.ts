@@ -137,14 +137,6 @@ export const NAV_ITEMS: NavGroup[] = [
         ]
       }
     ]
-  },
-  {
-    group: 'System Settings',
-    items: [
-      { id: 'settings-org', label: 'Organization', icon: '🏢', path: '/dashboard/settings/organization', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager'] },
-      { id: 'settings-branding', label: 'Branding & Print', icon: '🎨', path: '/dashboard/settings/branding', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'accountant'] },
-      { id: 'settings-profile', label: 'My Profile', icon: '👤', path: '/dashboard/settings/profile', allowedRoles: ['super_admin', 'tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'dispatch_officer', 'maintenance_supervisor', 'auditor', 'driver'] },
-    ]
   }
 ];
 

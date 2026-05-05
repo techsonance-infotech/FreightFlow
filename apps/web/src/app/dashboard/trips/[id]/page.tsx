@@ -7,12 +7,14 @@ import {
   Package, Receipt, Calculator, TrendingUp,
   Plus, CheckCircle2, AlertCircle, ArrowLeft,
   DollarSign, FileText, Download, Printer,
-  ChevronRight, ArrowRight
+  ChevronRight, ArrowRight, Loader2, XCircle,
+  ArrowUpRight, Ban
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { FreightInvoiceModal } from '@/components/accounting/freight-invoice-modal';
+import { VALID_STATUS_TRANSITIONS } from '@freightflow/shared';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -25,6 +27,8 @@ export default function TripDetailPage() {
   
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [confirmStatus, setConfirmStatus] = useState<string | null>(null);
 
   const fetchTrip = async () => {
     try {
@@ -73,6 +77,57 @@ export default function TripDetailPage() {
     }
   };
 
+  const handleStatusTransition = async (newStatus: string) => {
+    try {
+      setTransitioning(true);
+      const res = await fetch(`/api/v1/trips/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update status');
+      }
+      toast.success(`Trip status updated to ${newStatus.replace('_', ' ')}`);
+      setConfirmStatus(null);
+      fetchTrip();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setTransitioning(false);
+    }
+  };
+
+  const getStatusLabel = (s: string) => {
+    const labels: Record<string, string> = {
+      loaded: 'Mark as Loaded', in_transit: 'Start Transit',
+      delivered: 'Mark Delivered', settled: 'Settle Trip', cancelled: 'Cancel Trip',
+    };
+    return labels[s] || s;
+  };
+
+  const getDriverName = (t: any) => t?.driver?.employee?.name || t?.driver?.name || 'N/A';
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    if (!confirm('Are you sure you want to delete this expense?')) return;
+    try {
+      const res = await fetch(`/api/v1/trips/${id}/expenses/${expenseId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete expense');
+      toast.success('Expense deleted');
+      fetchTrip();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const getExpenseIcon = (type: string) => {
+    const icons: Record<string, string> = {
+      fuel: '⛽', toll: '🛣️', repair: '🔧', driver_allowance: '💰',
+      police_rto: '🚔', loading: '📦', unloading: '📦', other: '📝',
+    };
+    return icons[type] || '📝';
+  };
   if (loading) return <div className="p-20 text-center animate-pulse font-black uppercase text-slate-400 tracking-widest">Synchronizing Mission Data...</div>;
   if (!trip) return <div className="p-20 text-center font-bold text-red-500">Mission Not Found.</div>;
 
@@ -113,20 +168,32 @@ export default function TripDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2.5 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest">
-            <Download className="h-4 w-4" /> Manifest
-          </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest">
+        <div className="flex gap-3 flex-wrap">
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-5 py-2.5 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest">
             <Printer className="h-4 w-4" /> Print Trip
           </button>
-          {trip.status !== 'settled' && (
-            <button 
-              onClick={handleSettle}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-black shadow-lg shadow-green-600/20 text-[10px] uppercase tracking-widest"
-            >
-              <CheckCircle2 className="h-4 w-4" /> Settle Trip
-            </button>
+          {/* Status transition buttons */}
+          {trip.status !== 'settled' && trip.status !== 'cancelled' && (
+            <>
+              {(VALID_STATUS_TRANSITIONS[trip.status] || []).filter((s: string) => s !== 'cancelled' && s !== 'settled').map((ns: string) => (
+                <button key={ns} disabled={transitioning}
+                  onClick={() => setConfirmStatus(ns)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-black shadow-lg shadow-blue-600/20 text-[10px] uppercase tracking-widest disabled:opacity-50">
+                  {transitioning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
+                  {getStatusLabel(ns)}
+                </button>
+              ))}
+              {trip.status === 'delivered' && (
+                <button onClick={handleSettle} disabled={transitioning}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-black shadow-lg shadow-green-600/20 text-[10px] uppercase tracking-widest disabled:opacity-50">
+                  <CheckCircle2 className="h-4 w-4" /> Settle Trip
+                </button>
+              )}
+              <button onClick={() => setConfirmStatus('cancelled')}
+                className="flex items-center gap-2 px-4 py-2.5 border-2 border-red-100 text-red-600 rounded-xl hover:bg-red-50 transition-all font-black text-[10px] uppercase tracking-widest">
+                <Ban className="h-4 w-4" /> Cancel
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -177,8 +244,8 @@ export default function TripDetailPage() {
                       <div className="p-4 bg-green-50 rounded-[1.5rem] text-green-600 shadow-inner"><User className="h-8 w-8" /></div>
                       <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mission Captain</p>
-                        <h3 className="text-xl font-black text-slate-900">{trip.driver?.name}</h3>
-                        <p className="text-xs font-bold text-slate-500">Emp ID: {trip.driver?.empId}</p>
+                        <h3 className="text-xl font-black text-slate-900">{getDriverName(trip)}</h3>
+                        <p className="text-xs font-bold text-slate-500">Emp Code: {trip.driver?.employee?.empCode || trip.driver?.empId || '—'}</p>
                       </div>
                     </div>
                   </div>
@@ -211,18 +278,32 @@ export default function TripDetailPage() {
                 </h3>
                 <div className="flex justify-between relative px-4">
                   <div className="absolute top-4 left-4 right-4 h-0.5 bg-slate-100 -z-0" />
-                  {['Created', 'Loaded', 'In Transit', 'Delivered', 'Settled'].map((s, idx) => (
-                    <div key={s} className="relative z-10 flex flex-col items-center gap-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-4 ${
-                        trip.status === s.toLowerCase().replace(' ', '_') 
-                          ? 'bg-blue-600 border-blue-100 text-white shadow-lg' 
-                          : 'bg-white border-slate-50 text-slate-300'
-                      }`}>
-                        {idx + 1}
-                      </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{s}</span>
-                    </div>
-                  ))}
+                  {(() => {
+                    const stages = ['created', 'loaded', 'in_transit', 'delivered', 'settled'];
+                    const labels = ['Created', 'Loaded', 'In Transit', 'Delivered', 'Settled'];
+                    const currentIdx = stages.indexOf(trip.status);
+                    return labels.map((s, idx) => {
+                      const stageKey = stages[idx];
+                      const isCompleted = idx < currentIdx;
+                      const isCurrent = idx === currentIdx;
+                      return (
+                        <div key={s} className="relative z-10 flex flex-col items-center gap-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-4 transition-all ${
+                            isCurrent
+                              ? 'bg-blue-600 border-blue-100 text-white shadow-lg'
+                              : isCompleted
+                              ? 'bg-green-500 border-green-100 text-white'
+                              : 'bg-white border-slate-50 text-slate-300'
+                          }`}>
+                            {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
+                          </div>
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${
+                            isCurrent ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-slate-400'
+                          }`}>{s}</span>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </div>
@@ -325,18 +406,27 @@ export default function TripDetailPage() {
                   trip.expenses.map((expense: any) => (
                     <div key={expense.id} className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all group">
                       <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
-                          <Receipt className="h-6 w-6" />
+                        <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-2xl group-hover:bg-blue-50 transition-all">
+                          {getExpenseIcon(expense.type)}
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{expense.type}</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{expense.type.replace('_', ' ')}</p>
                           <h4 className="text-sm font-black text-slate-900">{expense.description || 'No description provided'}</h4>
                           <p className="text-[10px] font-bold text-slate-400 mt-0.5">{format(new Date(expense.recordedAt), 'PPP p')}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-lg font-black text-slate-900">{formatCurrency(expense.amount)}</div>
-                        <div className="text-[10px] font-black text-green-600 uppercase tracking-widest">Verified</div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-lg font-black text-slate-900">{formatCurrency(expense.amount)}</div>
+                          <div className="text-[10px] font-black text-green-600 uppercase tracking-widest">Verified</div>
+                        </div>
+                        {trip.status !== 'settled' && (
+                          <button onClick={() => handleDeleteExpense(expense.id)}
+                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                            title="Delete expense">
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -542,6 +632,35 @@ export default function TripDetailPage() {
           fetchTrip();
         }}
       />
+      {/* Status Transition Confirmation */}
+      {confirmStatus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center">
+            <div className={`mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${confirmStatus === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+              {confirmStatus === 'cancelled' ? <Ban className="h-8 w-8" /> : <ArrowUpRight className="h-8 w-8" />}
+            </div>
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-2">
+              {confirmStatus === 'cancelled' ? 'Cancel Trip?' : `${getStatusLabel(confirmStatus)}?`}
+            </h3>
+            <p className="text-sm text-slate-500 mb-8">
+              {confirmStatus === 'cancelled'
+                ? 'This action cannot be undone. The trip will be permanently cancelled.'
+                : `This will transition the trip from "${trip.status.replace('_', ' ')}" to "${confirmStatus.replace('_', ' ')}".`}
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmStatus(null)}
+                className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">
+                Go Back
+              </button>
+              <button onClick={() => handleStatusTransition(confirmStatus)} disabled={transitioning}
+                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${confirmStatus === 'cancelled' ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}>
+                {transitioning && <Loader2 className="h-3 w-3 animate-spin" />}
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

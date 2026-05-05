@@ -103,7 +103,7 @@ export function Sidebar({ user }: SidebarProps) {
           <button
             onClick={() => toggleMenu(item.id, isActive)}
             className={cn(
-              "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-200",
+              "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200",
               isActive ? "text-white bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" : "text-white/50 hover:bg-white/5 hover:text-white"
             )}
           >
@@ -122,7 +122,7 @@ export function Sidebar({ user }: SidebarProps) {
           <Link
             href={item.path}
             className={cn(
-              "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-200",
+              "group flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200",
               isSubItem && "pl-8",
               isActive 
                 ? "bg-blue-600/15 text-white border border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.05)]" 
@@ -171,17 +171,20 @@ export function Sidebar({ user }: SidebarProps) {
       </div>
 
       {/* Navigation Area */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+      <nav 
+        className="flex-1 overflow-y-auto px-3 py-6 flex flex-col scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+        style={{ gap: 'clamp(12px, 2.5vh, 24px)' }}
+      >
         {NAV_ITEMS.map((group, groupIdx) => {
           const hasVisibleItems = group.items.some(item => hasPermission(user.role, item.allowedRoles));
           if (!hasVisibleItems) return null;
 
           return (
-            <div key={group.group} className={cn(groupIdx === 0 ? "" : "mt-4")}>
-              <h2 className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.2em] text-white/20">
+            <div key={group.group} className="flex flex-col">
+              <h2 className="mb-2.5 px-3 text-[9px] font-black uppercase tracking-[0.2em] text-white/20">
                 {group.group}
               </h2>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {group.items.map(item => renderNavItem(item))}
               </div>
             </div>
@@ -196,7 +199,7 @@ export function Sidebar({ user }: SidebarProps) {
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-xs font-semibold text-white/90">{user.name}</p>
+            <p className="truncate text-xs font-bold text-white/90">{user.name}</p>
             <p className="truncate text-[8px] font-black uppercase tracking-wider text-blue-500/60">
               {user.role.replace('_', ' ')}
             </p>

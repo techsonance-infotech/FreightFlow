@@ -14,7 +14,11 @@ export const TripSchema = z.object({
   actualDeliveryAt: z.string().optional().nullable(),
   advanceAmount: z.number().int().nonnegative().default(0), // in paise
   status: TripStatusSchema.default('created'),
-  orderIds: z.array(z.string().uuid()).min(1, 'At least one order must be assigned'),
+  orderIds: z.array(z.string().uuid()).optional().default([]),
+  palletIds: z.array(z.string().uuid()).optional().default([]),
+}).refine(data => data.orderIds.length > 0 || data.palletIds.length > 0, {
+  message: "At least one LR or Pallet must be assigned to the trip",
+  path: ["orderIds"]
 });
 
 export type Trip = z.infer<typeof TripSchema>;
@@ -62,3 +66,35 @@ export const TripSettlementSchema = z.object({
 });
 
 export type TripSettlement = z.infer<typeof TripSettlementSchema>;
+
+// --- Phase 2 Additions: Update, Recovery, and Search schemas ---
+
+export const TripUpdateSchema = z.object({
+  status: TripStatusSchema.optional(),
+  fromLocation: z.string().min(1).optional(),
+  toLocation: z.string().min(1).optional(),
+  departureAt: z.string().optional().nullable(),
+  expectedDeliveryAt: z.string().optional().nullable(),
+  actualDeliveryAt: z.string().optional().nullable(),
+  notes: z.string().optional(),
+});
+
+export type TripUpdate = z.infer<typeof TripUpdateSchema>;
+
+export const AdvanceRecoverySchema = z.object({
+  recoveryAmount: z.number().int().positive('Recovery amount must be positive'),
+  mode: z.enum(['cash', 'bank']),
+  notes: z.string().optional(),
+});
+
+export type AdvanceRecovery = z.infer<typeof AdvanceRecoverySchema>;
+
+/** Valid status transitions for the trip state machine */
+export const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
+  created: ['loaded', 'cancelled'],
+  loaded: ['in_transit', 'cancelled'],
+  in_transit: ['delivered', 'cancelled'],
+  delivered: ['settled'],
+  settled: [],
+  cancelled: [],
+};

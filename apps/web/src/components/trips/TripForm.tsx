@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { 
   Truck, User, MapPin, Calendar, Clock, 
   Plus, Trash2, Save, ArrowLeft, Package,
-  Calculator, Wallet
+  Calculator, Wallet, Search, X, CheckSquare, Square,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 export const TripForm = () => {
@@ -19,6 +20,7 @@ export const TripForm = () => {
     vehicles: [],
     drivers: [],
     unassignedOrders: [],
+    unassignedPallets: [],
   });
 
   const {
@@ -33,24 +35,28 @@ export const TripForm = () => {
       status: 'created',
       advanceAmount: 0,
       orderIds: [],
+      palletIds: [],
     },
   });
 
   const watchedOrderIds = watch('orderIds') || [];
+  const watchedPalletIds = watch('palletIds') || [];
 
   useEffect(() => {
     const fetchMasters = async () => {
       try {
-        const [vehicles, drivers, orders] = await Promise.all([
+        const [vehicles, drivers, orders, pallets] = await Promise.all([
           fetch('/api/v1/masters/vehicles?limit=100').then(r => r.json()),
           fetch('/api/v1/masters/drivers?limit=100').then(r => r.json()),
-          fetch('/api/v1/orders?limit=100&status=created').then(r => r.json()), // Unassigned orders are those in 'created' status and not linked to trip
+          fetch('/api/v1/orders?limit=100&status=created').then(r => r.json()), 
+          fetch('/api/v1/pallets?limit=100&status=created').then(r => r.json()),
         ]);
         
         setMasters({
           vehicles: vehicles.data || [],
           drivers: drivers.data || [],
           unassignedOrders: orders.data || [],
+          unassignedPallets: pallets.data || [],
         });
       } catch (error) {
         console.error('Failed to fetch masters', error);
@@ -82,15 +88,98 @@ export const TripForm = () => {
     }
   };
 
-  const toggleOrder = (orderId: string) => {
-    const current = [...watchedOrderIds];
-    const index = current.indexOf(orderId);
-    if (index > -1) {
-      current.splice(index, 1);
+  const toggleCargo = (id: string, type: 'LR' | 'PL') => {
+    if (type === 'LR') {
+      const current = [...watchedOrderIds];
+      const index = current.indexOf(id);
+      if (index > -1) current.splice(index, 1);
+      else current.push(id);
+      setValue('orderIds', current);
     } else {
-      current.push(orderId);
+      const current = [...watchedPalletIds];
+      const index = current.indexOf(id);
+      if (index > -1) current.splice(index, 1);
+      else current.push(id);
+      setValue('palletIds', current);
     }
-    setValue('orderIds', current);
+  };
+
+  // Unified Cargo Assignment: search + type filter + pagination
+  const [cargoSearch, setCargoSearch] = useState('');
+  const [cargoTypeFilter, setCargoTypeFilter] = useState<'ALL' | 'LR' | 'PL'>('ALL');
+  const [cargoPage, setCargoPage] = useState(1);
+  const CARGO_PAGE_SIZE = 10;
+
+  const unifiedCargo = useMemo(() => {
+    const lrs = masters.unassignedOrders.map((o: any) => ({
+      ...o,
+      cargoType: 'LR' as const,
+      displayId: o.lrNo,
+      origin: o.fromLocation,
+      destination: o.toLocation,
+      consigneeName: o.consignee?.name || 'N/A',
+      weight: Number(o.totalWeight || 0),
+    }));
+
+    const pls = masters.unassignedPallets.map((p: any) => ({
+      ...p,
+      cargoType: 'PL' as const,
+      displayId: p.lrNo || p.id.slice(0, 8).toUpperCase(),
+      origin: p.fromLocation || 'N/A',
+      destination: p.toLocation || 'N/A',
+      consigneeName: p.consignee?.name || p.companyName || 'N/A',
+      weight: Number(p.totalWeight || 0),
+    }));
+
+    let combined = [...lrs, ...pls];
+
+    // Apply Type Filter
+    if (cargoTypeFilter !== 'ALL') {
+      combined = combined.filter(c => c.cargoType === cargoTypeFilter);
+    }
+
+    // Apply Search Filter
+    if (cargoSearch.trim()) {
+      const q = cargoSearch.toLowerCase();
+      combined = combined.filter(c => 
+        String(c.displayId).toLowerCase().includes(q) ||
+        c.origin?.toLowerCase().includes(q) ||
+        c.destination?.toLowerCase().includes(q) ||
+        c.consigneeName?.toLowerCase().includes(q)
+      );
+    }
+
+    return combined;
+  }, [masters.unassignedOrders, masters.unassignedPallets, cargoSearch, cargoTypeFilter]);
+
+  const cargoTotalPages = Math.max(1, Math.ceil(unifiedCargo.length / CARGO_PAGE_SIZE));
+  const paginatedCargo = useMemo(() => {
+    const start = (cargoPage - 1) * CARGO_PAGE_SIZE;
+    return unifiedCargo.slice(start, start + CARGO_PAGE_SIZE);
+  }, [unifiedCargo, cargoPage]);
+
+  // Reset page when filters change
+  useEffect(() => { setCargoPage(1); }, [cargoSearch, cargoTypeFilter]);
+
+  const toggleSelectAllVisible = () => {
+    const visibleItems = paginatedCargo;
+    const allVisibleSelected = visibleItems.every(item => 
+      item.cargoType === 'LR' ? watchedOrderIds.includes(item.id) : watchedPalletIds.includes(item.id)
+    );
+
+    if (allVisibleSelected) {
+      // Deselect visible
+      const newOrderIds = watchedOrderIds.filter((id: string) => !visibleItems.some(i => i.cargoType === 'LR' && i.id === id));
+      const newPalletIds = watchedPalletIds.filter((id: string) => !visibleItems.some(i => i.cargoType === 'PL' && i.id === id));
+      setValue('orderIds', newOrderIds);
+      setValue('palletIds', newPalletIds);
+    } else {
+      // Select visible
+      const visibleOrderIds = visibleItems.filter(i => i.cargoType === 'LR').map(i => i.id);
+      const visiblePalletIds = visibleItems.filter(i => i.cargoType === 'PL').map(i => i.id);
+      setValue('orderIds', [...new Set([...watchedOrderIds, ...visibleOrderIds])]);
+      setValue('palletIds', [...new Set([...watchedPalletIds, ...visiblePalletIds])]);
+    }
   };
 
   return (
@@ -147,7 +236,7 @@ export const TripForm = () => {
                   <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                   <select {...register('driverId')} className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-600/10">
                     <option value="">Select Driver</option>
-                    {masters.drivers.map((d: any) => <option key={d.id} value={d.id}>{d.name} ({d.empId})</option>)}
+                    {masters.drivers.map((d: any) => <option key={d.id} value={d.id}>{d.employee?.name || d.name} ({d.employee?.empCode || d.empId || 'N/A'})</option>)}
                   </select>
                 </div>
                 {errors.driverId && <p className="text-[10px] text-red-500 font-bold uppercase">{(errors.driverId as any).message}</p>}
@@ -159,7 +248,7 @@ export const TripForm = () => {
                   <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                   <select {...register('coDriverId')} className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-600/10">
                     <option value="">Select Co-Driver</option>
-                    {masters.drivers.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {masters.drivers.map((d: any) => <option key={d.id} value={d.id}>{d.employee?.name || d.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -193,60 +282,165 @@ export const TripForm = () => {
           </div>
 
           {/* LR Assignment */}
-          <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
-            <div className="p-8 bg-slate-50/50 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20"><Package className="h-5 w-5" /></div>
-                <div>
-                  <h2 className="font-black text-slate-900 uppercase tracking-tight">Cargo Assignment</h2>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Assign Lorry Receipts to this Trip</p>
+          <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col">
+            <div className="p-6 bg-slate-50/50 border-b border-slate-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20"><Package className="h-5 w-5" /></div>
+                  <div>
+                    <h2 className="font-black text-slate-900 uppercase tracking-tight">Cargo Assignment</h2>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Assign Lorry Receipts & Pallets to this Trip</p>
+                  </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+                    {watchedOrderIds.length + watchedPalletIds.length} Selected
+                  </div>
+                </div>
+              </div>
+
+              {/* Type Filter */}
+              <div className="flex bg-white p-1 rounded-xl border border-slate-200 w-fit">
+                {(['ALL', 'LR', 'PL'] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setCargoTypeFilter(type)}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                      cargoTypeFilter === type 
+                        ? 'bg-slate-900 text-white shadow-lg' 
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {type === 'ALL' ? 'All Cargo' : type === 'LR' ? 'Lorry Receipts' : 'Pallets'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search & Actions Bar */}
+              <div className="flex gap-4 items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={cargoSearch}
+                    onChange={(e) => setCargoSearch(e.target.value)}
+                    placeholder={`Search ${cargoTypeFilter === 'ALL' ? 'Cargo' : cargoTypeFilter === 'LR' ? 'LRs' : 'Pallets'} by number, location...`}
+                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all"
+                  />
+                  {cargoSearch && (
+                    <button onClick={() => setCargoSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleSelectAllVisible}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all whitespace-nowrap"
+                >
+                  {paginatedCargo.length > 0 && paginatedCargo.every(item => 
+                    item.cargoType === 'LR' ? watchedOrderIds.includes(item.id) : watchedPalletIds.includes(item.id)
+                  ) ? (
+                    <><CheckSquare className="h-4 w-4 text-blue-600" /> Deselect Visible</>
+                  ) : (
+                    <><Square className="h-4 w-4 text-slate-400" /> Select Visible</>
+                  )}
+                </button>
               </div>
             </div>
             
             <div className="max-h-[400px] overflow-y-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-slate-400 sticky top-0 z-10">
+                <thead className="bg-slate-50 text-slate-400 sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="px-6 py-3 text-left font-black uppercase text-[9px] w-12">Select</th>
-                    <th className="px-6 py-3 text-left font-black uppercase text-[9px]">LR Details</th>
+                    <th className="px-6 py-3 text-left font-black uppercase text-[9px] w-20">Type</th>
+                    <th className="px-6 py-3 text-left font-black uppercase text-[9px]">Cargo ID</th>
                     <th className="px-6 py-3 text-left font-black uppercase text-[9px]">Consignee</th>
                     <th className="px-6 py-3 text-right font-black uppercase text-[9px]">Weight</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {masters.unassignedOrders.length === 0 ? (
+                  {paginatedCargo.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-bold italic">No unassigned LRs available for dispatch</td>
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">
+                        {unifiedCargo.length === 0 
+                          ? "No unassigned cargo available for dispatch" 
+                          : "No items match your search criteria"}
+                      </td>
                     </tr>
                   ) : (
-                    masters.unassignedOrders.map((order: any) => (
-                      <tr 
-                        key={order.id} 
-                        className={`hover:bg-blue-50/30 transition-colors cursor-pointer ${watchedOrderIds.includes(order.id) ? 'bg-blue-50/50' : ''}`}
-                        onClick={() => toggleOrder(order.id)}
-                      >
-                        <td className="px-6 py-4">
-                          <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${watchedOrderIds.includes(order.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-200 bg-white'}`}>
-                            {watchedOrderIds.includes(order.id) && <div className="w-2 h-2 bg-white rounded-sm" />}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-black text-slate-900">LR #{order.lrNo}</div>
-                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{order.fromLocation} → {order.toLocation}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-bold text-slate-700 text-xs">{order.consignee?.name}</div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="font-black text-slate-900">{order.totalWeight} KG</div>
-                        </td>
-                      </tr>
-                    ))
+                    paginatedCargo.map((item: any) => {
+                      const isSelected = item.cargoType === 'LR' 
+                        ? watchedOrderIds.includes(item.id) 
+                        : watchedPalletIds.includes(item.id);
+                      
+                      return (
+                        <tr 
+                          key={`${item.cargoType}-${item.id}`} 
+                          className={`hover:bg-blue-50/30 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/50' : ''}`}
+                          onClick={() => toggleCargo(item.id, item.cargoType)}
+                        >
+                          <td className="px-6 py-4">
+                            <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-200 bg-white'}`}>
+                              {isSelected && <div className="w-2 h-2 bg-white rounded-sm" />}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
+                              item.cargoType === 'LR' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'
+                            }`}>
+                              {item.cargoType}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-black text-slate-900">{item.cargoType} #{item.displayId}</div>
+                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.origin} → {item.destination}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-slate-700 text-xs">{item.consigneeName}</div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="font-black text-slate-900">{item.weight} KG</div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {cargoTotalPages > 1 && (
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500">
+                  Showing {(cargoPage - 1) * CARGO_PAGE_SIZE + 1} to {Math.min(cargoPage * CARGO_PAGE_SIZE, unifiedCargo.length)} of {unifiedCargo.length} items
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCargoPage(p => Math.max(1, p - 1))}
+                    disabled={cargoPage === 1}
+                    className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="px-4 py-2 text-xs font-black text-slate-700 flex items-center">
+                    Page {cargoPage} of {cargoTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCargoPage(p => Math.min(cargoTotalPages, p + 1))}
+                    disabled={cargoPage === cargoTotalPages}
+                    className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -279,25 +473,35 @@ export const TripForm = () => {
 
                 <div className="bg-white/5 rounded-3xl p-6 space-y-4">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-blue-200/60 uppercase tracking-wider">Assigned LRs</span>
-                    <span className="font-black text-blue-400">{watchedOrderIds.length}</span>
+                    <span className="font-bold text-blue-200/60 uppercase tracking-wider">Assigned Cargo</span>
+                    <span className="font-black text-blue-400">{watchedOrderIds.length + watchedPalletIds.length} ({watchedOrderIds.length} LR, {watchedPalletIds.length} PL)</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-blue-200/60 uppercase tracking-wider">Total Payload</span>
                     <span className="font-black text-blue-400">
-                      {masters.unassignedOrders
-                        .filter((o: any) => watchedOrderIds.includes(o.id))
-                        .reduce((sum, o: any) => sum + o.totalWeight, 0)} KG
+                      {(
+                        masters.unassignedOrders
+                          .filter((o: any) => watchedOrderIds.includes(o.id))
+                          .reduce((sum, o: any) => sum + Number(o.totalWeight || 0), 0) +
+                        masters.unassignedPallets
+                          .filter((p: any) => watchedPalletIds.includes(p.id))
+                          .reduce((sum, p: any) => sum + Number(p.totalWeight || 0), 0)
+                      ).toFixed(2)} KG
                     </span>
                   </div>
                   <div className="pt-4 border-t border-white/10">
                     <div className="flex justify-between items-end">
                       <div>
-                        <p className="text-[10px] font-black text-blue-200/40 uppercase tracking-widest mb-1">Estimated Revenue</p>
+                         <p className="text-[10px] font-black text-blue-200/40 uppercase tracking-widest mb-1">Estimated Revenue</p>
                         <h3 className="text-2xl font-black text-blue-400">
-                          ₹ {(masters.unassignedOrders
-                            .filter((o: any) => watchedOrderIds.includes(o.id))
-                            .reduce((sum, o: any) => sum + o.totalAmount, 0) / 100).toLocaleString('en-IN')}
+                          ₹ {(
+                            (masters.unassignedOrders
+                              .filter((o: any) => watchedOrderIds.includes(o.id))
+                              .reduce((sum, o: any) => sum + Number(o.totalAmount || 0), 0) +
+                            masters.unassignedPallets
+                              .filter((p: any) => watchedPalletIds.includes(p.id))
+                              .reduce((sum, p: any) => sum + Number(p.totalAmount || 0), 0)) / 100
+                          ).toLocaleString('en-IN')}
                         </h3>
                       </div>
                     </div>

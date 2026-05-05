@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-utils';
 import { prisma } from '@freightflow/db';
 import { TripEngine } from '@/services/trip-engine';
+import { TripUpdateSchema } from '@freightflow/shared';
+import { z } from 'zod';
 
 export async function GET(
   request: NextRequest,
@@ -68,18 +70,46 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
+    // Validate with TripUpdateSchema — only allow safe fields
+    const validatedData = TripUpdateSchema.parse(body);
+
+    // If status is being changed, use the transition engine
+    if (validatedData.status) {
+      const result = await TripEngine.transitionStatus({
+        tripId: id,
+        tenantId: user.tenantId,
+        companyId: user.companyId,
+        newStatus: validatedData.status,
+        userId: user.id,
+      });
+      return NextResponse.json(result);
+    }
+
+    // Otherwise, update non-status fields
+    const { status: _status, ...updateFields } = validatedData;
+    const updateData: any = {};
+
+    if (updateFields.fromLocation !== undefined) updateData.fromLocation = updateFields.fromLocation;
+    if (updateFields.toLocation !== undefined) updateData.toLocation = updateFields.toLocation;
+    if (updateFields.departureAt !== undefined) updateData.departureAt = updateFields.departureAt ? new Date(updateFields.departureAt) : null;
+    if (updateFields.expectedDeliveryAt !== undefined) updateData.expectedDeliveryAt = updateFields.expectedDeliveryAt ? new Date(updateFields.expectedDeliveryAt) : null;
+    if (updateFields.actualDeliveryAt !== undefined) updateData.actualDeliveryAt = updateFields.actualDeliveryAt ? new Date(updateFields.actualDeliveryAt) : null;
+
     const trip = await prisma.trip.update({
       where: {
         id,
         tenantId: user.tenantId,
         companyId: user.companyId,
       },
-      data: body,
+      data: updateData,
     });
 
     return NextResponse.json(trip);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
     console.error('[TRIP_PATCH]', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: (error as any).message || 'Internal Server Error' }, { status: 500 });
   }
 }
