@@ -151,7 +151,7 @@ export function SearchCommand() {
                   <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200">Enter</span> Select
                 </span>
               </div>
-              <span>FreightFlow Pro Search Engine</span>
+              <span>FreightFlow Search Engine</span>
             </div>
           </div>
         </div>

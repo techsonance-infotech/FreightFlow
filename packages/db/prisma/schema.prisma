@@ -1,5 +1,5 @@
 // ============================================
-// FreightFlow Pro — Prisma Schema
+// FreightFlow — Prisma Schema
 // Multi-Tenant SaaS Transport Management
 // ============================================
 
@@ -26,6 +26,7 @@ model Tenant {
   status           String    @default("active") @db.VarChar(20)
   licenseKey       String?   @map("license_key") @db.Text
   licenseExpiresAt DateTime? @map("license_expires_at") @db.Timestamptz()
+  settings         Json?     @default("{}")
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -33,6 +34,7 @@ model Tenant {
   users        User[]
   modules      TenantModule[]
   licenseKeys  LicenseKey[]
+  licenseRequests LicenseRequest[]
   usageRecords TenantUsage[]
 
   dealers             Dealer[]
@@ -77,6 +79,8 @@ model Tenant {
   leaveAllocations    LeaveAllocation[]
   accountingSettings  AccountingSetting[]
   palletMasters       PalletMaster[]
+  tyres               VehicleTyre[]
+  maintenanceSchedules MaintenanceSchedule[]
 
   @@map("tenants")
 }
@@ -110,6 +114,38 @@ model LicenseKey {
   @@map("license_keys")
 }
 
+model LicenseRequest {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  planType    String   @map("plan_type") @db.VarChar(50)
+  status      String   @default("pending") @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    SupportMessage[]
+
+  @@map("license_requests")
+}
+
+model SupportMessage {
+  id          String   @id @default(uuid()) @db.Uuid
+  requestId   String   @map("request_id") @db.Uuid
+  senderId    String?  @map("sender_id") @db.Uuid
+  adminId     String?  @map("admin_id") @db.Uuid
+  message     String   @db.Text
+  isAction    Boolean  @default(false) @map("is_action")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  request     LicenseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  sender      User?          @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  admin       PlatformAdmin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@map("support_messages")
+}
+
 model PlatformAdmin {
   id           String    @id @default(uuid()) @db.Uuid
   email        String    @unique @db.VarChar(255)
@@ -119,6 +155,7 @@ model PlatformAdmin {
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
   auditLogs AuditLogPlatform[]
+  supportMessages SupportMessage[]
 
   @@map("platform_admins")
 }
@@ -242,6 +279,8 @@ model Company {
   driverAssignments      DriverAssignment[]
   leaveAllocations       LeaveAllocation[]
   palletMasters          PalletMaster[]
+  tyres                  VehicleTyre[]
+  maintenanceSchedules   MaintenanceSchedule[]
 
   @@index([tenantId])
   @@map("companies")
@@ -284,6 +323,7 @@ model User {
   otpCode           String?   @map("otp_code") @db.VarChar(10)
   otpExpires        DateTime? @map("otp_expires") @db.Timestamptz()
   avatarUrl         String?   @map("avatar_url") @db.Text
+  permissions       Json?     @default("{}") @map("permissions")
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -291,7 +331,10 @@ model User {
   company Company? @relation(fields: [companyId], references: [id])
   branch  Branch?  @relation(fields: [branchId], references: [id])
 
-  employees Employee[]
+  employees       Employee[]
+  auditLogs       AuditLog[]
+  licenseRequests LicenseRequest[]
+  supportMessages SupportMessage[]
 
   @@index([tenantId])
   @@index([companyId])
@@ -497,6 +540,8 @@ model Vehicle {
   fuelEntries      FuelEntry[]
   assignments      DriverAssignment[]
   journalEntries   JournalEntry[]
+  tyres            VehicleTyre[]
+  maintenanceSchedules MaintenanceSchedule[]
 
 
   @@unique([companyId, regNo])
@@ -1284,6 +1329,63 @@ model FuelEntry {
   @@map("fuel_entries")
 }
 
+model VehicleTyre {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  companyId     String    @map("company_id") @db.Uuid
+  vehicleId     String?   @map("vehicle_id") @db.Uuid
+  serialNo      String    @unique @map("serial_no") @db.VarChar(100)
+  brand         String    @db.VarChar(100)
+  size          String    @db.VarChar(50)
+  position      String?   @db.VarChar(20) // front_left, front_right, rear_outer_left, etc.
+  status        String    @default("stock") @db.VarChar(20) // stock, mounted, scrapped
+  purchaseDate  DateTime  @map("purchase_date") @db.Date
+  purchaseCost  Int       @map("purchase_cost") // paise
+  mountingDate  DateTime? @map("mounting_date") @db.Date
+  mountingKm    Int?      @map("mounting_km")
+  currentKm     Int       @default(0) @map("current_km")
+  scrappedDate  DateTime? @map("scrapped_date") @db.Date
+  scrappedReason String?  @map("scrapped_reason") @db.Text
+  treadDepth    Decimal?  @map("tread_depth") @db.Decimal(5, 2) // mm
+  lastInspection DateTime? @map("last_inspection")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  company Company  @relation(fields: [companyId], references: [id])
+
+  @@index([vehicleId])
+  @@index([companyId, status])
+  @@map("vehicle_tyres")
+}
+
+model MaintenanceSchedule {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  vehicleId       String   @map("vehicle_id") @db.Uuid
+  serviceType     String   @map("service_type") @db.VarChar(100) // Oil Change, Engine Overhaul, etc.
+  intervalKm      Int?     @map("interval_km")
+  intervalDays    Int?     @map("interval_days")
+  lastServiceKm   Int      @map("last_service_km")
+  lastServiceDate DateTime @map("last_service_date") @db.Date
+  nextDueKm       Int?     @map("next_due_km")
+  nextDueDate     DateTime? @map("next_due_date") @db.Date
+  status          String   @default("active") @db.VarChar(20) // active, paused, completed
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, status])
+  @@index([nextDueKm])
+  @@index([nextDueDate])
+  @@map("maintenance_schedules")
+}
+
 // Removed legacy GstReturn
 
 model TdsEntry {
@@ -1382,6 +1484,8 @@ model TripSettlement {
   tripId         String   @unique @map("trip_id") @db.Uuid
   advanceAmount  Int      @map("advance_amount") // paise
   totalExpenses  Int      @map("total_expenses") // paise
+  demurrage      Int      @default(0) // paise
+  extraCharges   Int      @default(0) @map("extra_charges") // paise
   balance        Int      @map("balance") // paise
   settlementType String   @map("settlement_type") @db.VarChar(20) // refund, additional_payment
   settledBy      String?  @map("settled_by") @db.Uuid
@@ -1501,6 +1605,8 @@ model JournalLine {
   debit          Int     @default(0) // paise
   credit         Int     @default(0) // paise
   companyId      String  @map("company_id") @db.Uuid
+  reconciledAt   DateTime? @map("reconciled_at") @db.Timestamptz()
+  statementRef   String? @map("statement_ref") @db.VarChar(100)
 
   journalEntry JournalEntry   @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
   account      ChartOfAccount @relation(fields: [accountId], references: [id])
@@ -1575,6 +1681,7 @@ model AuditLog {
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id])
   company Company @relation(fields: [companyId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
   @@index([companyId])

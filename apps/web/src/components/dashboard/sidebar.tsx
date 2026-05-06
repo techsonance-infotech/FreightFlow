@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_ITEMS, hasPermission, type NavItem } from '@/config/rbac';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
+import { Truck } from 'lucide-react';
 
 interface SidebarProps {
   user: {
     name: string;
     role: string;
     email: string;
+    permissions?: any;
   };
 }
 
@@ -29,29 +32,29 @@ export function Sidebar({ user }: SidebarProps) {
   // Calculate active items and paths
   const activeIds = useMemo(() => {
     const ids = new Set<string>();
-    
+
     const checkActive = (items: NavItem[]): boolean => {
       let anyActive = false;
-      
+
       for (const item of items) {
         let isThisItemActive = false;
-        
+
         // 1. Exact match
         if (pathname === item.path) {
           isThisItemActive = true;
         }
-        
+
         // 2. Child match (recursive)
         if (item.subItems && checkActive(item.subItems)) {
           isThisItemActive = true;
         }
-        
+
         // 3. Prefix match (for leaf nodes/detail pages)
         // We only consider it active if no sibling is an exact match or a better prefix match
         if (!isThisItemActive && (!item.subItems || item.subItems.length === 0)) {
           if (item.path !== '/dashboard' && pathname.startsWith(item.path + '/')) {
-            const betterSibling = items.find(sibling => 
-              sibling.id !== item.id && 
+            const betterSibling = items.find(sibling =>
+              sibling.id !== item.id &&
               (pathname === sibling.path || (pathname.startsWith(sibling.path + '/') && sibling.path.length > item.path.length))
             );
             if (!betterSibling) {
@@ -59,13 +62,13 @@ export function Sidebar({ user }: SidebarProps) {
             }
           }
         }
-        
+
         if (isThisItemActive) {
           ids.add(item.id);
           anyActive = true;
         }
       }
-      
+
       return anyActive;
     };
 
@@ -85,17 +88,17 @@ export function Sidebar({ user }: SidebarProps) {
   const renderNavItem = (item: NavItem, isSubItem = false) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
     const isActive = activeIds.has(item.id);
-    
+
     // Logic: 
     // 1. If user has interacted, use the manual state (openMenus).
     // 2. Otherwise, use the "active path" auto-expansion.
-    const isExpanded = hasInteracted 
-      ? !!openMenus[item.id] 
+    const isExpanded = hasInteracted
+      ? !!openMenus[item.id]
       : (hasSubItems && isActive);
-    
-    const filteredSubItems = item.subItems?.filter(si => hasPermission(user.role, si.allowedRoles)) || [];
 
-    if (!hasPermission(user.role, item.allowedRoles)) return null;
+    const filteredSubItems = item.subItems?.filter(si => hasPermission(user.role, si, user.permissions)) || [];
+
+    if (!hasPermission(user.role, item, user.permissions)) return null;
 
     return (
       <div key={item.id} className="space-y-0.5">
@@ -124,8 +127,8 @@ export function Sidebar({ user }: SidebarProps) {
             className={cn(
               "group flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200",
               isSubItem && "pl-8",
-              isActive 
-                ? "bg-blue-600/15 text-white border border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.05)]" 
+              isActive
+                ? "bg-blue-600/15 text-white border border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.05)]"
                 : isSubItem ? "text-white/30 hover:text-white" : "text-white/50 hover:bg-white/5 hover:text-white"
             )}
           >
@@ -156,27 +159,28 @@ export function Sidebar({ user }: SidebarProps) {
       className="no-print fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-white/5 shadow-2xl"
       style={{ background: 'linear-gradient(180deg, #0A1628 0%, #0F2B5B 100%)' }}
     >
-      {/* Header / Logo */}
-      <div className="flex items-center gap-3 px-5 py-4 flex-shrink-0 border-b border-white/5">
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-lg shadow-inner bg-gradient-to-br from-blue-500 to-blue-700"
-          style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-        >
-          🚛
+      <div className="flex items-center gap-3 px-5 py-6 flex-shrink-0 border-b border-white/5">
+        <div className="relative h-10 w-10 flex-shrink-0 rounded-xl overflow-hidden shadow-lg ring-1 ring-white/10">
+          <Image 
+            src="/apple-touch-icon.png" 
+            alt="FreightFlow" 
+            fill
+            className="object-cover"
+          />
         </div>
         <div className="flex flex-col">
-          <h1 className="text-sm font-bold tracking-tight text-white leading-tight">FreightFlow</h1>
-          <span className="text-[9px] font-bold tracking-[0.15em] text-blue-500/80 uppercase leading-tight">Pro Edition</span>
+          <h1 className="text-sm font-black tracking-tight text-white leading-tight">FreightFlow</h1>
+          <span className="text-[8px] font-black tracking-[0.1em] text-blue-400 uppercase leading-tight opacity-70">Account, Manage, Move Ahead</span>
         </div>
       </div>
 
       {/* Navigation Area */}
-      <nav 
+      <nav
         className="flex-1 overflow-y-auto px-3 py-6 flex flex-col scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
         style={{ gap: 'clamp(12px, 2.5vh, 24px)' }}
       >
         {NAV_ITEMS.map((group, groupIdx) => {
-          const hasVisibleItems = group.items.some(item => hasPermission(user.role, item.allowedRoles));
+          const hasVisibleItems = group.items.some(item => hasPermission(user.role, item, user.permissions));
           if (!hasVisibleItems) return null;
 
           return (
@@ -204,7 +208,7 @@ export function Sidebar({ user }: SidebarProps) {
               {user.role.replace('_', ' ')}
             </p>
           </div>
-          <button 
+          <button
             className="p-1.5 text-white/20 hover:text-white/80 transition-all hover:bg-white/5 rounded-md"
             title="Logout"
             onClick={async () => {

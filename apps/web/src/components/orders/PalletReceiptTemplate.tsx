@@ -174,7 +174,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
 
         {/* Global Footer Tag */}
         <div className="pt-6 border-t border-slate-100 flex justify-between items-center opacity-30">
-          <p className="text-[8px] font-black uppercase tracking-[0.4em]">FreightFlow Pro Logistics Engine</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.4em]">FreightFlow Logistics Engine</p>
           <p className="text-[8px] font-black uppercase">System Generated Manifest - {new Date().toISOString()}</p>
         </div>
       </div>

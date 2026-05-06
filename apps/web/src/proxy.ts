@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { decrypt, updateSession } from '@/lib/auth-utils';
+import { findNavItemByPath, hasPermission } from '@/config/rbac';
 import { redis, CACHE_KEYS, type CachedLicense } from '@/lib/redis';
 
 // Define which routes require which modules
@@ -109,7 +110,7 @@ export async function proxy(request: NextRequest) {
       if (redis) {
         try {
           const cachedLicense = await redis.get<CachedLicense>(CACHE_KEYS.TENANT_LICENSE(tenantId));
-          if (cachedLicense && !cachedLicense.isActive && pathname !== '/dashboard/settings/billing') {
+          if (cachedLicense && !cachedLicense.isActive && pathname !== '/dashboard/settings/billing' && pathname !== '/dashboard/support') {
             const url = request.nextUrl.clone();
             url.pathname = '/dashboard/settings/billing';
             url.searchParams.set('error', 'license_expired');
@@ -139,16 +140,28 @@ export async function proxy(request: NextRequest) {
         }
       }
 
-      // RBAC Check
-      const requiredRoles = Object.entries(ROLE_REQUIREMENTS).find(([route]) =>
-        pathname.startsWith(route)
-      )?.[1];
-
-      if (requiredRoles && role && !requiredRoles.includes(role)) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/dashboard';
-        url.searchParams.set('error', 'unauthorized_role');
-        return NextResponse.redirect(url);
+      // RBAC Check (Dynamic based on NAV_ITEMS)
+      const navItem = findNavItemByPath(pathname);
+      
+      if (navItem) {
+        if (!hasPermission(role, navItem, user.permissions)) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/dashboard';
+          url.searchParams.set('error', 'unauthorized_access');
+          return NextResponse.redirect(url);
+        }
+      } else {
+        // Fallback for paths not explicitly in NAV_ITEMS but requiring protection
+        const requiredRoles = Object.entries(ROLE_REQUIREMENTS).find(([route]) =>
+          pathname.startsWith(route)
+        )?.[1];
+  
+        if (requiredRoles && role && !requiredRoles.includes(role)) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/dashboard';
+          url.searchParams.set('error', 'unauthorized_role');
+          return NextResponse.redirect(url);
+        }
       }
     }
   }
@@ -160,6 +173,10 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
   }
+
+  // Inject current path for Server Components
+  response.headers.set('x-url', request.url);
+  response.headers.set('x-pathname', pathname);
 
   return response;
 }

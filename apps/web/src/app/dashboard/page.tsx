@@ -57,7 +57,7 @@ export default function ExecutiveDashboard() {
             Command Center
           </h2>
           <p className="text-slate-500 font-medium mt-1">
-            Real-time operational overview for <span className="text-blue-600">FreightFlow Pro</span>
+            Real-time operational overview for <span className="text-blue-600">FreightFlow</span>
           </p>
         </div>
         <div className="flex items-center space-x-3">
