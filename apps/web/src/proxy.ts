@@ -55,7 +55,34 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/super-admin');
 
-  // 1. Not logged in -> Redirect to Login for protected pages
+  const isAdminPage = pathname.startsWith('/admin') || pathname.startsWith('/super-admin');
+  const isAdminAuthPage = pathname === '/admin/login';
+
+  // 1. Admin Session Check
+  const adminToken = request.cookies.get('ff_admin_session')?.value;
+  const adminSession = adminToken ? await decrypt(adminToken) : null;
+
+  // Protect /admin routes
+  if (isAdminPage && !isAdminAuthPage) {
+    if (!adminSession || !['super_admin', 'platform_admin'].includes(adminSession.role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/login';
+      url.searchParams.set('redirectTo', pathname);
+      
+      const response = NextResponse.redirect(url);
+      if (adminToken) response.cookies.delete('ff_admin_session');
+      return response;
+    }
+  }
+
+  // Redirect logged-in admin away from login page
+  if (adminSession && isAdminAuthPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin/dashboard';
+    return NextResponse.redirect(url);
+  }
+
+  // 2. Not logged in -> Redirect to Login for protected pages
   if (!user && (isDashboardPage || isOnboardingPage)) {
     // Exception for verify-email as it might be accessed via link
     if (!isVerifyEmailPage) {
@@ -72,7 +99,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 2. Logged in -> Redirect away from Auth pages (Persistent Session)
+  // 3. Logged in -> Redirect away from Auth pages (Persistent Session)
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = (user.role === 'super_admin' || user.companyId) ? '/dashboard' : '/onboarding';

@@ -86,3 +86,28 @@ export async function sendSupportMessage(requestId: string, text: string) {
     return { success: false, error: error.message || 'Failed to send message.' };
   }
 }
+
+export async function submitPaymentProof(requestId: string, imageUrl: string, transactionId?: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.user) throw new Error('Unauthorized');
+
+    await prisma.supportMessage.create({
+      data: {
+        requestId,
+        senderId: session.user.id,
+        message: transactionId ? `Payment Proof Submitted (TxID: ${transactionId})` : 'Payment Proof Submitted',
+        isAction: true,
+        type: 'PAYMENT_PROOF',
+        attachmentUrl: imageUrl,
+        payload: { transactionId } as any
+      }
+    });
+
+    revalidatePath('/dashboard/support');
+    revalidatePath(`/admin/support/${requestId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to submit proof.' };
+  }
+}

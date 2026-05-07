@@ -4,13 +4,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, Loader2, User, Shield, 
   CheckCircle2, AlertCircle, Zap,
-  Building2, Users, Truck
+  Building2, Users, Truck,
+  Camera, Image as ImageIcon, X, 
+  CreditCard, QrCode, ArrowRight,
+  ExternalLink, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { createLicenseRequest, sendSupportMessage } from '@/app/actions/license-request';
+import { createLicenseRequest, sendSupportMessage, submitPaymentProof } from '@/app/actions/license-request';
 import { toast } from 'sonner';
+import { PaymentProofCard } from '@/components/admin/support/shared-cards';
 
 interface Message {
   id: string;
@@ -43,6 +47,7 @@ export function LicenseChat({ initialRequest }: LicenseChatProps) {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [showProofForm, setShowProofForm] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -146,10 +151,18 @@ export function LicenseChat({ initialRequest }: LicenseChatProps) {
 
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6">
-        {request.messages.map((msg) => {
+        {request.messages.map((msg: any) => {
           const isSystem = msg.isAction;
           const isAdmin = !!msg.admin;
           
+          if (msg.type === 'PAYMENT_INFO') {
+            return <TenantPaymentCard key={msg.id} payload={msg.payload} timestamp={msg.createdAt} isMounted={isMounted} />;
+          }
+
+          if (msg.type === 'PAYMENT_PROOF') {
+            return <PaymentProofCard key={msg.id} msg={msg} isMounted={isMounted} isAdminView={false} />;
+          }
+
           if (isSystem) {
             return (
               <div key={msg.id} className="flex justify-center">
@@ -183,7 +196,16 @@ export function LicenseChat({ initialRequest }: LicenseChatProps) {
       </div>
 
       {/* Input area */}
-      <div className="p-6 border-t border-slate-50">
+      <div className="p-6 border-t border-slate-50 bg-white">
+        <div className="flex items-center gap-3 mb-4 ml-1">
+          <button 
+            onClick={() => setShowProofForm(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all"
+          >
+            <Camera className="h-3 w-3" />
+            Attach Payment Proof
+          </button>
+        </div>
         <form onSubmit={handleSendMessage} className="flex gap-4">
           <Input 
             value={message}
@@ -199,6 +221,152 @@ export function LicenseChat({ initialRequest }: LicenseChatProps) {
             <Send className="h-5 w-5" />
           </Button>
         </form>
+      </div>
+
+      {showProofForm && (
+        <ProofSubmissionModal 
+          requestId={request.id} 
+          onClose={() => setShowProofForm(false)} 
+        />
+      )}
+    </div>
+  );
+}
+
+function TenantPaymentCard({ payload, timestamp, isMounted }: any) {
+  return (
+    <div className="flex flex-col items-center w-full my-6 animate-in slide-in-from-left-4 duration-500">
+      <div className="w-full max-w-lg bg-white border border-slate-100 rounded-[2.5rem] p-10 relative overflow-hidden shadow-xl">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-16 -mt-16" />
+        
+        <div className="flex items-center gap-4 mb-10">
+          <div className="h-14 w-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+            <CreditCard className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h4 className="text-xl font-black text-slate-900 tracking-tight">Payment Instructions</h4>
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-600">Official Platform Disbursement</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Bank Name</p>
+            <p className="text-sm font-black text-slate-900">{payload.bankName}</p>
+          </div>
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Account Holder</p>
+            <p className="text-sm font-black text-slate-900">{payload.accountHolder}</p>
+          </div>
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">A/C Number</p>
+            <p className="text-sm font-black text-slate-900 font-mono tracking-wider">{payload.accountNumber}</p>
+          </div>
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">IFSC Code</p>
+            <p className="text-sm font-black text-slate-900 font-mono">{payload.ifscCode}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6 p-6 bg-blue-600 rounded-[2rem] text-white shadow-xl shadow-blue-100 group cursor-pointer hover:bg-blue-700 transition-all">
+          <div className="h-12 w-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0 border border-white/20">
+            <QrCode className="h-7 w-7 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">UPI ID: {payload.upiId}</p>
+            <p className="text-[9px] font-bold text-blue-100 uppercase tracking-widest">Click to view QR Scanner</p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-blue-200 group-hover:translate-x-1 transition-transform" />
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Verified Governance Card</span>
+          </div>
+          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+            {isMounted ? new Date(timestamp).toLocaleTimeString() : '--:--'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProofSubmissionModal({ requestId, onClose }: { requestId: string, onClose: () => void }) {
+  const [transactionId, setTransactionId] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!imageUrl) {
+      toast.error('Please attach a screenshot or provide an image URL');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await submitPaymentProof(requestId, imageUrl, transactionId);
+      if (res.success) {
+        toast.success('Payment proof submitted for verification');
+        onClose();
+        window.location.reload();
+      }
+    } catch (err) {
+      toast.error('Submission failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-8 animate-in fade-in duration-300">
+      <div className="w-full max-w-lg bg-white border border-slate-100 rounded-[3.5rem] p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2.5 bg-emerald-500" />
+        
+        <button onClick={onClose} className="absolute top-10 right-10 text-slate-300 hover:text-slate-900 transition-colors">
+          <X className="h-7 w-7" />
+        </button>
+
+        <div className="flex flex-col items-center text-center mb-10">
+          <div className="h-20 w-20 bg-emerald-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-emerald-500/20 rotate-6">
+            <Camera className="h-8 w-8 text-white" />
+          </div>
+          <h3 className="text-3xl font-black text-slate-900 tracking-tighter">Submit Proof</h3>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-3">Payment Verification Matrix</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Transaction ID (Optional)</label>
+            <Input 
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
+              placeholder="UPI/Ref Number"
+              className="h-14 bg-slate-50 border-slate-100 rounded-2xl font-bold"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Screenshot URL</label>
+            <Input 
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://..."
+              className="h-14 bg-slate-50 border-slate-100 rounded-2xl font-bold"
+            />
+            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest ml-2 italic">* Uploading support coming soon. Please provide a direct image link for now.</p>
+          </div>
+
+          <Button 
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="w-full h-16 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/30 transition-all active:scale-[0.98]"
+          >
+            {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+            Confirm Submission
+          </Button>
+        </div>
       </div>
     </div>
   );

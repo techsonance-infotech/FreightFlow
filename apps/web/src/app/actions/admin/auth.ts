@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
 
-const ADMIN_JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'platform-admin-secret-key-123');
+const ADMIN_JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret-for-development-do-not-use-in-production');
 
 export async function adminLogin(email: string, password: any) {
   try {

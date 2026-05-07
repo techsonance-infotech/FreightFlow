@@ -1,103 +1,98 @@
 import React from 'react';
-import { prisma } from '@freightflow/db';
 import { 
-  MessageSquare, Clock, Filter, 
-  Search, ArrowRight, User, 
-  Building2, Zap
+  LifeBuoy, ShieldCheck, Activity, 
+  RefreshCw, Terminal, Layout
 } from 'lucide-react';
-import Link from 'next/link';
+import { 
+  getGlobalSupportMetrics, 
+  getGlobalTicketRegistry 
+} from '@/app/actions/admin/support';
+import { SupportMetrics } from '@/components/admin/support/support-metrics';
+import { TicketRegistry } from '@/components/admin/support/ticket-registry';
+import { cn } from '@/lib/utils';
 
 export default async function AdminSupportPage() {
-  const requests = await prisma.licenseRequest.findMany({
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      tenant: { select: { name: true } },
-      user: { select: { name: true, email: true } },
-      _count: { select: { messages: true } }
-    }
-  });
+  const metrics = await getGlobalSupportMetrics();
+  const tickets = await getGlobalTicketRegistry();
 
   return (
-    <div className="space-y-10">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-4xl font-black text-white tracking-tighter">Support Desk</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Processing {requests.length} License Requests</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input 
-              placeholder="Search tickets..." 
-              className="pl-12 h-12 w-80 bg-slate-900 border-slate-800 text-white rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-            />
+    <div className="min-h-screen bg-[#F8FAFC] p-10 lg:p-20 space-y-20">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+        <div className="space-y-4">
+          <div className="flex items-center gap-6">
+            <div className="h-20 w-20 bg-white rounded-[2rem] border border-slate-100 flex items-center justify-center shadow-sm">
+              <LifeBuoy className="h-10 w-10 text-slate-900" />
+            </div>
+            <div>
+              <h1 className="text-5xl font-black text-slate-900 tracking-tighter">Assistance Deck</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600 mt-2">Global Platform Helpdesk & SLA Governance</p>
+            </div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="bg-white px-8 py-4 rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm">
+            <div className="h-3 w-3 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Support Sync Active</span>
+          </div>
+          <button className="h-14 w-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white hover:bg-black transition-all shadow-xl shadow-slate-200">
+            <RefreshCw className="h-6 w-6" />
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        {requests.map((request) => (
-          <Link 
-            key={request.id} 
-            href={`/admin/support/${request.id}`}
-            className="group block bg-slate-900/30 border border-slate-900 hover:border-blue-600 rounded-[2.5rem] p-8 transition-all"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-8">
-                <div className="h-16 w-16 bg-slate-800 rounded-3xl flex items-center justify-center font-black text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                  <MessageSquare className="h-8 w-8" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-2xl font-black text-white tracking-tight">{request.tenant.name}</h3>
-                    <span className={cn(
-                      "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
-                      request.status === 'pending' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
-                    )}>
-                      {request.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-slate-500">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
-                      <User className="h-3 w-3" /> {request.user.name}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
-                      <Building2 className="h-3 w-3" /> Requested {request.planType.toUpperCase()} Plan
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
-                      <Clock className="h-3 w-3" /> Updated {new Date(request.updatedAt).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
+      {/* Support Metrics */}
+      <SupportMetrics metrics={metrics} />
 
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <p className="text-xl font-black text-white">{request._count.messages}</p>
-                  <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Messages</p>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-slate-800 flex items-center justify-center group-hover:translate-x-2 transition-transform">
-                  <ArrowRight className="h-6 w-6 text-slate-400 group-hover:text-white" />
-                </div>
-              </div>
-            </div>
-          </Link>
-        ))}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-16">
+        <div className="xl:col-span-2">
+          <TicketRegistry tickets={tickets} />
+        </div>
 
-        {requests.length === 0 && (
-          <div className="bg-slate-900/30 border border-slate-900 rounded-[2.5rem] p-20 flex flex-col items-center text-center">
-            <div className="h-20 w-20 bg-slate-800 rounded-3xl flex items-center justify-center mb-6">
-              <Zap className="h-10 w-10 text-slate-600" />
-            </div>
-            <h3 className="text-2xl font-black text-white">No Active Tickets</h3>
-            <p className="text-slate-500 font-bold mt-2">When tenants request license upgrades, they will appear here.</p>
+        <div className="xl:col-span-1 space-y-10">
+          <div className="bg-white border border-slate-100 rounded-[3rem] p-10 shadow-sm">
+             <h3 className="text-xl font-black text-slate-900 tracking-tight mb-8">SLA Priority Matrix</h3>
+             <div className="space-y-8">
+                <PriorityRow label="Critical Nodes" value={metrics.priorityMix.critical} color="rose" />
+                <PriorityRow label="High Priority" value={metrics.priorityMix.high} color="amber" />
+                <PriorityRow label="Standard Operations" value={metrics.priorityMix.medium} color="blue" />
+             </div>
           </div>
-        )}
+
+          <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-[60px] -mr-16 -mt-16" />
+             <h3 className="text-xl font-black tracking-tight mb-8 relative z-10">Support Protocol</h3>
+             <p className="text-xs font-bold text-slate-400 leading-relaxed mb-8 relative z-10">
+               Administrative sovereignty requires immediate resolution of critical platform breaches. SLA adherence is strictly monitored.
+             </p>
+             <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/10 relative z-10">
+                <div>
+                   <p className="text-2xl font-black">{metrics.slaAdherence}%</p>
+                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Adherence Rating</p>
+                </div>
+                <ShieldCheck className="h-8 w-8 text-emerald-400 opacity-60" />
+             </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
+function PriorityRow({ label, value, color }: any) {
+  const colorMap: any = {
+    rose: 'text-rose-600 bg-rose-50',
+    amber: 'text-amber-600 bg-amber-50',
+    blue: 'text-blue-600 bg-blue-50'
+  };
+  return (
+    <div className="flex items-center justify-between group">
+       <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-slate-900 transition-colors">{label}</span>
+       <div className={cn("h-8 w-12 rounded-lg flex items-center justify-center font-black text-sm", colorMap[color])}>
+          {value}
+       </div>
+    </div>
+  );
 }
