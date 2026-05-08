@@ -4,13 +4,16 @@ import React from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { 
-  Download, Printer, Mail, Share2, 
+  Download, Mail, Share2, 
   FileText, Calendar, Landmark, 
   Hash, Users, MapPin, CheckCircle2,
   Clock, AlertCircle, Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { generateInvoicePDF } from '@/lib/pdf/invoice-pdf';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface InvoicePreviewModalProps {
   isOpen: boolean;
@@ -19,6 +22,7 @@ interface InvoicePreviewModalProps {
 }
 
 export function InvoicePreviewModal({ isOpen, onClose, invoice }: InvoicePreviewModalProps) {
+  const [downloading, setDownloading] = React.useState(false);
   if (!invoice) return null;
 
   const formatAmount = (amt: number) => {
@@ -40,8 +44,17 @@ export function InvoicePreviewModal({ isOpen, onClose, invoice }: InvoicePreview
   const status = (invoice.status || 'draft').toLowerCase() as keyof typeof statusConfig;
   const config = statusConfig[status] || statusConfig.draft;
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      const doc = await generateInvoicePDF(invoice, invoice.company);
+      doc.save(`Invoice_${invoice.invoiceNo}.pdf`);
+      toast.success('Professional PDF Generated');
+    } catch (err) {
+      toast.error('Failed to generate PDF');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -60,12 +73,10 @@ export function InvoicePreviewModal({ isOpen, onClose, invoice }: InvoicePreview
               {config.label}
             </Badge>
           </div>
-          <div className="flex items-center gap-2 print:hidden">
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl text-[10px] font-black uppercase" onClick={handlePrint}>
-              <Printer className="h-3.5 w-3.5 mr-2" /> Print
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl text-[10px] font-black uppercase">
-              <Download className="h-3.5 w-3.5 mr-2" /> PDF
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl text-[10px] font-black uppercase" onClick={handleDownloadPDF} disabled={downloading}>
+              {downloading ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-2" />}
+              Download PDF
             </Button>
             <Button size="sm" className="h-9 px-4 rounded-xl bg-accent-600 hover:bg-accent-700 text-white text-[10px] font-black uppercase shadow-lg shadow-accent-600/20">
               <Mail className="h-3.5 w-3.5 mr-2" /> Email
@@ -74,7 +85,7 @@ export function InvoicePreviewModal({ isOpen, onClose, invoice }: InvoicePreview
         </div>
 
         {/* Professional Invoice Layout */}
-        <div className="p-12 bg-white m-6 shadow-sm border border-neutral-100 rounded-xl invoice-print-container">
+        <div className="p-12 bg-white m-6 shadow-sm border border-neutral-100 rounded-xl">
           {/* Header */}
           <div className="flex justify-between items-start mb-12">
             <div>

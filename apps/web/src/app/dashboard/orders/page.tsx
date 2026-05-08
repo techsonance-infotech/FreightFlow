@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Plus, Search, Filter, FileText, Edit, Trash2, 
-  Download, Calendar, MapPin, Truck, ChevronDown, ChevronUp, Package, Hash, Info
+  Download, Calendar, MapPin, Truck, ChevronDown, ChevronUp, Package, Hash, Info,
+  ClipboardList, CheckCircle2, IndianRupee
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -13,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { LorryReceiptTemplate } from '@/components/orders/LorryReceiptTemplate';
+import { LRInvoiceDownloader } from '@/components/orders/LRInvoiceDownloader';
 
 export default function OrderListPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -90,7 +92,9 @@ export default function OrderListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">📝</span>
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center shadow-sm border border-blue-100">
+              <ClipboardList className="h-7 w-7 text-blue-600" />
+            </div>
             <h1 className="text-4xl font-black tracking-tight text-slate-900">Lorry Receipts</h1>
           </div>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Fleet Operations & Order Management</p>
@@ -110,13 +114,13 @@ export default function OrderListPage() {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Today LRs', value: stats.todayCount.toString(), icon: '📝', color: 'bg-blue-50' },
-          { label: 'In Transit', value: stats.inTransitCount.toString(), icon: '🚚', color: 'bg-amber-50' },
-          { label: 'Delivered', value: stats.deliveredCount.toString(), icon: '✅', color: 'bg-emerald-50' },
-          { label: 'Monthly Rev', value: `₹${(stats.monthlyRevenue / 1000).toFixed(1)}k`, icon: '💰', color: 'bg-purple-50' },
+          { label: 'Today LRs', value: stats.todayCount.toString(), icon: <ClipboardList className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
+          { label: 'In Transit', value: stats.inTransitCount.toString(), icon: <Truck className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
+          { label: 'Delivered', value: stats.deliveredCount.toString(), icon: <CheckCircle2 className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
+          { label: 'Monthly Rev', value: `₹${(stats.monthlyRevenue / 1000).toFixed(1)}k`, icon: <IndianRupee className="h-6 w-6 text-purple-600" />, color: 'bg-purple-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md group">
-            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center text-xl transition-transform group-hover:scale-110", stat.color)}>{stat.icon}</div>
+            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", stat.color)}>{stat.icon}</div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
               <p className="text-2xl font-black text-slate-900">{stat.value}</p>
@@ -271,8 +275,8 @@ export default function OrderListPage() {
                       </td>
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-xl shadow-sm transition-transform group-hover:scale-110">
-                            📄
+                          <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 text-slate-400">
+                            <FileText className="h-5 w-5" />
                           </div>
                           <div>
                             <div className="font-black text-slate-900 tracking-tighter uppercase text-xs">#{order.lrNo}</div>
@@ -312,13 +316,19 @@ export default function OrderListPage() {
                       </td>
                       <td className="px-6 py-6" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => setPrintOrder(order)}
-                            className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-black hover:text-white transition-all shadow-sm"
-                          >
-                            🖨️
-                          </button>
-                          <Link href={`/dashboard/orders/${order.id}`} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm"><Edit className="h-4 w-4" /></Link>
+                          <LRInvoiceDownloader 
+                            orderId={order.id} 
+                            variant="print" 
+                            label="Print"
+                            className="h-9 px-3 rounded-xl bg-white border-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white shadow-sm font-black text-[10px] uppercase"
+                          />
+                          <LRInvoiceDownloader 
+                            orderId={order.id} 
+                            variant="receipt" 
+                            label="Receipt"
+                            className="h-9 px-3 rounded-xl bg-white border-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white shadow-sm font-black text-[10px] uppercase"
+                          />
+                          <Link href={`/dashboard/orders/${order.id}`} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-slate-100 transition-all shadow-sm"><Edit className="h-4 w-4 text-slate-400" /></Link>
                         </div>
                       </td>
                     </tr>

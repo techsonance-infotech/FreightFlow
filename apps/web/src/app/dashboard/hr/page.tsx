@@ -1,5 +1,6 @@
 import React from 'react';
 import { ModuleGrid, ModuleCard } from '@/components/dashboard/widgets';
+import { Calendar, Palmtree, IndianRupee, Users } from 'lucide-react';
 
 export default function HRHubPage() {
   return (
@@ -13,28 +14,28 @@ export default function HRHubPage() {
         <ModuleCard 
           title="Attendance Marking" 
           description="Daily and monthly attendance tracking for all staff" 
-          icon="📅" 
+          icon={<Calendar className="h-6 w-6" />} 
           path="/dashboard/hr/attendance" 
           color="#1565C0" 
         />
         <ModuleCard 
           title="Leave Management" 
           description="Approve/reject leave requests and track balances" 
-          icon="🌴" 
+          icon={<Palmtree className="h-6 w-6" />} 
           path="/dashboard/hr/leaves" 
           color="#2E7D32" 
         />
         <ModuleCard 
           title="Payroll Processing" 
           description="Generate monthly payslips and statutory reports" 
-          icon="💸" 
+          icon={<IndianRupee className="h-6 w-6" />} 
           path="/dashboard/hr/payroll" 
           color="#C62828" 
         />
         <ModuleCard 
           title="Employee Directory" 
           description="Master records, salary structures, and documents" 
-          icon="👥" 
+          icon={<Users className="h-6 w-6" />} 
           path="/dashboard/masters/employees" 
           color="#F57F17" 
         />

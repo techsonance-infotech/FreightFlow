@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PayrollTabProps {
   labourId: string;
@@ -43,9 +44,13 @@ export function PayrollTab({ labourId }: PayrollTabProps) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Monthly Payroll Settlement</h3>
         <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-          <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="h-8 w-8 p-0">◀</Button>
+          <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="h-8 w-8 p-0">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
           <span className="text-xs font-black uppercase tracking-wider min-w-[120px] text-center">{format(currentMonth, 'MMMM yyyy')}</span>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="h-8 w-8 p-0">▶</Button>
+          <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="h-8 w-8 p-0">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 

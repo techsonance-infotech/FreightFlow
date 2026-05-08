@@ -8,13 +8,14 @@ import {
   Plus, CheckCircle2, AlertCircle, ArrowLeft,
   DollarSign, FileText, Download, Printer,
   ChevronRight, ArrowRight, Loader2, XCircle,
-  ArrowUpRight, Ban
+  ArrowUpRight, Ban, Fuel, Milestone, Wrench, IndianRupee, ShieldAlert, FileEdit
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { FreightInvoiceModal } from '@/components/accounting/freight-invoice-modal';
 import { VALID_STATUS_TRANSITIONS } from '@freightflow/shared';
+import { generateTripPDF } from '@/lib/pdf/trip-pdf';
+import { cn } from '@/lib/utils';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -130,11 +131,28 @@ export default function TripDetailPage() {
   };
 
   const getExpenseIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      fuel: '⛽', toll: '🛣️', repair: '🔧', driver_allowance: '💰',
-      police_rto: '🚔', loading: '📦', unloading: '📦', other: '📝',
+    const icons: Record<string, React.ReactNode> = {
+      fuel: <Fuel className="h-5 w-5" />,
+      toll: <Milestone className="h-5 w-5" />,
+      repair: <Wrench className="h-5 w-5" />,
+      driver_allowance: <IndianRupee className="h-5 w-5" />,
+      police_rto: <ShieldAlert className="h-5 w-5" />,
+      loading: <Package className="h-5 w-5" />,
+      unloading: <Package className="h-5 w-5" />,
+      other: <FileEdit className="h-5 w-5" />,
     };
-    return icons[type] || '📝';
+    return icons[type] || <FileEdit className="h-5 w-5" />;
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const configRes = await fetch('/api/v1/companies/branding');
+      const config = await configRes.json();
+      await generateTripPDF(trip, config.data);
+      toast.success('PDF Generated');
+    } catch (err) {
+      toast.error('Failed to generate PDF');
+    }
   };
   if (loading) return <div className="p-20 text-center animate-pulse font-black uppercase text-slate-400 tracking-widest">Synchronizing Mission Data...</div>;
   if (!trip) return <div className="p-20 text-center font-bold text-red-500">Mission Not Found.</div>;
@@ -177,8 +195,8 @@ export default function TripDetailPage() {
           </div>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-5 py-2.5 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest">
-            <Printer className="h-4 w-4" /> Print Trip
+          <button onClick={handleDownloadPDF} className="flex items-center gap-2 px-5 py-2.5 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest">
+            <Download className="h-4 w-4 text-blue-600" /> Download PDF
           </button>
           {/* Status transition buttons */}
           {trip.status !== 'settled' && trip.status !== 'cancelled' && (

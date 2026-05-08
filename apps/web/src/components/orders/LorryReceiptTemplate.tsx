@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { Printer, Download, X, Package, Truck, User, MapPin } from 'lucide-react';
+import { Download, X, Package, Truck, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { jsPDF } from 'jspdf';
@@ -19,9 +19,6 @@ interface LorryReceiptTemplateProps {
 export function LorryReceiptTemplate({ order, orders, onClose }: LorryReceiptTemplateProps) {
   const items = orders || (order ? [order] : []);
   
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleDownload = () => {
     const doc = new jsPDF() as any;
@@ -91,9 +88,6 @@ export function LorryReceiptTemplate({ order, orders, onClose }: LorryReceiptTem
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Official Document Preview</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-2xl h-12 px-6 border-slate-100 font-black uppercase text-[10px] tracking-widest gap-2" onClick={handlePrint}>
-              <Printer className="h-4 w-4" /> Print Document
-            </Button>
             <Button 
               onClick={handleDownload}
               className="rounded-2xl h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-blue-200"
@@ -107,10 +101,10 @@ export function LorryReceiptTemplate({ order, orders, onClose }: LorryReceiptTem
         </div>
 
         {/* Document Content (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-12 bg-slate-50/50 print:p-0 print:bg-white" id="printable-lr">
-          <div className="space-y-12 print:space-y-0">
+        <div className="flex-1 overflow-y-auto p-12 bg-slate-50/50" id="printable-lr">
+          <div className="space-y-12">
             {items.map((item, idx) => (
-              <div key={idx} className="bg-white border border-slate-100 shadow-sm p-16 rounded-[2rem] print:border-none print:shadow-none print:p-0 print:break-after-page">
+              <div key={idx} className="bg-white border border-slate-100 shadow-sm p-16 rounded-[2rem]">
                 {/* Template Header */}
                 <div className="flex justify-between items-start border-b-4 border-slate-900 pb-10 mb-10">
                   <div>
@@ -215,25 +209,6 @@ export function LorryReceiptTemplate({ order, orders, onClose }: LorryReceiptTem
         </div>
       </div>
 
-      <style jsx>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #printable-lr, #printable-lr * {
-            visibility: visible;
-          }
-          #printable-lr {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .print\:break-after-page {
-            break-after: page;
-          }
-        }
-      `}</style>
     </div>
   );
 }

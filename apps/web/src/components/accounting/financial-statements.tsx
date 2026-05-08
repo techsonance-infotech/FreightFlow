@@ -43,9 +43,6 @@ export function FinancialStatements({ reports }: { reports: FinancialReports }) 
           <p className="text-sm font-medium text-slate-500 mt-1 uppercase tracking-widest">Real-time Performance & Solvency Reports</p>
         </div>
         <div className="flex gap-4">
-          <button className="h-14 w-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all">
-            <Printer className="h-5 w-5" />
-          </button>
           <Button className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-widest shadow-2xl shadow-slate-200 gap-3">
             <FileSpreadsheet className="h-4 w-4" /> Export to Excel
           </Button>

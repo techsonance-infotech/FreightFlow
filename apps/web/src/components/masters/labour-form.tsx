@@ -12,6 +12,11 @@ import { createClient } from '@/lib/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { uploadMasterDocument } from '@/app/actions/masters/labour';
+import { 
+  User, Phone, IndianRupee, Fingerprint, CreditCard, 
+  Home, Banknote, Building, Hash, MapPin, ShieldCheck, 
+  Contact, Calendar, Award, FolderOpen, Truck, CheckCircle2, Eye 
+} from 'lucide-react';
 
 interface LabourFormProps {
   initialData?: Partial<Labour>;
@@ -186,12 +191,12 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Input label="Worker Name *" placeholder="e.g. Ramesh Kumar" icon="👤" error={(errors.name as any)?.message} {...register('name')} />
+        <Input label="Worker Name *" placeholder="e.g. Ramesh Kumar" icon={<User className="h-4 w-4" />} error={(errors.name as any)?.message} {...register('name')} />
         
         <Input 
           label="Phone Number *" 
           placeholder="10-digit number" 
-          icon="📱" 
+          icon={<Phone className="h-4 w-4" />} 
           error={(errors.phone as any)?.message} 
           {...register('phone')} 
         />
@@ -200,7 +205,7 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
           label="Monthly Salary (₹) *" 
           type="number" 
           step="0.01" 
-          icon="💰" 
+          icon={<IndianRupee className="h-4 w-4" />} 
           error={(errors.salary as any)?.message} 
           {...register('salary', { 
             valueAsNumber: true,
@@ -238,7 +243,7 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
         <Input 
           label="Aadhar Card No *" 
           placeholder="12-digit Aadhar" 
-          icon="🆔" 
+          icon={<Fingerprint className="h-4 w-4" />} 
           error={(errors.aadharNo as any)?.message} 
           {...register('aadharNo')} 
         />
@@ -246,25 +251,25 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
         <Input 
           label="PAN Card No" 
           placeholder="PAN Number (Optional)" 
-          icon="💳" 
+          icon={<CreditCard className="h-4 w-4" />} 
           error={(errors.panNo as any)?.message} 
           {...register('panNo')} 
         />
 
         <div className="md:col-span-2">
-          <Input label="Full Address *" placeholder="Home address" icon="🏠" error={(errors.address as any)?.message} {...register('address')} />
+          <Input label="Full Address *" placeholder="Home address" icon={<Home className="h-4 w-4" />} error={(errors.address as any)?.message} {...register('address')} />
         </div>
 
         {/* Banking Section */}
         <div className="col-span-full mt-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
-            <span className="text-lg">🏦</span> Banking & Settlement
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+            <Banknote className="h-4 w-4" /> Banking & Settlement
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input label="Bank Name" placeholder="e.g. HDFC Bank" icon="🏛️" error={errors.bankName?.message} {...register('bankName')} />
-            <Input label="Account Number" placeholder="Bank Account No." icon="💳" error={errors.accountNo?.message} {...register('accountNo')} />
-            <Input label="IFSC Code" placeholder="e.g. HDFC0001234" icon="🔢" error={errors.ifscCode?.message} {...register('ifscCode')} />
-            <Input label="Branch Name" placeholder="Branch location" icon="📍" error={errors.branchName?.message} {...register('branchName')} />
+            <Input label="Bank Name" placeholder="e.g. HDFC Bank" icon={<Building className="h-4 w-4" />} error={errors.bankName?.message} {...register('bankName')} />
+            <Input label="Account Number" placeholder="Bank Account No." icon={<CreditCard className="h-4 w-4" />} error={errors.accountNo?.message} {...register('accountNo')} />
+            <Input label="IFSC Code" placeholder="e.g. HDFC0001234" icon={<Hash className="h-4 w-4" />} error={errors.ifscCode?.message} {...register('ifscCode')} />
+            <Input label="Branch Name" placeholder="Branch location" icon={<MapPin className="h-4 w-4" />} error={errors.branchName?.message} {...register('branchName')} />
           </div>
         </div>
 
@@ -272,12 +277,12 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
         {selectedSkill === 'Driver' && (
           <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6 p-6 mt-4 rounded-3xl bg-blue-50/30 border border-blue-100/50 animate-in slide-in-from-top-4 duration-500">
             <div className="col-span-full mb-2">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 flex items-center gap-2">
-                <span className="text-lg">🛡️</span> Driver Compliance Details
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> Driver Compliance Details
               </h4>
             </div>
-            <Input label="DL Number *" placeholder="e.g. MH1220230012345" icon="🪪" error={errors.dlNumber?.message} {...register('dlNumber')} />
-            <Input label="DL Expiry *" type="date" icon="📅" error={errors.dlExpiry?.message} {...register('dlExpiry')} />
+            <Input label="DL Number *" placeholder="e.g. MH1220230012345" icon={<Contact className="h-4 w-4" />} error={errors.dlNumber?.message} {...register('dlNumber')} />
+            <Input label="DL Expiry *" type="date" icon={<Calendar className="h-4 w-4" />} error={errors.dlExpiry?.message} {...register('dlExpiry')} />
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">DL Category *</label>
               <Select value={watch('dlCategory') || ''} onValueChange={(val) => setValue('dlCategory', val as any)}>
@@ -293,14 +298,14 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
               </Select>
               {errors.dlCategory && <p className="text-[10px] font-bold text-red-500 ml-1">{(errors.dlCategory as any).message}</p>}
             </div>
-            <Input label="Badge Number" placeholder="Special Permit No." icon="🎖️" error={errors.badgeNo?.message} {...register('badgeNo')} />
+            <Input label="Badge Number" placeholder="Special Permit No." icon={<Award className="h-4 w-4" />} error={errors.badgeNo?.message} {...register('badgeNo')} />
           </div>
         )}
       </div>
 
       <div className="pt-6 border-t border-slate-100">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
-          <span className="text-lg">📁</span> Compliance Documents
+        <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+          <FolderOpen className="h-4 w-4" /> Compliance Documents
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
@@ -309,7 +314,7 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
                 aadharFile ? 'border-green-300 bg-green-50/30' : 'border-slate-100 hover:border-blue-300'
               }`}>
                 <div className="flex flex-col items-center text-center">
-                  <span className="text-2xl mb-2 group-hover:scale-110 transition-transform">{aadharFile ? '✅' : '🪪'}</span>
+                  <div className="text-slate-400 mb-2 group-hover:scale-110 transition-transform">{aadharFile ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : <Contact className="h-6 w-6" />}</div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     {aadharFile ? aadharFile.name : 'Upload Aadhar Card'}
                   </p>
@@ -325,7 +330,7 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
             </label>
             {initialData?.aadharUrl && !aadharFile && (
               <div className="flex items-center justify-between px-4 py-2 bg-blue-50/50 rounded-xl border border-blue-100">
-                <p className="text-[9px] font-black uppercase text-blue-600 tracking-widest">✅ Currently Uploaded</p>
+                <p className="text-[9px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Currently Uploaded</p>
                 <a href={initialData.aadharUrl} target="_blank" rel="noreferrer" className="text-[9px] font-black text-blue-700 underline">VIEW DOC</a>
               </div>
             )}
@@ -337,7 +342,7 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
                 panFile ? 'border-green-300 bg-green-50/30' : 'border-slate-100 hover:border-blue-300'
               }`}>
                 <div className="flex flex-col items-center text-center">
-                  <span className="text-2xl mb-2 group-hover:scale-110 transition-transform">{panFile ? '✅' : '💳'}</span>
+                  <div className="text-slate-400 mb-2 group-hover:scale-110 transition-transform">{panFile ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : <CreditCard className="h-6 w-6" />}</div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     {panFile ? panFile.name : 'Upload PAN Card'}
                   </p>
@@ -353,7 +358,7 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
             </label>
             {initialData?.panUrl && !panFile && (
               <div className="flex items-center justify-between px-4 py-2 bg-blue-50/50 rounded-xl border border-blue-100">
-                <p className="text-[9px] font-black uppercase text-blue-600 tracking-widest">✅ Currently Uploaded</p>
+                <p className="text-[9px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Currently Uploaded</p>
                 <a href={initialData.panUrl} target="_blank" rel="noreferrer" className="text-[9px] font-black text-blue-700 underline">VIEW DOC</a>
               </div>
             )}
@@ -366,7 +371,7 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
                   dlFile ? 'border-blue-300 bg-blue-50/30' : 'border-slate-100 hover:border-blue-300'
                 }`}>
                   <div className="flex flex-col items-center text-center">
-                    <span className="text-2xl mb-2 group-hover:scale-110 transition-transform">{dlFile ? '✅' : '🚛'}</span>
+                    <div className="text-slate-400 mb-2 group-hover:scale-110 transition-transform">{dlFile ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : <Truck className="h-6 w-6" />}</div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                       {dlFile ? dlFile.name : 'Upload Driving License'}
                     </p>
@@ -382,7 +387,7 @@ export function LabourForm({ initialData, onSuccess, onCancel }: LabourFormProps
               </label>
               {initialData?.dlUrl && !dlFile && (
                 <div className="flex items-center justify-between px-4 py-2 bg-blue-50/50 rounded-xl border border-blue-100">
-                  <p className="text-[9px] font-black uppercase text-blue-600 tracking-widest">✅ DL Uploaded</p>
+                  <p className="text-[9px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> DL Uploaded</p>
                   <a href={initialData.dlUrl} target="_blank" rel="noreferrer" className="text-[9px] font-black text-blue-700 underline">VIEW DOC</a>
                 </div>
               )}

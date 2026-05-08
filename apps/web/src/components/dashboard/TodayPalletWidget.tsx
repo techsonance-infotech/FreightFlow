@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Box, Printer, Edit, Trash2 } from 'lucide-react';
+import { Box, Printer, Edit, Trash2, ArrowDownToLine, Inbox, Package, Pencil } from 'lucide-react';
+import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -33,7 +34,7 @@ export function TodayPalletWidget() {
       <div className="p-8 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-xl shadow-sm border border-blue-100">
-            📥
+            <ArrowDownToLine className="h-5 w-5 text-blue-600" />
           </div>
           <div>
             <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none">Today's Pallet Load</h3>
@@ -64,7 +65,7 @@ export function TodayPalletWidget() {
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-20 text-center">
-                  <p className="text-3xl mb-4">📭</p>
+                  <Inbox className="h-12 w-12 text-slate-200 mx-auto mb-4" />
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No pallet records today</p>
                 </td>
               </tr>
@@ -76,7 +77,7 @@ export function TodayPalletWidget() {
                 <td className="px-4 py-5">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-neutral-100 flex items-center justify-center text-lg shadow-sm border border-neutral-200/50">
-                      📦
+                      <Package className="h-5 w-5 text-slate-400" />
                     </div>
                     <div>
                       <p className="font-black text-slate-900 text-xs tracking-tighter uppercase">LR #{item.lrNo}</p>
@@ -99,8 +100,14 @@ export function TodayPalletWidget() {
                 </td>
                 <td className="pr-8 py-5">
                   <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-black hover:text-black transition-all text-xs">🖨️</button>
-                    <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all text-xs">✏️</button>
+                    <PalletInvoiceDownloader 
+                      palletId={item.id} 
+                      lrNo={item.lrNo} 
+                      variant="invoice" 
+                      showIconOnly 
+                      className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-black hover:text-black transition-all text-xs"
+                    />
+                    <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all text-xs"><Pencil className="h-3.5 w-3.5" /></button>
                   </div>
                 </td>
               </tr>

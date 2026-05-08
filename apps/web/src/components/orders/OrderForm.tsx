@@ -229,21 +229,61 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   const onSubmit = async (data: Order) => {
     try {
       setLoading(true);
-      const url = isEditing ? `/api/v1/orders/${data.id}` : '/api/v1/orders';
+      
+      // Ensure we have the correct ID for editing
+      const orderId = data.id || initialData?.id;
+      if (isEditing && !orderId) {
+        throw new Error('Order ID is missing for update');
+      }
+
+      // Send values in Rupees (backend API handles conversion to Paise)
+      const submissionData = {
+        ...data,
+        id: orderId,
+        freight: Number(data.freight || 0),
+        hamali: Number(data.hamali || 0),
+        rate: Number(data.rate || 0),
+        // Send raw percentage values
+        cgstPct: Number(data.cgstPct || 0),
+        sgstPct: Number(data.sgstPct || 0),
+        igstPct: Number(data.igstPct || 0),
+        details: (data.details || []).map(d => ({
+          ...d,
+          weight: Number(d.weight || 0),
+          boxCount: Number(d.boxCount || 0)
+        }))
+      };
+
+      const url = isEditing ? `/api/v1/orders/${orderId}` : '/api/v1/orders';
       const method = isEditing ? 'PATCH' : 'POST';
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submissionData),
       });
-      if (!response.ok) throw new Error('Failed to save order');
-      toast.success(isEditing ? 'Order updated successfully' : 'Order created successfully');
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to save order');
+      }
+
+      toast.success(isEditing ? 'Lorry Receipt updated successfully' : 'Lorry Receipt established successfully');
       router.push('/dashboard/orders');
+      router.refresh();
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Submission error:', error);
+      toast.error(error.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
+  };
+
+  const onInvalid = (errors: any) => {
+    console.error('Validation Errors:', errors);
+    const firstError = Object.values(errors)[0] as any;
+    const message = firstError?.message || 'Please check the form for errors';
+    toast.error(`Validation Failed: ${message}`);
   };
 
   const formatPaise = (paise: number) => (paise / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
@@ -266,7 +306,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-12 pb-24 px-4 max-w-[1800px] mx-auto">
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-12 pb-24 px-4 max-w-[1800px] mx-auto">
       {/* Premium Sticky Header */}
       <div className="sticky top-0 z-40 -mx-4 px-8 py-6 bg-white/80 backdrop-blur-xl border-b border-slate-100 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-6">
@@ -279,8 +319,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" type="button" icon={<Printer className="h-4 w-4" />} className="hidden md:flex">
-            Print Preview
+          <Button variant="outline" type="button" icon={<FileText className="h-4 w-4" />} className="hidden md:flex">
+            PDF Preview
           </Button>
           <Button type="submit" loading={loading} icon={<Save className="h-4 w-4" />}>
             {isEditing ? 'Update LR' : 'Establish LR'}

@@ -14,7 +14,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
   const primaryColor = company?.primaryColor || '#3b82f6';
 
   return (
-    <div className="bg-white p-8 border-2 border-slate-900 text-slate-900 font-sans leading-tight print:border-none print:p-0 min-h-[500px] flex flex-col relative overflow-hidden">
+    <div className="bg-white p-8 border-2 border-slate-900 text-slate-900 font-sans leading-tight min-h-[500px] flex flex-col relative overflow-hidden">
       
       {/* Watermark */}
       {company?.enableWatermark && (

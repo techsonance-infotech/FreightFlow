@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Fuel, AlertTriangle, TrendingUp, Filter, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Fuel, AlertTriangle, TrendingUp, Filter, Plus, Pencil, Trash2, IndianRupee, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function FuelTrackingPage() {
@@ -252,12 +252,16 @@ export default function FuelTrackingPage() {
               <p className="text-4xl font-black text-slate-800 tracking-tighter mt-1">{summary.totalVolume.toFixed(2)} <span className="text-xl">L</span></p>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-3xl border border-blue-100 shadow-sm flex flex-col justify-center relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 text-7xl opacity-10">💸</div>
+              <div className="absolute -right-4 -top-4 text-7xl opacity-10 text-blue-600">
+                <IndianRupee className="h-24 w-24" />
+              </div>
               <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">Total Fuel Expense</p>
               <p className="text-4xl font-black text-blue-700 tracking-tighter mt-1">₹ {summary.totalCost.toLocaleString()}</p>
             </div>
             <div className={`p-6 rounded-3xl shadow-sm flex flex-col justify-center relative overflow-hidden ${summary.anomalies > 0 ? 'bg-gradient-to-br from-rose-50 to-rose-100 border border-rose-200' : 'bg-emerald-50 border border-emerald-100'}`}>
-              <div className="absolute -right-4 -top-4 text-7xl opacity-10">{summary.anomalies > 0 ? '🚨' : '✅'}</div>
+              <div className="absolute -right-4 -top-4 text-7xl opacity-10 text-rose-600">
+                {summary.anomalies > 0 ? <AlertTriangle className="h-24 w-24" /> : <CheckCircle2 className="h-24 w-24 text-emerald-600" />}
+              </div>
               <p className={`text-[10px] font-black uppercase tracking-widest ${summary.anomalies > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>Anomalies Detected</p>
               <p className={`text-4xl font-black tracking-tighter mt-1 ${summary.anomalies > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>{summary.anomalies}</p>
             </div>

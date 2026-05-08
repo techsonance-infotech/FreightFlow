@@ -22,6 +22,8 @@ import { ConsigneeForm } from '@/components/masters/consignee-form';
 import { VehicleForm } from '@/components/masters/vehicle-form';
 import { PalletMasterForm } from '@/components/masters/pallet-master-form';
 import { toast } from 'sonner';
+import { PalletInvoiceDownloader } from './PalletInvoiceDownloader';
+import { CheckCircle2, X } from 'lucide-react';
 
 interface OrderPalletFormProps {
   initialData?: any;
@@ -39,6 +41,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   const [isConsigneeModalOpen, setIsConsigneeModalOpen] = useState(false);
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [isPalletModalOpen, setIsPalletModalOpen] = useState(false);
+  const [successPallet, setSuccessPallet] = useState<any>(null);
 
   const { 
     register, 
@@ -230,7 +233,11 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
       if (response.ok) {
         const result = await response.json();
         toast.success(initialData?.id ? 'Palletized record updated' : 'Palletized Order Synchronized Successfully');
-        onSuccess(result);
+        if (!initialData?.id) {
+          setSuccessPallet(result.data || result);
+        } else {
+          onSuccess(result);
+        }
       } else {
         const err = await response.json();
         toast.error(err.error || 'Failed to establish pallet order');
@@ -798,6 +805,47 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
 
       <Modal isOpen={isConsigneeModalOpen} onClose={() => setIsConsigneeModalOpen(false)} title="Quick Add Consignee" size="lg">
         <ConsigneeForm onSuccess={(c) => { setConsignees(prev => [c, ...prev]); setValue('consigneeId', c.id!); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
+      </Modal>
+
+      <Modal isOpen={!!successPallet} onClose={() => onSuccess(successPallet)} title="" size="md">
+        <div className="p-8 text-center space-y-8">
+          <div className="flex justify-center">
+            <div className="h-24 w-24 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 animate-bounce">
+              <CheckCircle2 className="h-12 w-12" />
+            </div>
+          </div>
+          
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase mb-2">Pallet Established</h2>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Record #{successPallet?.lrNo} has been synchronized with the global ledger.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <PalletInvoiceDownloader 
+              palletId={successPallet?.id} 
+              lrNo={successPallet?.lrNo}
+              variant="receipt"
+              label="Download Challan"
+              className="h-16 bg-slate-900 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-black transition-all"
+            />
+            <PalletInvoiceDownloader 
+              palletId={successPallet?.id} 
+              lrNo={successPallet?.lrNo}
+              variant="invoice"
+              label="Download Invoice"
+              className="h-16 bg-blue-600 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all"
+            />
+          </div>
+          <Button 
+            variant="ghost" 
+            onClick={() => onSuccess(successPallet)}
+            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-400"
+          >
+            Back to Overview
+          </Button>
+        </div>
       </Modal>
 
       <Modal isOpen={isVehicleModalOpen} onClose={() => setIsVehicleModalOpen(false)} title="Quick Add Vehicle" size="lg">

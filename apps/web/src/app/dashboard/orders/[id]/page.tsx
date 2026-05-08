@@ -24,9 +24,12 @@ export default function EditOrderPage() {
           freight: data.freight / 100,
           hamali: data.hamali / 100,
           rate: data.rate / 100,
+          cgstPct: Number(data.cgstPct || 0),
+          sgstPct: Number(data.sgstPct || 0),
+          igstPct: Number(data.igstPct || 0),
           details: (data.details || []).map((d: any) => ({
             ...d,
-            // Add any detail-specific formatting if needed
+            weight: Number(d.weight || 0)
           }))
         };
         

@@ -6,7 +6,49 @@ import { usePathname } from 'next/navigation';
 import { NAV_ITEMS, hasPermission, type NavItem } from '@/config/rbac';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { Truck } from 'lucide-react';
+import { 
+  Truck, Home, MessageSquare, Box, Inbox, Route, Camera, IndianRupee,
+  BarChart4, TrendingUp, ArrowUpFromLine, Receipt, Landmark, Scroll,
+  FolderKanban, Scale, Building2, Calculator, Scissors, Users,
+  Calendar, Umbrella, ShieldAlert, Fuel, Circle, Wrench, Bot,
+  Construction, Settings, Palette, Shield, CreditCard, LogOut
+} from 'lucide-react';
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  home: <Home className="h-4 w-4" />,
+  message: <MessageSquare className="h-4 w-4" />,
+  box: <Box className="h-4 w-4" />,
+  inbox: <Inbox className="h-4 w-4" />,
+  route: <Route className="h-4 w-4" />,
+  camera: <Camera className="h-4 w-4" />,
+  rupee: <IndianRupee className="h-4 w-4" />,
+  chart: <BarChart4 className="h-4 w-4" />,
+  trending: <TrendingUp className="h-4 w-4" />,
+  outbox: <ArrowUpFromLine className="h-4 w-4" />,
+  receipt: <Receipt className="h-4 w-4" />,
+  bank: <Landmark className="h-4 w-4" />,
+  scroll: <Scroll className="h-4 w-4" />,
+  folder: <FolderKanban className="h-4 w-4" />,
+  scale: <Scale className="h-4 w-4" />,
+  building: <Building2 className="h-4 w-4" />,
+  calculator: <Calculator className="h-4 w-4" />,
+  scissors: <Scissors className="h-4 w-4" />,
+  users: <Users className="h-4 w-4" />,
+  calendar: <Calendar className="h-4 w-4" />,
+  palm: <Umbrella className="h-4 w-4" />,
+  truck: <Truck className="h-4 w-4" />,
+  alert: <ShieldAlert className="h-4 w-4" />,
+  fuel: <Fuel className="h-4 w-4" />,
+  circle: <Circle className="h-4 w-4" />,
+  wrench: <Wrench className="h-4 w-4" />,
+  bot: <Bot className="h-4 w-4" />,
+  construction: <Construction className="h-4 w-4" />,
+  settings: <Settings className="h-4 w-4" />,
+  palette: <Palette className="h-4 w-4" />,
+  shield: <Shield className="h-4 w-4" />,
+  'credit-card': <CreditCard className="h-4 w-4" />,
+  hardhat: <Construction className="h-4 w-4" />,
+};
 
 interface SidebarProps {
   user: {
@@ -114,7 +156,7 @@ export function Sidebar({ user }: SidebarProps) {
               "text-base transition-all duration-200",
               isActive ? "opacity-100 scale-110" : "opacity-70 group-hover:opacity-100"
             )}>
-              {item.icon}
+              {ICON_MAP[item.icon as string] || item.icon}
             </span>
             <span className="flex-1 text-left">{item.label}</span>
             <span className={cn("text-[8px] transition-transform duration-300 opacity-30", isExpanded ? "rotate-180" : "")}>
@@ -136,7 +178,7 @@ export function Sidebar({ user }: SidebarProps) {
               "text-base transition-transform duration-200 group-hover:scale-105",
               isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100"
             )}>
-              {item.icon}
+              {ICON_MAP[item.icon as string] || item.icon}
             </span>
             {item.label}
             {isActive && (
@@ -216,7 +258,7 @@ export function Sidebar({ user }: SidebarProps) {
               await logout();
             }}
           >
-            <span className="text-xs">🚪</span>
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { type Vehicle } from '@freightflow/shared';
 import { toast } from 'sonner';
 import { format, isPast, isWithinInterval, addDays, parseISO } from 'date-fns';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
+import { Truck, User, Eye, Pencil, Trash2, Home, Settings, ParkingCircle, Search, Plus } from 'lucide-react';
 
 export default function VehiclesPage() {
   const [data, setData] = useState<Vehicle[]>([]);
@@ -86,7 +87,7 @@ export default function VehiclesPage() {
       accessor: (row: Vehicle) => (
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-lg shadow-sm">
-            {row.type === 'Trailer' ? '🚛' : '🚚'}
+            <Truck className="h-6 w-6 text-slate-400" />
           </div>
           <div>
             <p className="font-black text-slate-900 uppercase tracking-tighter text-lg leading-none">{row.regNo}</p>
@@ -129,7 +130,9 @@ export default function VehiclesPage() {
         <div className="flex items-center gap-2">
           {row.assignedDriver ? (
             <>
-              <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px]">👨‍✈️</div>
+              <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px]">
+                <User className="h-3 w-3 text-blue-600" />
+              </div>
               <span className="text-xs font-bold text-slate-700">{row.assignedDriver.name}</span>
             </>
           ) : (
@@ -159,21 +162,21 @@ export default function VehiclesPage() {
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-600 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="View Assignment History"
           >
-            👁️
+            <Eye className="h-4 w-4" />
           </button>
           <button 
             onClick={() => { setEditingItem(row); setIsModalOpen(true); }}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Edit Asset"
           >
-            ✏️
+            <Pencil className="h-4 w-4" />
           </button>
           <button 
             onClick={() => handleDelete(row)}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-red-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Delete Asset"
           >
-            🗑️
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       )
@@ -201,7 +204,7 @@ export default function VehiclesPage() {
             onClick={() => { setEditingItem(null); setIsModalOpen(true); }} 
             className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-100 font-black uppercase tracking-widest text-[11px] flex items-center gap-3"
           >
-            <span className="text-xl">+</span> Register Vehicle
+            <Plus className="h-5 w-5" /> Register Vehicle
           </Button>
         </div>
       </div>
@@ -209,10 +212,10 @@ export default function VehiclesPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Total Fleet', value: total, icon: '🚛', color: 'text-slate-900', bg: 'bg-slate-50' },
-          { label: 'Own Vehicles', value: data.filter(v => v.ownership === 'Own').length, icon: '🏠', color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Maintenance', value: data.filter(v => v.status === 'maintenance').length, icon: '⚙️', color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Idle / Yard', value: data.filter(v => v.status === 'inactive').length, icon: '🅿️', color: 'text-rose-600', bg: 'bg-rose-50' },
+          { label: 'Total Fleet', value: total, icon: <Truck className="h-6 w-6 text-slate-600" />, color: 'text-slate-900', bg: 'bg-slate-50' },
+          { label: 'Own Vehicles', value: data.filter(v => v.ownership === 'Own').length, icon: <Home className="h-6 w-6 text-blue-600" />, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Maintenance', value: data.filter(v => v.status === 'maintenance').length, icon: <Settings className="h-6 w-6 text-amber-600" />, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Idle / Yard', value: data.filter(v => v.status === 'inactive').length, icon: <ParkingCircle className="h-6 w-6 text-rose-600" />, color: 'text-rose-600', bg: 'bg-rose-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
             <div className="flex items-center justify-between mb-4">
@@ -234,7 +237,7 @@ export default function VehiclesPage() {
         <div className="bg-white p-2 rounded-2xl border border-slate-100 shadow-sm flex items-center">
           <Input 
             placeholder="Search by Registration Number, Make, Model or Owner..." 
-            icon="🔍" 
+            icon={<Search className="h-4 w-4" />} 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             className="bg-transparent border-none focus:ring-0 h-12 text-sm font-bold placeholder:text-slate-300" 

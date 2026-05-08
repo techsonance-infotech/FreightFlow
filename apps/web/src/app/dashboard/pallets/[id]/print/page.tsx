@@ -1,36 +1,52 @@
-import React from 'react';
-import { getSession } from '@/lib/auth-utils';
-import { prisma } from '@freightflow/db';
-import { redirect, notFound } from 'next/navigation';
+'use client';
+ 
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { PalletReceiptTemplate } from '@/components/orders/PalletReceiptTemplate';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Printer, Download, Loader2 } from 'lucide-react';
+import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
+import { toast } from 'sonner';
 
-export default async function PalletPrintPage({ params }: { params: { id: string } }) {
-  const session = await getSession();
-  if (!session || !session.user || !session.user.companyId) redirect('/dashboard');
-
-  const [pallet, company] = await Promise.all([
-    prisma.orderPallet.findUnique({
-      where: { id: params.id },
-      include: {
-        dealer: true,
-        vehicle: true,
-        palletDetails: true,
+export default function PalletPrintPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [pallet, setPallet] = useState<any>(null);
+  const [company, setCompany] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+ 
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [palletRes, companyRes] = await Promise.all([
+          fetch(`/api/v1/pallets/${id}`),
+          fetch('/api/v1/companies/branding')
+        ]);
+        
+        if (!palletRes.ok) throw new Error('Pallet not found');
+        const palletData = await palletRes.json();
+        const companyData = await companyRes.json();
+        
+        setPallet(palletData);
+        setCompany(companyData.data);
+      } catch (err) {
+        toast.error('Failed to load data');
+        router.push('/dashboard/pallets');
+      } finally {
+        setLoading(false);
       }
-    }),
-    prisma.company.findUnique({
-      where: { id: session.user.companyId }
-    })
-  ]);
-
-  if (!pallet) notFound();
-
+    }
+    fetchData();
+  }, [id, router]);
+ 
+  if (loading) return <div className="h-screen flex items-center justify-center animate-pulse font-black text-slate-400">LOADING MANIFEST...</div>;
+  if (!pallet) return null;
+ 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 print:p-0 print:bg-white">
+    <div className="min-h-screen bg-slate-50 p-8">
       {/* Action Bar */}
-      <div className="max-w-5xl mx-auto flex items-center justify-between mb-8 print:hidden">
+      <div className="max-w-5xl mx-auto flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link 
             href="/dashboard/pallets"
@@ -39,23 +55,32 @@ export default async function PalletPrintPage({ params }: { params: { id: string
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">Manifest Print Preview</h1>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">Manifest Preview</h1>
             <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">LR #{pallet.lrNo} - {pallet.companyName}</p>
           </div>
         </div>
         
-        <button 
-          onClick={() => window.print()}
-          className="h-14 px-8 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-blue-200 hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
-        >
-          <Printer className="h-5 w-5" />
-          Generate Hardcopy
-        </button>
+        <div className="flex gap-4">
+          <PalletInvoiceDownloader 
+            palletId={id as string} 
+            lrNo={pallet.lrNo} 
+            variant="receipt"
+            label="Download Receipt"
+            className="h-14 px-8 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-slate-200 hover:bg-slate-800 transition-all flex items-center gap-3 border-none"
+          />
+          <PalletInvoiceDownloader 
+            palletId={id as string} 
+            lrNo={pallet.lrNo} 
+            variant="invoice"
+            label="Download Invoice"
+            className="h-14 px-8 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-3 border-none"
+          />
+        </div>
       </div>
-
+ 
       {/* Main Print Container */}
-      <div className="max-w-5xl mx-auto space-y-12 print:space-y-0">
-        <div className="shadow-2xl print:shadow-none bg-white">
+      <div className="max-w-5xl mx-auto space-y-12">
+        <div className="shadow-2xl bg-white">
           <PalletReceiptTemplate 
             data={pallet} 
             company={company} 
@@ -63,9 +88,9 @@ export default async function PalletPrintPage({ params }: { params: { id: string
           />
         </div>
         
-        <div className="border-t-2 border-dashed border-slate-200 my-12 print:hidden" />
+        <div className="border-t-2 border-dashed border-slate-200 my-12" />
         
-        <div className="shadow-2xl print:shadow-none bg-white">
+        <div className="shadow-2xl bg-white">
           <PalletReceiptTemplate 
             data={pallet} 
             company={company} 
@@ -73,11 +98,6 @@ export default async function PalletPrintPage({ params }: { params: { id: string
           />
         </div>
       </div>
-
-      <script dangerouslySetInnerHTML={{ __html: `
-        // In case the user wants immediate print
-        // window.print();
-      `}} />
     </div>
   );
 }

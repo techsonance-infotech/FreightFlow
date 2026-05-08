@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { toast } from 'sonner';
-import { TrendingUp, TrendingDown, DollarSign, Activity, Truck } from 'lucide-react';
+import { TrendingUp, TrendingDown, IndianRupee, Activity, Truck } from 'lucide-react';
 
 export default function VehicleAnalyticsPage() {
   const [data, setData] = useState<any[]>([]);
@@ -96,7 +96,7 @@ export default function VehicleAnalyticsPage() {
       {/* Global Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-3xl border border-indigo-100 shadow-sm flex flex-col justify-center relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 text-7xl opacity-10">📈</div>
+          <div className="absolute -right-4 -top-4 opacity-10"><TrendingUp className="h-24 w-24" /></div>
           <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Total Fleet Revenue</p>
           {loading ? (
             <div className="h-10 w-32 bg-indigo-100/50 rounded-lg animate-pulse mt-1" />
@@ -124,7 +124,7 @@ export default function VehicleAnalyticsPage() {
         </div>
 
         <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-6 rounded-3xl border border-emerald-100 shadow-sm flex flex-col justify-center relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 text-7xl opacity-10">💰</div>
+          <div className="absolute -right-4 -top-4 opacity-10"><IndianRupee className="h-24 w-24" /></div>
           <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Net Fleet Profit</p>
           {loading ? (
             <div className="h-10 w-32 bg-emerald-100/50 rounded-lg animate-pulse mt-1" />

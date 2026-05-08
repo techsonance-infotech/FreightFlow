@@ -3,7 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { X, Calendar, FileText, Send, Loader2 } from 'lucide-react';
+import { 
+  Umbrella, Thermometer, Trophy, IndianRupee, 
+  Calendar, MessageSquare, X, FileText, Send, Loader2 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LeaveRequestModalProps {
@@ -13,10 +16,10 @@ interface LeaveRequestModalProps {
 }
 
 const LEAVE_TYPES = [
-  { value: 'casual', label: 'Casual Leave', icon: '🌴' },
-  { value: 'sick', label: 'Sick Leave', icon: '🤒' },
-  { value: 'earned', label: 'Earned Leave', icon: '🏆' },
-  { value: 'unpaid', label: 'Unpaid Leave', icon: '💸' },
+  { value: 'casual', label: 'Casual Leave', icon: <Umbrella className="h-4 w-4" /> },
+  { value: 'sick', label: 'Sick Leave', icon: <Thermometer className="h-4 w-4" /> },
+  { value: 'earned', label: 'Earned Leave', icon: <Trophy className="h-4 w-4" /> },
+  { value: 'unpaid', label: 'Unpaid Leave', icon: <IndianRupee className="h-4 w-4" /> },
 ];
 
 export function LeaveRequestModal({ isOpen, onClose, onSuccess }: LeaveRequestModalProps) {
@@ -116,6 +119,7 @@ export function LeaveRequestModal({ isOpen, onClose, onSuccess }: LeaveRequestMo
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           {/* Leave Type Grid */}
           <div className="space-y-4">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Leave Type</label>
             <div className="grid grid-cols-2 gap-3">
               {LEAVE_TYPES.map((type) => (
                 <button
@@ -129,7 +133,12 @@ export function LeaveRequestModal({ isOpen, onClose, onSuccess }: LeaveRequestMo
                       : "border-slate-100 hover:border-slate-200"
                   )}
                 >
-                  <span className="text-2xl">{type.icon}</span>
+                  <div className={cn(
+                    "h-8 w-8 rounded-lg flex items-center justify-center transition-all",
+                    formData.leaveType === type.value ? "bg-white shadow-sm text-blue-600" : "bg-slate-50 text-slate-400"
+                  )}>
+                    {type.icon}
+                  </div>
                   <span className={cn(
                     "text-[10px] font-black uppercase tracking-widest",
                     formData.leaveType === type.value ? "text-blue-600" : "text-slate-500"

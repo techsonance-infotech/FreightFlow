@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { uploadMasterDocument } from '@/app/actions/masters/labour';
+import { 
+  Building2, User, Phone, Mail, Home, ShieldCheck, 
+  FileText, CreditCard, IndianRupee, Calendar, FolderOpen, 
+  Award, CheckCircle2 
+} from 'lucide-react';
 
 interface ConsignorFormProps {
   initialData?: Partial<Consignor>;
@@ -126,20 +131,24 @@ export function ConsignorForm({ initialData, onSuccess, onCancel }: ConsignorFor
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Basic Info */}
         <div className="space-y-6">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2">🏢 Business Profile</h3>
-          <Input label="Consignor Name *" placeholder="e.g. Reliance Industries" icon="👤" error={errors.name?.message} {...register('name')} />
-          <Input label="Company Sub-Name" placeholder="e.g. Petrochem Division" icon="🏢" error={errors.companyName?.message} {...register('companyName')} />
-          <Input label="Phone Number *" placeholder="10-digit number" icon="📱" error={errors.phone?.message} {...register('phone')} />
-          <Input label="Email Address" placeholder="office@company.com" icon="📧" error={errors.email?.message} {...register('email')} />
-          <Input label="Pickup Address *" placeholder="Full office/factory address" icon="🏠" error={errors.address?.message} {...register('address')} />
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2 flex items-center gap-2">
+            <Building2 className="h-3 w-3" /> Business Profile
+          </h3>
+          <Input label="Consignor Name *" placeholder="e.g. Reliance Industries" icon={<User className="h-4 w-4" />} error={errors.name?.message} {...register('name')} />
+          <Input label="Company Sub-Name" placeholder="e.g. Petrochem Division" icon={<Building2 className="h-4 w-4" />} error={errors.companyName?.message} {...register('companyName')} />
+          <Input label="Phone Number *" placeholder="10-digit number" icon={<Phone className="h-4 w-4" />} error={errors.phone?.message} {...register('phone')} />
+          <Input label="Email Address" placeholder="office@company.com" icon={<Mail className="h-4 w-4" />} error={errors.email?.message} {...register('email')} />
+          <Input label="Pickup Address *" placeholder="Full office/factory address" icon={<Home className="h-4 w-4" />} error={errors.address?.message} {...register('address')} />
         </div>
 
         {/* Compliance & Credit */}
         <div className="space-y-6">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2">🛡️ Compliance & Credit</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2 flex items-center gap-2">
+            <ShieldCheck className="h-3 w-3" /> Compliance & Credit
+          </h3>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="GSTIN" placeholder="15-digit GST" icon="📝" error={errors.gstin?.message} {...register('gstin')} />
-            <Input label="PAN" placeholder="10-digit PAN" icon="💳" error={errors.pan?.message} {...register('pan')} />
+            <Input label="GSTIN" placeholder="15-digit GST" icon={<FileText className="h-4 w-4" />} error={errors.gstin?.message} {...register('gstin')} />
+            <Input label="PAN" placeholder="10-digit PAN" icon={<CreditCard className="h-4 w-4" />} error={errors.pan?.message} {...register('pan')} />
           </div>
           
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
@@ -156,7 +165,7 @@ export function ConsignorForm({ initialData, onSuccess, onCancel }: ConsignorFor
             <Input 
               label="Credit Limit (₹)" 
               type="number" 
-              icon="💰" 
+              icon={<IndianRupee className="h-4 w-4" />} 
               error={errors.creditLimit?.message} 
               {...register('creditLimit', { valueAsNumber: true })} 
               onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
@@ -164,7 +173,7 @@ export function ConsignorForm({ initialData, onSuccess, onCancel }: ConsignorFor
             <Input 
               label="Credit Days" 
               type="number" 
-              icon="📅" 
+              icon={<Calendar className="h-4 w-4" />} 
               error={errors.creditDays?.message} 
               {...register('creditDays', { valueAsNumber: true })} 
               onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
@@ -173,16 +182,15 @@ export function ConsignorForm({ initialData, onSuccess, onCancel }: ConsignorFor
         </div>
       </div>
 
-      {/* Document Section */}
       <div className="pt-6 border-t border-slate-100">
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
-          <span className="text-lg">📁</span> Compliance Documents
+          <FolderOpen className="h-4 w-4" /> Compliance Documents
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: 'GST Certificate', file: gstFile, setFile: setGstFile, url: initialData?.gstUrl, icon: '📝' },
-            { label: 'PAN Card', file: panFile, setFile: setPanFile, url: initialData?.panUrl, icon: '💳' },
-            { label: 'MSME Certificate', file: msmeFile, setFile: setMsmeFile, url: initialData?.msmeUrl, icon: '🎖️', hidden: !isMsme }
+            { label: 'GST Certificate', file: gstFile, setFile: setGstFile, url: initialData?.gstUrl, icon: <FileText className="h-5 w-5" /> },
+            { label: 'PAN Card', file: panFile, setFile: setPanFile, url: initialData?.panUrl, icon: <CreditCard className="h-5 w-5" /> },
+            { label: 'MSME Certificate', file: msmeFile, setFile: setMsmeFile, url: initialData?.msmeUrl, icon: <Award className="h-5 w-5" />, hidden: !isMsme }
           ].filter(d => !d.hidden).map((doc, i) => (
             <div key={i} className="space-y-3">
               <label className="cursor-pointer">
@@ -190,7 +198,7 @@ export function ConsignorForm({ initialData, onSuccess, onCancel }: ConsignorFor
                   doc.file ? 'border-green-300 bg-green-50/30' : 'border-slate-100 hover:border-blue-300'
                 }`}>
                   <div className="flex flex-col items-center text-center">
-                    <span className="text-xl mb-1">{doc.file ? '✅' : doc.icon}</span>
+                    <div className="text-slate-400 mb-1">{doc.file ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : doc.icon}</div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                       {doc.file ? doc.file.name : doc.label}
                     </p>
