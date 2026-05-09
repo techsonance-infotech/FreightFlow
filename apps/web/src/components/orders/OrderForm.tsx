@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { OrderSchema, type Order } from '@freightflow/shared';
 import { toast } from 'sonner';
 import { 
-  FileText, Plus, Trash2, Printer, Save, ArrowLeft, 
+  FileText, Plus, Trash2, Save, ArrowLeft, 
   Search, Calculator, Truck, User, MapPin, 
   ChevronRight, ChevronDown, Box, CreditCard, ShieldCheck, AlertCircle, Hash, Building2, Calendar, Package,
   TrendingUp, TrendingDown, Zap, Navigation

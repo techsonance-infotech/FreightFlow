@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { 
   BarChart4, FileSpreadsheet, PieChart, 
   TrendingUp, TrendingDown, Download,
-  Printer, Calendar, ChevronRight,
+  Calendar, ChevronRight,
   ChevronDown, Search, Filter,
   Building2, ArrowRight
 } from 'lucide-react';

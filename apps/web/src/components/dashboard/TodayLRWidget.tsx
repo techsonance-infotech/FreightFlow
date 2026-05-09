@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Package, Download, FileText, Edit, Trash2, Inbox } from 'lucide-react';
+import { Package, FileText, Edit, Trash2, Inbox } from 'lucide-react';
 import { format } from 'date-fns';
 import { LRInvoiceDownloader } from '@/components/orders/LRInvoiceDownloader';
 import { cn } from '@/lib/utils';

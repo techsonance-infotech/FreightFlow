@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { format } from 'date-fns';
-import { Printer, Download, ArrowLeft, Loader2 } from 'lucide-react';
+import { Download, ArrowLeft, Loader2 } from 'lucide-react';
 import { generateLRPrintPDF } from '@/lib/pdf/lr-print';
 import { toast } from 'sonner';
 

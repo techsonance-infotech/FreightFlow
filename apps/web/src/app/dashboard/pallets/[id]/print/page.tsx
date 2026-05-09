@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { PalletReceiptTemplate } from '@/components/orders/PalletReceiptTemplate';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Printer, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
 import { toast } from 'sonner';
 

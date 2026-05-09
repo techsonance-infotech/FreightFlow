@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Plus, Search, Filter, FileText, Edit, Trash2, 
-  Download, Calendar, MapPin, Truck, ChevronDown, ChevronUp, Package, Hash, Info, Box, Printer,
+  Download, Calendar, MapPin, Truck, ChevronDown, ChevronUp, Package, Hash, Info, Box,
   Inbox, Scale, BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';

@@ -6,7 +6,7 @@ import {
   Truck, User, MapPin, Calendar, Clock, 
   Package, Receipt, Calculator, TrendingUp,
   Plus, CheckCircle2, AlertCircle, ArrowLeft,
-  DollarSign, FileText, Download, Printer,
+  DollarSign, FileText, Download,
   ChevronRight, ArrowRight, Loader2, XCircle,
   ArrowUpRight, Ban, Fuel, Milestone, Wrench, IndianRupee, ShieldAlert, FileEdit
 } from 'lucide-react';
