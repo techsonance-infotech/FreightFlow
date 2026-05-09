@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Wrench, CheckCircle2, CircleDashed, Hammer, Pencil, Trash2, TrendingUp } from 'lucide-react';
+import { Wrench, CheckCircle2, CircleDashed, Hammer, Pencil, Trash2, TrendingUp, IndianRupee } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function MaintenanceHubPage() {
@@ -253,17 +253,17 @@ export default function MaintenanceHubPage() {
               <p className="text-4xl font-black text-slate-800 tracking-tighter mt-1">{summary.total}</p>
             </div>
             <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-6 rounded-3xl border border-amber-100 shadow-sm flex flex-col justify-center relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 text-7xl opacity-10">🔧</div>
+              <div className="absolute -right-4 -top-4 opacity-10"><Wrench className="h-24 w-24" /></div>
               <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Open Jobs</p>
               <p className="text-4xl font-black text-amber-700 tracking-tighter mt-1">{summary.open}</p>
             </div>
             <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-6 rounded-3xl border border-indigo-100 shadow-sm flex flex-col justify-center relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 text-7xl opacity-10">💸</div>
+              <div className="absolute -right-4 -top-4 opacity-10"><IndianRupee className="h-24 w-24" /></div>
               <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Total Estimated Cost</p>
               <p className="text-3xl font-black text-indigo-700 tracking-tighter mt-1">₹{summary.estimatedCost.toLocaleString()}</p>
             </div>
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-6 rounded-3xl border border-emerald-100 shadow-sm flex flex-col justify-center relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 text-7xl opacity-10">💰</div>
+              <div className="absolute -right-4 -top-4 opacity-10"><IndianRupee className="h-24 w-24" /></div>
               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Total Actual Cost</p>
               <p className="text-3xl font-black text-emerald-700 tracking-tighter mt-1">₹{summary.actualCost.toLocaleString()}</p>
             </div>

@@ -1,5 +1,5 @@
 -- ==============================================================================
--- FreightFlow Pro — Supabase Row Level Security (RLS) Setup
+-- FreightFlow — Supabase Row Level Security (RLS) Setup
 -- This script must be executed in Supabase SQL Editor or via Supabase CLI
 -- ==============================================================================
 

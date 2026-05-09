@@ -47,7 +47,7 @@ export async function POST(request: Request) {
               role: employeeData.role,
               tenantId: session.user.tenantId,
               companyId: session.user.companyId,
-              isActive: true,
+              isActive: employeeData.status === 'active' || !employeeData.status,
             }
           });
           userId = user.id;

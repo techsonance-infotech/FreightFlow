@@ -9,15 +9,15 @@
 
 ---
 
-## What is FreightFlow ?
+## What is FreightFlow?
 
-FreightFlow  is a **full-stack SaaS platform built exclusively for Indian road transport and logistics businesses**. It replaces disconnected spreadsheets, paper registers, and generic accounting tools with a single, purpose-built system that manages everything — from the moment a lorry receipt is created to the moment the freight invoice is paid and the GST return is filed.
+FreightFlow is a **full-stack SaaS platform built exclusively for Indian road transport and logistics businesses**. It replaces disconnected spreadsheets, paper registers, and generic accounting tools with a single, purpose-built system that manages everything — from the moment a lorry receipt is created to the moment the freight invoice is paid and the GST return is filed.
 
-Whether you run 5 trucks or 500, FreightFlow  gives you real-time visibility into every trip, every expense, every vehicle, and every rupee — with the compliance automation that Indian transport law demands.
+Whether you run 5 trucks or 500, FreightFlow gives you real-time visibility into every trip, every expense, every vehicle, and every rupee — with the compliance automation that Indian transport law demands.
 
 ---
 
-## The blem It Solves
+## The Problem It Solves
 
 Transport businesses in India are drowning in paperwork and manual cesses:
 
@@ -304,12 +304,12 @@ For bug reports or feature requests, please open an issue with the appriate temp
 
 ## License
 
-FreightFlow  is a **commercially licensed** SaaS duct. All rights reserved.
+FreightFlow is a **commercially licensed** SaaS product. All rights reserved.
 See [LICENSE](LICENSE) for the full commercial license terms.
 
 ---
 
 <p align="center">
-  <strong>FreightFlow </strong> — Built for Indian Transport. Powered by Modern Technology.<br/>
+  <strong>FreightFlow</strong> — Built for Indian Transport. Powered by Modern Technology.<br/>
   <em>Every Trip. Every Rupee. Every Mile — In Control.</em>
 </p>

@@ -8,7 +8,7 @@ import {
   Check, X, AlertCircle, CalendarDays,
   Activity, Users, ShieldCheck, Plus,
   LayoutGrid, ListFilter, History, Wallet,
-  ChevronLeft
+  ChevronLeft, Inbox, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -160,10 +160,10 @@ export default function LeavesPage() {
 
       {/* 2. Visual Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard title="Leave Balance" value={`${stats.balance} Days`} icon="💳" color="blue" />
-        <MetricCard title="Pending Review" value={stats.pending.toString()} icon="⏳" color="amber" />
-        <MetricCard title="Authorized (MTD)" value={stats.approved.toString()} icon="✅" color="emerald" />
-        <MetricCard title="Total Volume" value={stats.total.toString()} icon="📊" />
+        <MetricCard title="Leave Balance" value={`${stats.balance} Days`} icon={<Wallet className="h-6 w-6 text-blue-600" />} color="blue" />
+        <MetricCard title="Pending Review" value={stats.pending.toString()} icon={<Clock className="h-6 w-6 text-amber-600" />} color="amber" />
+        <MetricCard title="Authorized (MTD)" value={stats.approved.toString()} icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" />} color="emerald" />
+        <MetricCard title="Total Volume" value={stats.total.toString()} icon={<BarChart3 className="h-6 w-6 text-slate-600" />} />
       </div>
 
       {/* 2.5 Detailed Leave Breakdown (Only for personal view) */}
@@ -300,7 +300,7 @@ export default function LeavesPage() {
                   <tr>
                     <td colSpan={5} className="px-10 py-32 text-center">
                       <div className="flex flex-col items-center gap-4 opacity-40">
-                        <span className="text-6xl">📬</span>
+                        <Inbox className="h-16 w-16 text-slate-300" />
                         <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-900">No Leave Requests Matching Filters</p>
                       </div>
                     </td>

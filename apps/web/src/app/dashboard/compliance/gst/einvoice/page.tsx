@@ -5,7 +5,7 @@ import {
   FileText, Landmark, Download, RefreshCcw, 
   Search, Calendar, Filter, Users, ChevronRight,
   Package, Layers, Calculator, ShieldCheck,
-  Plus, ArrowRight, Printer, FileSpreadsheet,
+  Plus, ArrowRight, FileSpreadsheet,
   ChevronLeft, LayoutGrid, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { generateConsolidatedInvoicePDF } from '@/lib/pdf/consolidated-invoice';
 
 export default function EInvoicePage() {
   const [activeTab, setActiveTab] = useState('standard');
@@ -180,6 +181,19 @@ export default function EInvoicePage() {
       }
     } catch (error: any) {
       toast.error(`IRN Generation Failed: ${error.message}`, { id: loadingToast });
+    }
+  };
+
+  const handleDownloadConsolidated = async () => {
+    if (!consolidatedData) return;
+    try {
+      const configRes = await fetch('/api/v1/companies/branding');
+      const config = await configRes.json();
+      const doc = await generateConsolidatedInvoicePDF(consolidatedData, config.data);
+      doc.save(`CONSOLIDATED_${consolidatedData.dealer?.name}_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      toast.success('Consolidated Invoice Generated');
+    } catch (err) {
+      toast.error('Failed to generate PDF');
     }
   };
 
@@ -617,11 +631,8 @@ export default function EInvoicePage() {
                           Approve & Seal Invoice
                         </Button>
                       )}
-                      <Button variant="outline" className="h-11 px-6 rounded-xl border-neutral-200 font-bold text-[10px] uppercase tracking-widest text-neutral-500 bg-white">
-                        <Printer className="h-3.5 w-3.5 mr-2" />
-                        Print Draft
-                      </Button>
                       <Button 
+                        onClick={handleDownloadConsolidated}
                         disabled={consolidatedData.status !== 'approved'}
                         className="h-11 px-8 bg-brand-900 hover:bg-black text-white shadow-lg shadow-brand-900/20 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 disabled:opacity-50"
                       >

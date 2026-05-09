@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
 
 import { LabourAnalytics } from '@/components/masters/labour-analytics';
+import { User, Paperclip, CreditCard, Eye, Pencil, Trash2, Hammer, Folder, BarChart3, Plus, IndianRupee } from 'lucide-react';
 
 export default function LabourPage() {
   const [activeMainTab, setActiveMainTab] = useState<'registry' | 'insights'>('registry');
@@ -90,15 +91,15 @@ export default function LabourPage() {
       accessor: (row: Labour) => (
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-neutral-100 flex items-center justify-center text-lg shadow-sm border border-neutral-200/50">
-            👤
+            <User className="h-5 w-5 text-neutral-600" />
           </div>
           <div>
             <p className="font-bold text-neutral-900 leading-tight">{row.name}</p>
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{row.phone || 'No Phone'}</p>
               <div className="flex items-center gap-1.5 ml-1">
-                {row.aadharUrl && <span title="Aadhar Doc" className="text-accent-600 cursor-help">📎</span>}
-                {row.panUrl && <span title="PAN Doc" className="text-accent-600 cursor-help">💳</span>}
+                {row.aadharUrl && <span title="Aadhar Doc" className="text-accent-600 cursor-help"><Paperclip className="h-3 w-3" /></span>}
+                {row.panUrl && <span title="PAN Doc" className="text-accent-600 cursor-help"><CreditCard className="h-3 w-3" /></span>}
               </div>
               {row.skillCategory && (
                 <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-accent-50 text-accent-600 uppercase tracking-wider border border-accent-100">
@@ -137,28 +138,28 @@ export default function LabourPage() {
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-600 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="View Ledger"
           >
-            👁️
+            <Eye className="h-4 w-4" />
           </button>
           <button 
             onClick={() => { setSelectedLabour(row); setIsExpenseModalOpen(true); }}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-orange-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Record Expense"
           >
-            ₹
+            <IndianRupee className="h-4 w-4" />
           </button>
           <button 
             onClick={() => { setEditingItem(row); setIsModalOpen(true); }}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Edit Profile"
           >
-            ✏️
+            <Pencil className="h-4 w-4" />
           </button>
           <button 
             onClick={() => handleDelete(row)}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-red-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Delete Record"
           >
-            🗑️
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       )
@@ -170,7 +171,7 @@ export default function LabourPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">👷</span>
+            <Hammer className="h-8 w-8 text-slate-600" />
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Labour Registry</h1>
           </div>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Worker management, Payroll & Operational Insights</p>
@@ -184,7 +185,7 @@ export default function LabourPage() {
               <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="rounded-xl border-neutral-200 text-error-600 bg-error-50/30 hover:bg-error-600 hover:text-white font-bold text-[10px] uppercase">PDF</Button>
             </div>
             <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="rounded-2xl h-14 px-8 bg-accent-600 text-white hover:bg-accent-700 shadow-xl shadow-accent-600/10 font-bold uppercase tracking-widest text-[11px] flex items-center gap-3">
-              <span className="text-xl">+</span> Register New Worker
+              <Plus className="h-5 w-5" /> Register New Worker
             </Button>
           </div>
         )}
@@ -193,19 +194,19 @@ export default function LabourPage() {
       <div className="flex items-center gap-2 bg-neutral-100 p-1.5 rounded-2xl w-fit">
         <button
           onClick={() => setActiveMainTab('registry')}
-          className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+          className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${
             activeMainTab === 'registry' ? 'bg-white text-accent-600 shadow-sm' : 'text-neutral-400 hover:text-neutral-600'
           }`}
         >
-          🗂️ Worker Registry
+          <Folder className="h-3.5 w-3.5" /> Worker Registry
         </button>
         <button
           onClick={() => setActiveMainTab('insights')}
-          className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+          className={`px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${
             activeMainTab === 'insights' ? 'bg-white text-accent-600 shadow-sm' : 'text-neutral-400 hover:text-neutral-600'
           }`}
         >
-          📊 Cost Insights
+          <BarChart3 className="h-3.5 w-3.5" /> Cost Insights
         </button>
       </div>
 

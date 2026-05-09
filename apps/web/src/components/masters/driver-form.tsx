@@ -7,6 +7,7 @@ import { DriverSchema, type Driver } from '@freightflow/shared';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Contact, Calendar, Truck, ShieldCheck } from 'lucide-react';
 
 interface DriverFormProps {
   initialData?: Partial<Driver>;
@@ -68,10 +69,10 @@ export function DriverForm({ initialData, onSuccess, onCancel }: DriverFormProps
           {(errors.employeeId as any) && <p className="text-[10px] font-bold text-red-600 px-1 uppercase tracking-wider">{(errors.employeeId as any).message}</p>}
         </div>
 
-        <Input label="DL Number *" placeholder="e.g. MH0120230001234" icon="🪪" error={(errors.dlNumber as any)?.message} {...register('dlNumber')} />
-        <Input label="DL Expiry Date *" type="date" icon="📅" error={(errors.dlExpiry as any)?.message} {...register('dlExpiry')} />
-        <Input label="DL Category" placeholder="e.g. LMV, HMV" icon="🚚" error={(errors.dlCategory as any)?.message} {...register('dlCategory')} />
-        <Input label="Badge Number" placeholder="e.g. B-12345" icon="🛡️" error={(errors.badgeNo as any)?.message} {...register('badgeNo')} />
+        <Input label="DL Number *" placeholder="e.g. MH0120230001234" icon={<Contact className="h-4 w-4" />} error={(errors.dlNumber as any)?.message} {...register('dlNumber')} />
+        <Input label="DL Expiry Date *" type="date" icon={<Calendar className="h-4 w-4" />} error={(errors.dlExpiry as any)?.message} {...register('dlExpiry')} />
+        <Input label="DL Category" placeholder="e.g. LMV, HMV" icon={<Truck className="h-4 w-4" />} error={(errors.dlCategory as any)?.message} {...register('dlCategory')} />
+        <Input label="Badge Number" placeholder="e.g. B-12345" icon={<ShieldCheck className="h-4 w-4" />} error={(errors.badgeNo as any)?.message} {...register('badgeNo')} />
         
         <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
           <input type="checkbox" id="isVendorDriver" {...register('isVendorDriver')} className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />

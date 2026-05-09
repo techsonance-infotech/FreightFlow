@@ -12,9 +12,14 @@ export async function PUT(
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { salaryStructure, ...employeeData } = body;
+    const { salaryStructure, user, tenantId, companyId, createdAt, updatedAt, deletedAt, ...employeeData } = body;
 
     const result = await prisma.$transaction(async (tx) => {
+      const existingEmployee = await tx.employee.findUnique({
+        where: { id, companyId: session.user.companyId },
+        select: { userId: true }
+      });
+
       const employee = await tx.employee.update({
         where: { id, companyId: session.user.companyId },
         data: {
@@ -26,6 +31,17 @@ export async function PUT(
           bankIfsc: employeeData.bankIfsc || null,
         }
       });
+
+      // Synchronize with User account if exists
+      if (existingEmployee?.userId) {
+        await tx.user.update({
+          where: { id: existingEmployee.userId },
+          data: {
+            role: employeeData.role || undefined,
+            isActive: employeeData.status === 'active',
+          }
+        });
+      }
 
       if (salaryStructure) {
         await tx.salaryStructure.upsert({

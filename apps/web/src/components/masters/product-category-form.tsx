@@ -7,6 +7,7 @@ import { ProductCategorySchema, type ProductCategory } from '@freightflow/shared
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Lightbulb, Tag } from 'lucide-react';
 
 interface ProductCategoryFormProps {
   onSuccess: (data: ProductCategory) => void;
@@ -37,7 +38,9 @@ export function ProductCategoryForm({ onSuccess, onCancel }: ProductCategoryForm
   return (
     <div className="space-y-8">
       <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 flex items-center gap-3">
-        <span className="text-xl">💡</span>
+        <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100">
+          <Lightbulb className="h-5 w-5 text-amber-600" />
+        </div>
         <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Adding a category helps in grouping products for better reporting and tax tracking.</p>
       </div>
 
@@ -45,7 +48,7 @@ export function ProductCategoryForm({ onSuccess, onCancel }: ProductCategoryForm
         <Input 
           label="Category Name *" 
           placeholder="e.g. Raw Material, Finished Goods" 
-          icon="🏷️" 
+          icon={<Tag className="h-4 w-4" />} 
           error={errors.name?.message} 
           {...register('name')} 
         />

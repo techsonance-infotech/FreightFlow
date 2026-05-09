@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from './button';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
             <div className="mt-1 h-1 w-10 bg-accent-600 rounded-full" />
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
-            ✕
+            <X className="h-4 w-4" />
           </Button>
         </div>
 

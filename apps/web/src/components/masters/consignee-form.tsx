@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { uploadMasterDocument } from '@/app/actions/masters/labour';
+import { 
+  Building2, User, Phone, Mail, Home, ShieldCheck, 
+  FileText, CreditCard, Clock, Ban, IndianRupee, Calendar, 
+  Scroll, Eye, CheckCircle2 
+} from 'lucide-react';
 
 interface ConsigneeFormProps {
   initialData?: Consignee;
@@ -128,32 +133,36 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Basic Info */}
         <div className="space-y-6">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2">🏢 Identity & Contact</h3>
-          <Input label="Consignee Name *" placeholder="e.g. Maruti Suzuki Warehouse" icon="👤" error={errors.name?.message} {...register('name')} />
-          <Input label="Sub-Company / Unit" placeholder="e.g. Unit 4, Manesar" icon="🏢" error={errors.companyName?.message} {...register('companyName')} />
-          <Input label="Phone Number *" placeholder="10-digit mobile" icon="📱" error={errors.phone?.message} {...register('phone')} />
-          <Input label="Email Address" placeholder="consignee@example.com" icon="📧" error={errors.email?.message} {...register('email')} />
-          <Input label="Delivery Address *" placeholder="Full destination address" icon="🏠" error={errors.address?.message} {...register('address')} />
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2 flex items-center gap-2">
+            <Building2 className="h-3 w-3" /> Identity & Contact
+          </h3>
+          <Input label="Consignee Name *" placeholder="e.g. Maruti Suzuki Warehouse" icon={<User className="h-4 w-4" />} error={errors.name?.message} {...register('name')} />
+          <Input label="Sub-Company / Unit" placeholder="e.g. Unit 4, Manesar" icon={<Building2 className="h-4 w-4" />} error={errors.companyName?.message} {...register('companyName')} />
+          <Input label="Phone Number *" placeholder="10-digit mobile" icon={<Phone className="h-4 w-4" />} error={errors.phone?.message} {...register('phone')} />
+          <Input label="Email Address" placeholder="consignee@example.com" icon={<Mail className="h-4 w-4" />} error={errors.email?.message} {...register('email')} />
+          <Input label="Delivery Address *" placeholder="Full destination address" icon={<Home className="h-4 w-4" />} error={errors.address?.message} {...register('address')} />
         </div>
 
         {/* Logistics & Credit */}
         <div className="space-y-6">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2">🛡️ Logistics & Compliance</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-2 flex items-center gap-2">
+            <ShieldCheck className="h-3 w-3" /> Logistics & Compliance
+          </h3>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="GSTIN" placeholder="15-digit GST" icon="📝" error={errors.gstin?.message} {...register('gstin')} />
-            <Input label="PAN" placeholder="10-digit PAN" icon="💳" error={errors.pan?.message} {...register('pan')} />
+            <Input label="GSTIN" placeholder="15-digit GST" icon={<FileText className="h-4 w-4" />} error={errors.gstin?.message} {...register('gstin')} />
+            <Input label="PAN" placeholder="10-digit PAN" icon={<CreditCard className="h-4 w-4" />} error={errors.pan?.message} {...register('pan')} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Unloading Hours" placeholder="e.g. 9 AM - 6 PM" icon="⏰" error={errors.unloadingHours?.message} {...register('unloadingHours')} />
-            <Input label="Vehicle Restrictions" placeholder="e.g. No 12-wheelers" icon="🚫" error={errors.restrictions?.message} {...register('restrictions')} />
+            <Input label="Unloading Hours" placeholder="e.g. 9 AM - 6 PM" icon={<Clock className="h-4 w-4" />} error={errors.unloadingHours?.message} {...register('unloadingHours')} />
+            <Input label="Vehicle Restrictions" placeholder="e.g. No 12-wheelers" icon={<Ban className="h-4 w-4" />} error={errors.restrictions?.message} {...register('restrictions')} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Input 
               label="Credit Limit (₹)" 
               type="number" 
-              icon="💰" 
+              icon={<IndianRupee className="h-4 w-4" />} 
               error={errors.creditLimit?.message} 
               {...register('creditLimit', { valueAsNumber: true })} 
               onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
@@ -161,7 +170,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
             <Input 
               label="Credit Days" 
               type="number" 
-              icon="📅" 
+              icon={<Calendar className="h-4 w-4" />} 
               error={errors.creditDays?.message} 
               {...register('creditDays', { valueAsNumber: true })} 
               onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
@@ -182,16 +191,18 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
 
             {watch('isMsme') && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <Input label="MSME Registration Number" placeholder="UDYAM-XX-00-0000000" icon="📜" error={errors.msmeRegNo?.message} {...register('msmeRegNo')} />
+                <Input label="MSME Registration Number" placeholder="UDYAM-XX-00-0000000" icon={<Scroll className="h-4 w-4" />} error={errors.msmeRegNo?.message} {...register('msmeRegNo')} />
               </div>
             )}
 
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">📄 Delivery Compliance Documents</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <FileText className="h-3 w-3" /> Delivery Compliance Documents
+            </p>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <label className="group relative flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-100 rounded-2xl hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer">
                   <input type="file" className="hidden" onChange={(e) => setGstFile(e.target.files?.[0] || null)} accept=".pdf,.jpg,.jpeg,.png" />
-                  <span className="text-xl mb-1">{gstFile || initialData?.gstUrl ? '📝' : '📄'}</span>
+                  <div className="text-slate-400 mb-1">{gstFile || initialData?.gstUrl ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <FileText className="h-5 w-5" />}</div>
                   <span className="text-[9px] font-black text-slate-400 group-hover:text-blue-600 uppercase tracking-tighter">GST</span>
                 </label>
                 {(gstFile || initialData?.gstUrl) && (
@@ -202,7 +213,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
                     className="w-full rounded-xl text-[9px] uppercase font-bold"
                     onClick={() => window.open(gstFile ? URL.createObjectURL(gstFile) : initialData?.gstUrl!, '_blank')}
                   >
-                    👁️ View
+                    <Eye className="h-3 w-3 mr-1" /> View
                   </Button>
                 )}
               </div>
@@ -210,7 +221,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
               <div className="space-y-2">
                 <label className="group relative flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-100 rounded-2xl hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer">
                   <input type="file" className="hidden" onChange={(e) => setPanFile(e.target.files?.[0] || null)} accept=".pdf,.jpg,.jpeg,.png" />
-                  <span className="text-xl mb-1">{panFile || initialData?.panUrl ? '💳' : '📄'}</span>
+                  <div className="text-slate-400 mb-1">{panFile || initialData?.panUrl ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <CreditCard className="h-5 w-5" />}</div>
                   <span className="text-[9px] font-black text-slate-400 group-hover:text-blue-600 uppercase tracking-tighter">PAN</span>
                 </label>
                 {(panFile || initialData?.panUrl) && (
@@ -221,7 +232,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
                     className="w-full rounded-xl text-[9px] uppercase font-bold"
                     onClick={() => window.open(panFile ? URL.createObjectURL(panFile) : initialData?.panUrl!, '_blank')}
                   >
-                    👁️ View
+                    <Eye className="h-3 w-3 mr-1" /> View
                   </Button>
                 )}
               </div>
@@ -229,7 +240,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
               <div className="space-y-2">
                 <label className={`group relative flex flex-col items-center justify-center p-4 border-2 border-dashed ${watch('isMsme') ? 'border-blue-100 bg-blue-50/10' : 'border-slate-100'} rounded-2xl hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer`}>
                   <input type="file" className="hidden" onChange={(e) => setMsmeFile(e.target.files?.[0] || null)} accept=".pdf,.jpg,.jpeg,.png" />
-                  <span className="text-xl mb-1">{msmeFile || initialData?.msmeUrl ? '📜' : '📄'}</span>
+                  <div className="text-slate-400 mb-1">{msmeFile || initialData?.msmeUrl ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <Scroll className="h-5 w-5" />}</div>
                   <span className="text-[9px] font-black text-slate-400 group-hover:text-blue-600 uppercase tracking-tighter">MSME</span>
                 </label>
                 {(msmeFile || initialData?.msmeUrl) && (
@@ -240,7 +251,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
                     className="w-full rounded-xl text-[9px] uppercase font-bold"
                     onClick={() => window.open(msmeFile ? URL.createObjectURL(msmeFile) : initialData?.msmeUrl!, '_blank')}
                   >
-                    👁️ View
+                    <Eye className="h-3 w-3 mr-1" /> View
                   </Button>
                 )}
               </div>

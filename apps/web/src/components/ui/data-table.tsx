@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
+import { Inbox, Pencil, Trash2 } from 'lucide-react';
 
 interface Column<T> {
   header: string;
@@ -77,7 +78,7 @@ export function DataTable<T extends { id?: string }>({
               ) : data.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length + 1} className="px-6 py-20 text-center">
-                    <p className="text-4xl mb-4">📭</p>
+                    <Inbox className="h-12 w-12 text-slate-200 mx-auto mb-4" />
                     <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No records found</p>
                   </td>
                 </tr>
@@ -94,12 +95,12 @@ export function DataTable<T extends { id?: string }>({
                         <div className="flex items-center justify-end gap-2">
                           {onEdit && (
                             <Button variant="ghost" size="icon" onClick={() => onEdit(row)} className="h-8 w-8 text-blue-600 hover:bg-blue-50">
-                              ✏️
+                              <Pencil className="h-4 w-4" />
                             </Button>
                           )}
                           {onDelete && (
                             <Button variant="ghost" size="icon" onClick={() => onDelete(row)} className="h-8 w-8 text-red-600 hover:bg-red-50">
-                              🗑️
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
                         </div>

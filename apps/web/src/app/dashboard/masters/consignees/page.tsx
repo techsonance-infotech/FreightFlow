@@ -9,6 +9,7 @@ import { ConsigneeForm } from '@/components/masters/consignee-form';
 import { type Consignee } from '@freightflow/shared';
 import { toast } from 'sonner';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
+import { Building2, Flag, FileText, Pencil, Trash2, ArrowDownToLine, MapPin, CreditCard, Clock, Plus, Paperclip } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function ConsigneesPage() {
@@ -125,7 +126,7 @@ export default function ConsigneesPage() {
       accessor: (row: Consignee) => (
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-lg shadow-sm border border-orange-100">
-            🏢
+            <Building2 className="h-5 w-5 text-orange-600" />
           </div>
           <div>
             <p className="font-black text-slate-900 leading-tight">{row.name}</p>
@@ -140,16 +141,18 @@ export default function ConsigneesPage() {
         <div className="max-w-[200px]">
           <p className="text-[11px] font-black text-slate-700 uppercase tracking-tighter line-clamp-1">{row.address || 'N/A'}</p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100">
-              🕒 {row.unloadingHours || 'No Hours'}
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 border border-slate-100 flex items-center gap-1">
+              <Clock className="h-3 w-3" /> {row.unloadingHours || 'No Hours'}
             </span>
             {row.gstUrl && (
-              <button 
+              <Button 
+                variant="ghost" 
+                size="sm" 
                 onClick={() => window.open(row.gstUrl!, '_blank')}
-                className="text-[10px] text-blue-600 hover:underline font-bold flex items-center gap-1"
+                className="h-7 text-[10px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest px-2"
               >
-                📎 View GST
-              </button>
+                <Paperclip className="mr-1 h-3 w-3" /> View GST
+              </Button>
             )}
           </div>
         </div>
@@ -174,21 +177,21 @@ export default function ConsigneesPage() {
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all text-sm shadow-sm border border-blue-100"
             title="View Ledger"
           >
-            📑
+            <FileText className="h-4 w-4" />
           </button>
           <button 
             onClick={() => { setEditingItem(row); setIsModalOpen(true); }}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-600 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Edit Profile"
           >
-            ✏️
+            <Pencil className="h-4 w-4" />
           </button>
           <button 
             onClick={() => handleDelete(row)}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-red-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Delete Record"
           >
-            🗑️
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       )
@@ -200,7 +203,7 @@ export default function ConsigneesPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">🏁</span>
+            <Flag className="h-8 w-8 text-orange-600" />
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Consignee Master</h1>
           </div>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Receiver Registry, Delivery Points & Compliance</p>
@@ -216,23 +219,23 @@ export default function ConsigneesPage() {
               onClick={() => document.getElementById('bulk-import')?.click()}
               className="rounded-xl border-slate-200 text-blue-600 bg-blue-50/50 hover:bg-blue-600 hover:text-white font-bold text-[10px] uppercase gap-2"
             >
-              📥 Import
+              <ArrowDownToLine className="h-4 w-4" /> Import
             </Button>
             <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">CSV</Button>
             <Button variant="outline" size="sm" onClick={() => handleExport('excel')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">Excel</Button>
             <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="rounded-xl border-slate-200 text-red-600 bg-red-50/30 hover:bg-red-600 hover:text-white font-bold text-[10px] uppercase">PDF</Button>
           </div>
           <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-100 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
-            <span className="text-xl">+</span> Register New Consignee
+            <Plus className="h-5 w-5" /> Register New Consignee
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Receivers', value: total, icon: '🏁', color: 'bg-orange-50', text: 'text-slate-900' },
-          { label: 'Delivery Points', value: data.length, icon: '📍', color: 'bg-blue-50', text: 'text-blue-600' },
-          { label: 'Active Credit Terms', value: data.filter(c => c.creditLimit > 0).length, icon: '💳', color: 'bg-green-50', text: 'text-green-600' },
+          { label: 'Total Receivers', value: total, icon: <Flag className="h-6 w-6 text-orange-600" />, color: 'bg-orange-50', text: 'text-slate-900' },
+          { label: 'Delivery Points', value: data.length, icon: <MapPin className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50', text: 'text-blue-600' },
+          { label: 'Active Credit Terms', value: data.filter(c => c.creditLimit > 0).length, icon: <CreditCard className="h-6 w-6 text-green-600" />, color: 'bg-green-50', text: 'text-green-600' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4">
             <div className={`h-12 w-12 rounded-2xl ${stat.color} flex items-center justify-center text-xl`}>{stat.icon}</div>

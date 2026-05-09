@@ -46,6 +46,11 @@ export async function login(_prevState: unknown, formData: FormData) {
     return { error: 'Your account has been deactivated. Please contact support.' };
   }
 
+  // Check company active status
+  if (user.company && !user.company.isActive) {
+    return { error: 'Your organization has been suspended. Please contact your administrator.' };
+  }
+
   // Extract remember me
   const rememberMe = formData.get('remember_me') === 'on';
 
@@ -57,6 +62,7 @@ export async function login(_prevState: unknown, formData: FormData) {
     email: user.email,
     role: user.role,
     name: user.name,
+    permissions: user.permissions,
   }, rememberMe);
 
   // If no company is set up, redirect to onboarding

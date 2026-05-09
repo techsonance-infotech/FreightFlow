@@ -3,13 +3,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Building2, ShieldCheck, CreditCard, Palette } from 'lucide-react';
+import { User, Building2, ShieldCheck, CreditCard, Palette, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const tabs = [
+    { id: 'organization', label: 'Organization', href: '/dashboard/settings/organization', icon: <Building2 className="h-4 w-4" /> },
+    { id: 'business', label: 'Business Config', href: '/dashboard/settings/business', icon: <Building2 className="h-4 w-4" /> },
+    { id: 'branding', label: 'Branding', href: '/dashboard/settings/branding', icon: <Palette className="h-4 w-4" /> },
+    { id: 'users', label: 'Users & Team', href: '/dashboard/settings/users', icon: <User className="h-4 w-4" /> },
+    { id: 'audit-log', label: 'Audit Trail', href: '/dashboard/settings/audit-log', icon: <ScrollText className="h-4 w-4" /> },
     { id: 'security', label: 'Security', href: '/dashboard/settings/security', icon: <ShieldCheck className="h-4 w-4" /> },
     { id: 'billing', label: 'Billing', href: '/dashboard/settings/billing', icon: <CreditCard className="h-4 w-4" /> },
   ];

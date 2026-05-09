@@ -33,6 +33,7 @@ export async function setSession(
     email: string | null; 
     role: string; 
     name: string; 
+    permissions?: any;
   },
   rememberMe: boolean = false
 ) {

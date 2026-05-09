@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Package, Printer, FileText, Edit, Trash2 } from 'lucide-react';
+import { Package, FileText, Edit, Trash2, Inbox } from 'lucide-react';
 import { format } from 'date-fns';
+import { LRInvoiceDownloader } from '@/components/orders/LRInvoiceDownloader';
 import { cn } from '@/lib/utils';
 
 export function TodayLRWidget() {
@@ -32,8 +33,8 @@ export function TodayLRWidget() {
       {/* Title Area — Labour Registry Style */}
       <div className="p-8 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-xl shadow-sm border border-blue-100">
-            📦
+          <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center shadow-sm border border-blue-100">
+            <Package className="h-5 w-5 text-blue-600" />
           </div>
           <div>
             <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none">Today's Lorry Receipts</h3>
@@ -51,7 +52,7 @@ export function TodayLRWidget() {
               <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Order Date</th>
               <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Total Weight</th>
               <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Receipt</th>
-              <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">LR Print</th>
+              <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">LR PDF</th>
               <th className="pr-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Action</th>
             </tr>
           </thead>
@@ -65,8 +66,10 @@ export function TodayLRWidget() {
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-20 text-center">
-                  <p className="text-3xl mb-4">📭</p>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No LR orders today</p>
+                  <div className="flex flex-col items-center justify-center">
+                    <Inbox className="h-10 w-10 text-slate-200 mb-2" strokeWidth={1.5} />
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No LR orders today</p>
+                  </div>
                 </td>
               </tr>
             ) : data.map((item, i) => (
@@ -76,8 +79,8 @@ export function TodayLRWidget() {
                 </td>
                 <td className="px-4 py-5">
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-xl bg-neutral-100 flex items-center justify-center text-lg shadow-sm border border-neutral-200/50">
-                      📄
+                    <div className="h-9 w-9 rounded-xl bg-neutral-100 flex items-center justify-center shadow-sm border border-neutral-200/50 text-slate-500">
+                      <FileText className="h-4 w-4" />
                     </div>
                     <div>
                       <p className="font-black text-slate-900 text-xs tracking-tighter uppercase">#{item.lrNo}</p>
@@ -95,15 +98,29 @@ export function TodayLRWidget() {
                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Gross Weight</p>
                 </td>
                 <td className="px-4 py-5 text-center">
-                  <button className="h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-colors">🖨️</button>
+                  <LRInvoiceDownloader 
+                    orderId={item.id} 
+                    variant="print" 
+                    className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-colors border-none shadow-none"
+                    label=" "
+                  />
                 </td>
                 <td className="px-4 py-5 text-center">
-                  <button className="h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-colors">📄</button>
+                  <LRInvoiceDownloader 
+                    orderId={item.id} 
+                    variant="receipt" 
+                    className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-colors border-none shadow-none"
+                    label=" "
+                  />
                 </td>
                 <td className="pr-8 py-5">
                   <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all text-xs">✏️</button>
-                    <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-red-200 hover:text-red-600 transition-all text-xs">🗑️</button>
+                    <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all">
+                      <Edit className="h-3.5 w-3.5" />
+                    </button>
+                    <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-red-200 hover:text-red-600 transition-all">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </td>
               </tr>

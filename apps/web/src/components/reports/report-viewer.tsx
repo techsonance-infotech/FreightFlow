@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  Download, Printer, Filter, Search, 
+  Download, Filter, Search, 
   Calendar as CalendarIcon, FileSpreadsheet, FileText, ChevronDown 
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -70,14 +70,6 @@ export function ReportViewer({
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-10 w-10 rounded-xl border-slate-200 hover:bg-slate-50 shadow-sm"
-            onClick={() => window.print()}
-          >
-            <Printer className="h-4 w-4 text-slate-500" />
-          </Button>
         </div>
       </div>
 
