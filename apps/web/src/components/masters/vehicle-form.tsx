@@ -10,6 +10,12 @@ import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { uploadMasterDocument } from '@/app/actions/masters/labour';
+import { 
+  Truck, Factory, Layers, Calendar, Package, Scale, 
+  Feather, Fuel, Gauge, User, IndianRupee, Hash, 
+  Settings, Scroll, Contact, ShieldCheck, Milestone, MapPin,
+  Camera, FileText, CheckCircle2, X
+} from 'lucide-react';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -212,10 +218,10 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
 
         <TabsContent value="general" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input label="Registration Number *" placeholder="e.g. MH01AB1234" icon="🚛" error={errors.regNo?.message} {...register('regNo')} />
-            <Input label="Make *" placeholder="e.g. Tata" icon="🏗️" error={errors.make?.message} {...register('make')} />
-            <Input label="Model *" placeholder="e.g. Signa 4825" icon="📐" error={errors.model?.message} {...register('model')} />
-            <Input label="Year of Mfg" type="number" placeholder="e.g. 2023" icon="📅" error={errors.yom?.message} {...register('yom', { valueAsNumber: true })} />
+            <Input label="Registration Number *" placeholder="e.g. MH01AB1234" icon={<Truck className="h-4 w-4" />} error={errors.regNo?.message} {...register('regNo')} />
+            <Input label="Make *" placeholder="e.g. Tata" icon={<Factory className="h-4 w-4" />} error={errors.make?.message} {...register('make')} />
+            <Input label="Model *" placeholder="e.g. Signa 4825" icon={<Layers className="h-4 w-4" />} error={errors.model?.message} {...register('model')} />
+            <Input label="Year of Mfg" type="number" placeholder="e.g. 2023" icon={<Calendar className="h-4 w-4" />} error={errors.yom?.message} {...register('yom', { valueAsNumber: true })} />
             
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Vehicle Type</label>
@@ -250,9 +256,9 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
 
         <TabsContent value="technical" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input label="Payload Capacity (Kg)" type="number" icon="📦" error={errors.payloadKg?.message} {...register('payloadKg', { valueAsNumber: true })} />
-            <Input label="Gross Vehicle Weight (Kg)" type="number" icon="⚖️" error={errors.gvWKg?.message} {...register('gvWKg', { valueAsNumber: true })} />
-            <Input label="Unladen Weight (Kg)" type="number" icon="🪶" error={errors.unladenWeightKg?.message} {...register('unladenWeightKg', { valueAsNumber: true })} />
+            <Input label="Payload Capacity (Kg)" type="number" icon={<Package className="h-4 w-4" />} error={errors.payloadKg?.message} {...register('payloadKg', { valueAsNumber: true })} />
+            <Input label="Gross Vehicle Weight (Kg)" type="number" icon={<Scale className="h-4 w-4" />} error={errors.gvWKg?.message} {...register('gvWKg', { valueAsNumber: true })} />
+            <Input label="Unladen Weight (Kg)" type="number" icon={<Feather className="h-4 w-4" />} error={errors.unladenWeightKg?.message} {...register('unladenWeightKg', { valueAsNumber: true })} />
             
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Fuel Type</label>
@@ -270,18 +276,18 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
               </Select>
             </div>
 
-            <Input label="Fuel Tank Capacity (L)" type="number" icon="⛽" error={errors.fuelCapacity?.message} {...register('fuelCapacity', { valueAsNumber: true })} />
-            <Input label="Current Odometer (km)" type="number" icon="📟" error={errors.odometer?.message} {...register('odometer', { valueAsNumber: true })} />
+            <Input label="Fuel Tank Capacity (L)" type="number" icon={<Fuel className="h-4 w-4" />} error={errors.fuelCapacity?.message} {...register('fuelCapacity', { valueAsNumber: true })} />
+            <Input label="Current Odometer (km)" type="number" icon={<Gauge className="h-4 w-4" />} error={errors.odometer?.message} {...register('odometer', { valueAsNumber: true })} />
           </div>
         </TabsContent>
 
         <TabsContent value="ownership" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input label="Owner/Leaser Name" placeholder="Full name of legal owner" icon="👤" error={errors.ownerName?.message} {...register('ownerName')} />
-            <Input label="Purchase Date" type="date" icon="📅" error={errors.purchaseDate?.message} {...register('purchaseDate')} />
-            <Input label="Purchase Amount (₹)" type="number" step="0.01" icon="💰" error={errors.purchaseAmount?.message} {...register('purchaseAmount', { valueAsNumber: true })} />
-            <Input label="Chassis Number" placeholder="Chassis No" icon="🔢" error={errors.chassisNo?.message} {...register('chassisNo')} />
-            <Input label="Engine Number" placeholder="Engine No" icon="⚙️" error={errors.engineNo?.message} {...register('engineNo')} />
+            <Input label="Owner/Leaser Name" placeholder="Full name of legal owner" icon={<User className="h-4 w-4" />} error={errors.ownerName?.message} {...register('ownerName')} />
+            <Input label="Purchase Date" type="date" icon={<Calendar className="h-4 w-4" />} error={errors.purchaseDate?.message} {...register('purchaseDate')} />
+            <Input label="Purchase Amount (₹)" type="number" step="0.01" icon={<IndianRupee className="h-4 w-4" />} error={errors.purchaseAmount?.message} {...register('purchaseAmount', { valueAsNumber: true })} />
+            <Input label="Chassis Number" placeholder="Chassis No" icon={<Hash className="h-4 w-4" />} error={errors.chassisNo?.message} {...register('chassisNo')} />
+            <Input label="Engine Number" placeholder="Engine No" icon={<Settings className="h-4 w-4" />} error={errors.engineNo?.message} {...register('engineNo')} />
           </div>
         </TabsContent>
 
@@ -289,13 +295,13 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
           <div className="grid grid-cols-1 gap-8">
             <div className="p-6 rounded-3xl bg-blue-50/30 border border-blue-100 space-y-6">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-2">
-                <span className="text-lg">📜</span> Registration & Insurance
+                <Scroll className="h-4 w-4" /> Registration & Insurance
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input label="RC Number" placeholder="Registration Doc No" icon="🪪" error={errors.rcNo?.message} {...register('rcNo')} />
-                <Input label="Insurance Policy No" placeholder="Policy Number" icon="🛡️" error={errors.insuranceNo?.message} {...register('insuranceNo')} />
-                <Input label="Insurance Expiry" type="date" icon="📅" error={errors.insuranceExpiry?.message} {...register('insuranceExpiry')} />
-                <Input label="Fitness Expiry" type="date" icon="📅" error={errors.fitnessExpiry?.message} {...register('fitnessExpiry')} />
+                <Input label="RC Number" placeholder="Registration Doc No" icon={<Contact className="h-4 w-4" />} error={errors.rcNo?.message} {...register('rcNo')} />
+                <Input label="Insurance Policy No" placeholder="Policy Number" icon={<ShieldCheck className="h-4 w-4" />} error={errors.insuranceNo?.message} {...register('insuranceNo')} />
+                <Input label="Insurance Expiry" type="date" icon={<Calendar className="h-4 w-4" />} error={errors.insuranceExpiry?.message} {...register('insuranceExpiry')} />
+                <Input label="Fitness Expiry" type="date" icon={<Calendar className="h-4 w-4" />} error={errors.fitnessExpiry?.message} {...register('fitnessExpiry')} />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-blue-100/50">
@@ -305,7 +311,7 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
                       rcFile ? 'border-green-300 bg-green-50/30' : 'border-blue-100 hover:border-blue-300'
                     }`}>
                       <div className="flex flex-col items-center text-center">
-                        <span className="text-2xl mb-2 group-hover:scale-110 transition-transform">{rcFile ? '✅' : '📄'}</span>
+                        <div className="text-slate-400 mb-2 group-hover:scale-110 transition-transform">{rcFile ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : <FileText className="h-6 w-6" />}</div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                           {rcFile ? rcFile.name : 'Upload RC Book'}
                         </p>
@@ -328,7 +334,7 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
                   </label>
                   {initialData?.rcUrl && !rcFile && (
                     <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-slate-100">
-                      <p className="text-[9px] font-black uppercase text-green-600 tracking-widest">✅ RC Uploaded</p>
+                      <p className="text-[9px] font-black uppercase text-green-600 tracking-widest flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> RC Uploaded</p>
                       <a href={initialData.rcUrl} target="_blank" rel="noreferrer" className="text-[9px] font-black text-blue-600 underline">VIEW DOC</a>
                     </div>
                   )}
@@ -340,7 +346,7 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
                       insuranceFile ? 'border-green-300 bg-green-50/30' : 'border-blue-100 hover:border-blue-300'
                     }`}>
                       <div className="flex flex-col items-center text-center">
-                        <span className="text-2xl mb-2 group-hover:scale-110 transition-transform">{insuranceFile ? '✅' : '🛡️'}</span>
+                        <div className="text-slate-400 mb-2 group-hover:scale-110 transition-transform">{insuranceFile ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : <ShieldCheck className="h-6 w-6" />}</div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                           {insuranceFile ? insuranceFile.name : 'Upload Policy Doc'}
                         </p>
@@ -363,7 +369,7 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
                   </label>
                   {initialData?.insuranceUrl && !insuranceFile && (
                     <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-slate-100">
-                      <p className="text-[9px] font-black uppercase text-green-600 tracking-widest">✅ Policy Uploaded</p>
+                      <p className="text-[9px] font-black uppercase text-green-600 tracking-widest flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Policy Uploaded</p>
                       <a href={initialData.insuranceUrl} target="_blank" rel="noreferrer" className="text-[9px] font-black text-blue-600 underline">VIEW DOC</a>
                     </div>
                   )}
@@ -390,8 +396,8 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
               </Select>
             </div>
             
-            <Input label="Fastag ID" placeholder="TID/Wallet ID" icon="🛣️" error={errors.fastagNo?.message} {...register('fastagNo')} />
-            <Input label="GPS Provider" placeholder="e.g. Samsara, Fleetio" icon="📍" error={errors.gpsProvider?.message} {...register('gpsProvider')} />
+            <Input label="Fastag ID" placeholder="TID/Wallet ID" icon={<Milestone className="h-4 w-4" />} error={errors.fastagNo?.message} {...register('fastagNo')} />
+            <Input label="GPS Provider" placeholder="e.g. Samsara, Fleetio" icon={<MapPin className="h-4 w-4" />} error={errors.gpsProvider?.message} {...register('gpsProvider')} />
             
             <div className="col-span-full pt-4">
               <label className="cursor-pointer group">
@@ -399,9 +405,9 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
                   vehicleImage ? 'border-blue-300 bg-blue-50/30' : 'border-slate-100 hover:border-blue-300'
                 }`}>
                   <div className="flex flex-col items-center text-center">
-                    <span className="text-3xl mb-3 group-hover:scale-110 transition-transform">
-                      {vehicleImage ? '✅' : '📷'}
-                    </span>
+                    <div className="text-slate-400 mb-3 group-hover:scale-110 transition-transform">
+                      {vehicleImage ? <CheckCircle2 className="h-8 w-8 text-emerald-500" /> : <Camera className="h-8 w-8" />}
+                    </div>
                     <p className="text-xs font-black uppercase tracking-widest text-slate-500">
                       {vehicleImage ? vehicleImage.name : 'Upload Vehicle Photo'}
                     </p>
@@ -430,7 +436,9 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
       </Tabs>
 
       <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-50">
-        <Button type="button" variant="ghost" onClick={onCancel} className="rounded-xl font-bold text-[10px] uppercase">Cancel</Button>
+        <Button variant="ghost" size="icon" onClick={onCancel} className="rounded-xl h-12 w-12 hover:bg-slate-100 text-slate-400">
+          <X className="h-5 w-5" />
+        </Button>
         <Button 
           type="submit" 
           disabled={isSubmitting || uploading}

@@ -22,6 +22,8 @@ export async function POST(
       companyId: user.companyId,
       settledBy: user.id,
       notes: body.notes,
+      demurrage: body.demurrage,
+      extraCharges: body.extraCharges,
     });
 
     return NextResponse.json(settlement, { status: 201 });

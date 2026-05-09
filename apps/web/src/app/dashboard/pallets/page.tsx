@@ -4,13 +4,15 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Plus, Search, Filter, FileText, Edit, Trash2, 
-  Download, Calendar, MapPin, Truck, ChevronDown, ChevronUp, Package, Hash, Info, Box, Printer
+  Download, Calendar, MapPin, Truck, ChevronDown, ChevronUp, Package, Hash, Info, Box,
+  Inbox, Scale, BarChart3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
 
 export default function PalletListPage() {
   const [pallets, setPallets] = useState<any[]>([]);
@@ -73,7 +75,9 @@ export default function PalletListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">📥</span>
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center shadow-sm border border-blue-100 text-blue-600">
+              <Inbox className="h-7 w-7" />
+            </div>
             <h1 className="text-4xl font-black tracking-tight text-slate-900">Pallet Tracking</h1>
           </div>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Inventory & Distribution Control</p>
@@ -93,13 +97,13 @@ export default function PalletListPage() {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Today Records', value: stats.todayCount.toString(), icon: '📥', color: 'bg-blue-50' },
-          { label: 'Total Weight', value: `${(stats.totalWeight / 1000).toFixed(1)} MT`, icon: '⚖️', color: 'bg-amber-50' },
-          { label: 'Total Boxes', value: stats.totalBoxes.toString(), icon: '📦', color: 'bg-emerald-50' },
-          { label: 'This Month', value: stats.monthlyCount.toString(), icon: '📊', color: 'bg-purple-50' },
+          { label: 'Today Records', value: stats.todayCount.toString(), icon: <Inbox className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
+          { label: 'Total Weight', value: `${(stats.totalWeight / 1000).toFixed(1)} MT`, icon: <Scale className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
+          { label: 'Total Boxes', value: stats.totalBoxes.toString(), icon: <Package className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
+          { label: 'This Month', value: stats.monthlyCount.toString(), icon: <BarChart3 className="h-6 w-6 text-purple-600" />, color: 'bg-purple-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md group">
-            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center text-xl transition-transform group-hover:scale-110", stat.color)}>{stat.icon}</div>
+            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", stat.color)}>{stat.icon}</div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
               <p className="text-2xl font-black text-slate-900">{stat.value}</p>
@@ -215,8 +219,8 @@ export default function PalletListPage() {
                       </td>
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-xl shadow-sm transition-transform group-hover:scale-110">
-                            📥
+                          <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 text-slate-400">
+                            <Inbox className="h-5 w-5" />
                           </div>
                           <div>
                             <div className="font-black text-slate-900 tracking-tighter uppercase text-xs">#{pallet.lrNo}</div>
@@ -249,13 +253,21 @@ export default function PalletListPage() {
                       <td className="px-6 py-6 text-right font-black text-slate-900">{pallet.gstPct}%</td>
                       <td className="px-6 py-6" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => window.open(`/api/v1/pallets/${pallet.id}/print`, '_blank')}
-                            className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-black hover:text-white transition-all shadow-sm"
-                          >
-                            🖨️
-                          </button>
-                          <Link href={`/dashboard/pallets/${pallet.id}`} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm"><Edit className="h-4 w-4" /></Link>
+                          <PalletInvoiceDownloader 
+                            palletId={pallet.id} 
+                            lrNo={pallet.lrNo}
+                            variant="invoice"
+                            label="Invoice"
+                            className="h-9 px-3 rounded-xl bg-white border-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white shadow-sm font-black text-[10px] uppercase"
+                          />
+                          <PalletInvoiceDownloader 
+                            palletId={pallet.id} 
+                            lrNo={pallet.lrNo}
+                            variant="receipt"
+                            label="Receipt"
+                            className="h-9 px-3 rounded-xl bg-white border-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white shadow-sm font-black text-[10px] uppercase"
+                          />
+                          <Link href={`/dashboard/pallets/${pallet.id}`} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-amber-600 hover:text-white transition-all shadow-sm"><Edit className="h-4 w-4" /></Link>
                         </div>
                       </td>
                     </tr>
@@ -326,9 +338,22 @@ export default function PalletListPage() {
                                 </div>
                               </div>
                               
-                              <Button onClick={() => window.open(`/api/v1/pallets/${pallet.id}/print`, '_blank')} className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-200">
-                                <Printer className="h-4 w-4 mr-2" /> Print Manifest
-                              </Button>
+                                <div className="flex gap-2">
+                                  <PalletInvoiceDownloader 
+                                    palletId={pallet.id} 
+                                    lrNo={pallet.lrNo}
+                                    variant="receipt"
+                                    label="Challan"
+                                    className="flex-1 h-12 rounded-2xl bg-slate-800 hover:bg-black text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-slate-200"
+                                  />
+                                  <PalletInvoiceDownloader 
+                                    palletId={pallet.id} 
+                                    lrNo={pallet.lrNo}
+                                    variant="invoice"
+                                    label="Invoice"
+                                    className="flex-1 h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-200"
+                                  />
+                                </div>
                             </div>
                           </div>
                         </td>

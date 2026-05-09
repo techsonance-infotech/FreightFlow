@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
+import { 
+  Truck, Settings, Fuel, Building2, FileText, 
+  User, Wrench, Search, ScrollText, Calendar, ArrowRight, X 
+} from 'lucide-react';
 
 interface VehicleHistoryProps {
   vehicle: any;
@@ -84,8 +88,8 @@ export function VehicleHistory({ vehicle, onClose }: VehicleHistoryProps) {
       <div className="p-8 border-b border-slate-50 bg-slate-50/30">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-6">
-            <div className="h-20 w-20 rounded-3xl bg-blue-600 flex items-center justify-center text-4xl shadow-2xl shadow-blue-200">
-              {vehicle.type === 'Trailer' ? '🚛' : '🚚'}
+            <div className="h-20 w-20 rounded-3xl bg-blue-600 flex items-center justify-center shadow-2xl shadow-blue-200 text-white">
+              <Truck className="h-10 w-10" />
             </div>
             <div>
               <div className="flex items-center gap-3">
@@ -98,31 +102,33 @@ export function VehicleHistory({ vehicle, onClose }: VehicleHistoryProps) {
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                  <span className="text-blue-500">⚙️</span> {vehicle.make} {vehicle.model}
+                  <Settings className="h-3 w-3 text-blue-500" /> {vehicle.make} {vehicle.model}
                 </span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                  <span className="text-blue-500">⛽</span> {vehicle.fuelType}
+                  <Fuel className="h-3 w-3 text-blue-500" /> {vehicle.fuelType}
                 </span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                  <span className="text-blue-500">🏢</span> {vehicle.ownership}
+                  <Building2 className="h-3 w-3 text-blue-500" /> {vehicle.ownership}
                 </span>
                 {vehicle.rcUrl && (
                   <a href={vehicle.rcUrl} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors">
-                    <span>📄</span> RC DOC
+                    <FileText className="h-3 w-3" /> RC DOC
                   </a>
                 )}
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl h-12 w-12 hover:bg-slate-100 text-slate-400">✕</Button>
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl h-12 w-12 hover:bg-slate-100 text-slate-400">
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 mt-8">
           {[
-            { id: 'assignments', label: 'Assignment History', icon: '👤' },
-            { id: 'fuel', label: 'Fuel Logs', icon: '⛽' },
-            { id: 'maintenance', label: 'Maintenance Hub', icon: '🛠️' }
+            { id: 'assignments', label: 'Assignment History', icon: <User className="h-4 w-4" /> },
+            { id: 'fuel', label: 'Fuel Logs', icon: <Fuel className="h-4 w-4" /> },
+            { id: 'maintenance', label: 'Maintenance Hub', icon: <Wrench className="h-4 w-4" /> }
           ].map(tab => (
             <button
               key={tab.id}
@@ -150,7 +156,7 @@ export function VehicleHistory({ vehicle, onClose }: VehicleHistoryProps) {
                   value={search} 
                   onChange={(e) => setSearch(e.target.value)} 
                   className="w-64 bg-white border-slate-200 h-11 rounded-xl shadow-sm"
-                  icon="🔍"
+                  icon={<Search className="h-4 w-4" />}
                 />
                 <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
                   <input 
@@ -159,7 +165,7 @@ export function VehicleHistory({ vehicle, onClose }: VehicleHistoryProps) {
                     onChange={(e) => setFromDate(e.target.value)}
                     className="bg-transparent border-none text-[10px] font-black uppercase p-2 outline-none"
                   />
-                  <span className="text-slate-300 font-black">→</span>
+                  <ArrowRight className="h-3 w-3 text-slate-300" />
                   <input 
                     type="date" 
                     value={toDate} 
@@ -194,7 +200,7 @@ export function VehicleHistory({ vehicle, onClose }: VehicleHistoryProps) {
                     <tr>
                       <td colSpan={4} className="px-6 py-24 text-center">
                         <div className="flex flex-col items-center opacity-40">
-                          <span className="text-4xl mb-4">📜</span>
+                          <ScrollText className="h-10 w-10 mb-4" />
                           <p className="text-xs font-black uppercase tracking-widest">No Assignment History</p>
                         </div>
                       </td>
@@ -208,7 +214,9 @@ export function VehicleHistory({ vehicle, onClose }: VehicleHistoryProps) {
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs shadow-inner">👤</div>
+                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shadow-inner">
+                              <User className="h-4 w-4" />
+                            </div>
                             <div>
                               <p className="text-sm font-black text-slate-900">{a.labour?.name || 'Unknown'}</p>
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{a.labour?.phone || '-'}</p>
@@ -260,7 +268,7 @@ export function VehicleHistory({ vehicle, onClose }: VehicleHistoryProps) {
 
         {activeTab === 'fuel' && (
           <div className="flex flex-col items-center justify-center p-20 text-center animate-in fade-in slide-in-from-bottom-4">
-            <span className="text-5xl mb-6">⛽</span>
+            <Fuel className="h-12 w-12 mb-6 text-slate-200" />
             <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Fuel Log Integration</h3>
             <p className="text-sm text-slate-400 mt-2 font-medium max-w-xs">Detailed fuel consumption and efficiency analysis for {vehicle.regNo} will be displayed here.</p>
           </div>
@@ -268,7 +276,7 @@ export function VehicleHistory({ vehicle, onClose }: VehicleHistoryProps) {
 
         {activeTab === 'maintenance' && (
           <div className="flex flex-col items-center justify-center p-20 text-center animate-in fade-in slide-in-from-bottom-4">
-            <span className="text-5xl mb-6">🛠️</span>
+            <Wrench className="h-12 w-12 mb-6 text-slate-200" />
             <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Maintenance History</h3>
             <p className="text-sm text-slate-400 mt-2 font-medium max-w-xs">Full service records, breakdowns and repair costs for {vehicle.regNo} will be visible here.</p>
           </div>

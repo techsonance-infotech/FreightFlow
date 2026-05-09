@@ -11,6 +11,7 @@ import { type Product } from '@freightflow/shared';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
+import { Package, CheckCircle2, IndianRupee, Search, Plus } from 'lucide-react';
 
 export default function ProductsPage() {
   const [data, setData] = useState<Product[]>([]);
@@ -88,7 +89,7 @@ export default function ProductsPage() {
             {row.imageUrl ? (
               <img src={row.imageUrl} alt={row.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-lg">📦</span>
+              <Package className="h-5 w-5 text-slate-400" />
             )}
           </div>
           <div>
@@ -134,9 +135,9 @@ export default function ProductsPage() {
   ];
 
   const stats = [
-    { label: 'Total Products', value: total, icon: '📦', color: 'bg-blue-500' },
-    { label: 'Active', value: data.filter(p => p.isActive).length, icon: '✅', color: 'bg-green-500' },
-    { label: 'Tax Rates', value: new Set(data.map(p => p.gstRate)).size, icon: '💰', color: 'bg-orange-500' },
+    { label: 'Total Products', value: total, icon: <Package className="h-6 w-6 text-blue-600" />, color: 'bg-blue-500' },
+    { label: 'Active', value: data.filter(p => p.isActive).length, icon: <CheckCircle2 className="h-6 w-6 text-green-600" />, color: 'bg-green-500' },
+    { label: 'Tax Rates', value: new Set(data.map(p => p.gstRate)).size, icon: <IndianRupee className="h-6 w-6 text-orange-600" />, color: 'bg-orange-500' },
   ];
 
   return (
@@ -144,7 +145,7 @@ export default function ProductsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">📦</span>
+            <Package className="h-8 w-8 text-blue-600" />
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Product Master</h1>
           </div>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Goods Registry, HSN Codes & Tax Segments</p>
@@ -157,16 +158,16 @@ export default function ProductsPage() {
             <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="rounded-xl border-slate-200 text-red-600 bg-red-50/30 hover:bg-red-600 hover:text-white font-bold text-[10px] uppercase">PDF</Button>
           </div>
           <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-100 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
-            <span className="text-xl">+</span> Add Product
+            <Plus className="h-5 w-5" /> Add Product
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Products', value: total, icon: '📦', color: 'bg-blue-500' },
-          { label: 'Active', value: data.filter(p => p.isActive).length, icon: '✅', color: 'bg-green-500' },
-          { label: 'Tax Rates', value: new Set(data.map(p => p.gstRate)).size, icon: '💰', color: 'bg-orange-500' },
+          { label: 'Total Products', value: total, icon: <Package className="h-6 w-6 text-blue-600" />, color: 'bg-blue-500' },
+          { label: 'Active', value: data.filter(p => p.isActive).length, icon: <CheckCircle2 className="h-6 w-6 text-green-600" />, color: 'bg-green-500' },
+          { label: 'Tax Rates', value: new Set(data.map(p => p.gstRate)).size, icon: <IndianRupee className="h-6 w-6 text-orange-600" />, color: 'bg-orange-500' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
             <div className={`w-12 h-12 rounded-2xl ${stat.color} bg-opacity-10 flex items-center justify-center text-xl`}>
@@ -192,7 +193,9 @@ export default function ProductsPage() {
 
         <TabsContent value="registry" className="space-y-6 outline-none">
           <div className="group bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 transition-all duration-300 focus-within:border-blue-500 focus-within:ring-8 focus-within:ring-blue-500/5">
-            <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-2xl transition-colors group-focus-within:bg-blue-50 group-focus-within:text-blue-500 shrink-0">🔍</div>
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-2xl transition-colors group-focus-within:bg-blue-50 group-focus-within:text-blue-500 shrink-0">
+              <Search className="h-6 w-6" />
+            </div>
             <input 
               placeholder="Search by name, HSN code or category..." 
               value={search} 

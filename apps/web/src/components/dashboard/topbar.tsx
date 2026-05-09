@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
   Bell, Settings, User as UserIcon, LogOut, 
-  Menu, Sun, Moon, Search, ChevronDown, ShieldCheck
+  Menu, Sun, Moon, Search, ChevronDown, ShieldCheck,
+  MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompanySwitcher } from './company-switcher';
@@ -114,6 +115,9 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
                   </Link>
                   <Link href="/dashboard/settings/organization" onClick={() => setIsProfileOpen(false)}>
                     <DropdownItem icon={<Settings className="h-4 w-4" />} label="Org Settings" desc="Company & Billing" />
+                  </Link>
+                  <Link href="/dashboard/support" onClick={() => setIsProfileOpen(false)}>
+                    <DropdownItem icon={<MessageSquare className="h-4 w-4 text-blue-500" />} label="Help & Support" desc="Chat with our team" />
                   </Link>
                 </div>
                 

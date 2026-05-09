@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Landmark, Calendar, CreditCard, Hash, FileText, Users, Percent, Loader2 } from 'lucide-react';
+import { Landmark, Calendar, CreditCard, Hash, FileText, Users, Percent, Loader2, ArrowUpRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BillModalProps {
@@ -293,7 +293,7 @@ export function BillModal({ isOpen, onClose, onSuccess }: BillModalProps) {
                 target="_blank" 
                 className="text-[9px] font-bold text-accent-600 hover:underline flex items-center gap-1"
               >
-                Manage Categories ↗
+                Manage Categories <ArrowUpRight className="h-2 w-2" />
               </a>
             </div>
             <div className="relative">
@@ -323,7 +323,7 @@ export function BillModal({ isOpen, onClose, onSuccess }: BillModalProps) {
               target="_blank" 
               className="text-[9px] font-bold text-accent-600 hover:underline flex items-center gap-1"
             >
-              Manage Ledgers ↗
+              Manage Ledgers <ArrowUpRight className="h-2 w-2" />
             </a>
           </div>
           <div className="relative group">
@@ -488,7 +488,7 @@ export function BillModal({ isOpen, onClose, onSuccess }: BillModalProps) {
                     onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
                     className="absolute -top-1 -right-1 h-4 w-4 bg-rose-500 text-white rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    ×
+                    <X className="h-2 w-2" />
                   </button>
                 </div>
               ))}

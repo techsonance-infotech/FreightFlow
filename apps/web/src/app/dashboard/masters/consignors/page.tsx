@@ -9,6 +9,7 @@ import { ConsignorForm } from '@/components/masters/consignor-form';
 import { type Consignor } from '@freightflow/shared';
 import { toast } from 'sonner';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
+import { Building2, ShieldCheck, CreditCard, Paperclip, FileText, Pencil, Trash2, ArrowDownToLine, Plus } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function ConsignorsPage() {
@@ -126,7 +127,7 @@ export default function ConsignorsPage() {
       accessor: (row: Consignor) => (
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-lg shadow-sm border border-slate-100">
-            🏢
+            <Building2 className="h-5 w-5 text-slate-400" />
           </div>
           <div>
             <p className="font-black text-slate-900 leading-tight">{row.name}</p>
@@ -142,7 +143,7 @@ export default function ConsignorsPage() {
           <p className="text-[11px] font-black text-slate-700">GST: <span className="font-mono">{row.gstin || 'N/A'}</span></p>
           <div className="flex items-center gap-2">
             {row.isMsme && <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-600 uppercase tracking-wider border border-purple-100">MSME</span>}
-            {row.gstUrl && <span title="GST Copy Available" className="text-blue-500">📎</span>}
+            {row.gstUrl && <span title="GST Copy Available" className="text-blue-500"><Paperclip className="h-3 w-3" /></span>}
           </div>
         </div>
       )
@@ -175,21 +176,21 @@ export default function ConsignorsPage() {
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all text-sm shadow-sm border border-blue-100"
             title="View Ledger"
           >
-            📑
+            <FileText className="h-4 w-4" />
           </button>
           <button 
             onClick={() => { setEditingItem(row); setIsModalOpen(true); }}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-blue-600 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Edit Profile"
           >
-            ✏️
+            <Pencil className="h-4 w-4" />
           </button>
           <button 
             onClick={() => handleDelete(row)}
             className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-red-500 hover:text-white transition-all text-sm shadow-sm border border-slate-100"
             title="Delete Record"
           >
-            🗑️
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       )
@@ -201,7 +202,7 @@ export default function ConsignorsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">🏗️</span>
+            <Building2 className="h-8 w-8 text-blue-600" />
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Consignor Master</h1>
           </div>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Shipper Database, Credit Control & Compliance</p>
@@ -217,23 +218,23 @@ export default function ConsignorsPage() {
               onClick={() => document.getElementById('bulk-import')?.click()}
               className="rounded-xl border-slate-200 text-blue-600 bg-blue-50/50 hover:bg-blue-600 hover:text-white font-bold text-[10px] uppercase gap-2"
             >
-              📥 Import
+              <ArrowDownToLine className="h-4 w-4" /> Import
             </Button>
             <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">CSV</Button>
             <Button variant="outline" size="sm" onClick={() => handleExport('excel')} className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">Excel</Button>
             <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="rounded-xl border-slate-200 text-red-600 bg-red-50/30 hover:bg-red-600 hover:text-white font-bold text-[10px] uppercase">PDF</Button>
           </div>
           <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-100 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
-            <span className="text-xl">+</span> Register New Consignor
+            <Plus className="h-5 w-5" /> Register New Consignor
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Shippers', value: total, icon: '🏛️', color: 'bg-blue-50', text: 'text-slate-900' },
-          { label: 'MSME Partners', value: data.filter(c => c.isMsme).length, icon: '🛡️', color: 'bg-purple-50', text: 'text-purple-600' },
-          { label: 'Avg Credit Limit', value: `₹${(data.reduce((acc, c) => acc + c.creditLimit, 0) / (data.length || 1)).toLocaleString()}`, icon: '💳', color: 'bg-green-50', text: 'text-green-600' },
+          { label: 'Total Shippers', value: total, icon: <Building2 className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50', text: 'text-slate-900' },
+          { label: 'MSME Partners', value: data.filter(c => c.isMsme).length, icon: <ShieldCheck className="h-6 w-6 text-purple-600" />, color: 'bg-purple-50', text: 'text-purple-600' },
+          { label: 'Avg Credit Limit', value: `₹${(data.reduce((acc, c) => acc + c.creditLimit, 0) / (data.length || 1)).toLocaleString()}`, icon: <CreditCard className="h-6 w-6 text-green-600" />, color: 'bg-green-50', text: 'text-green-600' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4">
             <div className={`h-12 w-12 rounded-2xl ${stat.color} flex items-center justify-center text-xl`}>{stat.icon}</div>

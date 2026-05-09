@@ -1,8 +1,8 @@
 {
-  "name": "freightflow-pro",
+  "name": "freightflow",
   "version": "0.1.0",
   "private": true,
-  "description": "FreightFlow Pro — Multi-Tenant SaaS Transport Management Platform",
+  "description": "FreightFlow — Multi-Tenant SaaS Transport Management Platform",
   "scripts": {
     "postinstall": "prisma generate --schema=packages/db/prisma/schema.prisma",
     "dev": "dotenv -e .env -- turbo dev",

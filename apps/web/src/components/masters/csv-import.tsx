@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { FileDown } from 'lucide-react';
 
 interface CSVImportProps {
   entity: string;
@@ -11,6 +12,7 @@ interface CSVImportProps {
 
 export function CSVImport({ entity, onSuccess }: CSVImportProps) {
   const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -44,13 +46,23 @@ export function CSVImport({ entity, onSuccess }: CSVImportProps) {
     <div className="relative">
       <input
         type="file"
+        ref={fileInputRef}
         accept=".csv"
         onChange={handleFileUpload}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+        className="hidden"
         disabled={importing}
       />
-      <Button variant="outline" size="sm" loading={importing}>
-        📥 Import CSV
+      <Button 
+        onClick={() => fileInputRef.current?.click()} 
+        disabled={importing}
+        className="h-14 px-8 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-100 flex items-center gap-2"
+      >
+        {importing ? (
+          <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          <FileDown className="h-4 w-4" />
+        )}
+        {importing ? 'Importing...' : 'Import CSV'}
       </Button>
     </div>
   );

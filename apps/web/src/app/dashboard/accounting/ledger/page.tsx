@@ -3,6 +3,7 @@
 import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { BarChart4 } from 'lucide-react';
 
 function LedgerContent() {
   const searchParams = useSearchParams();
@@ -28,8 +29,8 @@ function LedgerContent() {
       </div>
 
       <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-12 flex flex-col items-center justify-center text-center space-y-6">
-        <div className="h-24 w-24 rounded-full bg-blue-50 flex items-center justify-center text-4xl shadow-inner animate-pulse">
-          📊
+        <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 shadow-sm">
+          <BarChart4 className="h-6 w-6 text-blue-600" />
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-black text-slate-900">Ledger View Coming Soon</h2>

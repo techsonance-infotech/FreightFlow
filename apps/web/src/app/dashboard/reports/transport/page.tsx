@@ -26,6 +26,7 @@ import {
   Pagination
 } from '@/components/reports/report-components';
 import { Input } from '@/components/ui/input';
+import { exportToPDF } from '@/lib/export-utils';
 
 export default function TransportReportsPage() {
   const [activeTab, setActiveTab] = useState('vehicle');
@@ -147,8 +148,81 @@ export default function TransportReportsPage() {
           </div>
           <Button 
             onClick={() => {
-              const reportName = `FreightFlow_MIS_${activeTab}_${startDate}_to_${endDate}`;
-              window.print(); // Fallback to print if no dedicated export service
+              const filename = `FreightFlow_MIS_${activeTab}_${startDate}_to_${endDate}`;
+              const title = `Transport MIS: ${activeTab.toUpperCase()} Analysis`;
+              
+              let headers: string[] = [];
+              let data: any[][] = [];
+
+              if (activeTab === 'vehicle') {
+                headers = ['Vehicle', 'Revenue', 'Fuel Cost', 'Maint Cost', 'Net Profit', 'Margin %'];
+                data = vehicleData.map(v => [
+                  v.vehicleNumber,
+                  (v.revenue / 100).toFixed(2),
+                  (v.fuelCost / 100).toFixed(2),
+                  (v.maintCost / 100).toFixed(2),
+                  (v.netProfit / 100).toFixed(2),
+                  `${v.margin?.toFixed(1)}%`
+                ]);
+              } else if (activeTab === 'route') {
+                headers = ['Route Corridors', 'Trips', 'Agg. Revenue', 'Avg Yield'];
+                data = routeData.map(r => [
+                  r.route || `${r.from} to ${r.to}`,
+                  r.orderCount,
+                  (r.revenue / 100).toFixed(2),
+                  (r.avgRevenue / 100).toFixed(2)
+                ]);
+              } else if (activeTab === 'dealer') {
+                headers = ['Customer Entity', 'Trips', 'Total Revenue', 'Avg Yield'];
+                data = dealerData.map(d => [
+                  d.name,
+                  d.trips,
+                  (d.revenue / 100).toFixed(2),
+                  (d.avgYield / 100).toFixed(2)
+                ]);
+              } else if (activeTab === 'driver') {
+                headers = ['Fleet Captain', 'Trips', 'Total Expenses', 'Avg / Trip'];
+                data = driverData.map(d => [
+                  d.name,
+                  d.trips,
+                  (d.totalExpenses / 100).toFixed(2),
+                  (d.avgExpensePerTrip / 100).toFixed(2)
+                ]);
+              } else if (activeTab === 'lr') {
+                headers = ['LR No', 'Date', 'Customer', 'Origin', 'Destination', 'Freight Value'];
+                data = lrData.map(lr => [
+                  lr.orderNo,
+                  format(new Date(lr.date), 'dd MMM yyyy'),
+                  lr.dealer?.name,
+                  lr.fromLocation,
+                  lr.toLocation,
+                  (lr.totalAmount / 100).toFixed(2)
+                ]);
+              } else if (activeTab === 'fuel') {
+                headers = ['Date', 'Vehicle', 'Qty (L)', 'Pump', 'Efficiency (KMPL)'];
+                data = fuelData?.transactions?.map((t: any) => [
+                  format(new Date(t.date), 'dd MMM yyyy'),
+                  t.vehicleNumber,
+                  t.quantity,
+                  t.pumpName,
+                  t.kmpl || '0.0'
+                ]) || [];
+              } else if (activeTab === 'category') {
+                headers = ['Market Segment', 'Volume', 'Agg. Revenue', 'Avg Unit Value'];
+                data = categoryData.map(c => [
+                  c.category,
+                  c.count,
+                  (c.revenue / 100).toFixed(2),
+                  (c.avgValue / 100).toFixed(2)
+                ]);
+              }
+
+              if (data.length > 0) {
+                exportToPDF(headers, data, filename, title);
+                toast.success('Professional MIS Report Exported');
+              } else {
+                toast.error('No data available to export');
+              }
             }}
             className="h-11 px-6 bg-accent-600 hover:bg-accent-700 text-white shadow-lg shadow-accent-600/20 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-95"
           >

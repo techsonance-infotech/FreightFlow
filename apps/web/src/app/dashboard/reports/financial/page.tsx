@@ -24,6 +24,7 @@ import {
   ReportContainer,
   Pagination
 } from '@/components/reports/report-components';
+import { exportToPDF } from '@/lib/export-utils';
 
 export default function FinancialReportsPage() {
   const [activeTab, setActiveTab] = useState('pl');
@@ -141,8 +142,64 @@ export default function FinancialReportsPage() {
           </div>
           <Button 
             onClick={() => {
-              const reportName = `FreightFlow_Audit_${activeTab}_${startDate}_to_${endDate}`;
-              window.print();
+              const filename = `FreightFlow_Audit_${activeTab}_${startDate}_to_${endDate}`;
+              const title = `Financial Intelligence: ${activeTab.toUpperCase()} Report`;
+              
+              let headers: string[] = [];
+              let data: any[][] = [];
+
+              if (activeTab === 'pl') {
+                headers = ['Account Identification', 'Category', 'Closing Balance'];
+                data = plData?.details?.map((item: any) => [
+                  item.accountName,
+                  item.category,
+                  (item.balance / 100).toFixed(2)
+                ]) || [];
+              } else if (activeTab === 'dealer-pl') {
+                headers = ['Trading Entity', 'LR Volume', 'Gross Inflow'];
+                data = dealerPlData.map((d: any) => [
+                  d.name,
+                  d.trips,
+                  (d.revenue / 100).toFixed(2)
+                ]);
+              } else if (activeTab === 'category-pl') {
+                headers = ['Market Cluster', 'LR Volume', 'Total Revenue'];
+                data = categoryPlData.map((c: any) => [
+                  c.category,
+                  c.count,
+                  (c.revenue / 100).toFixed(2)
+                ]);
+              } else if (activeTab === 'bs') {
+                headers = ['Fiscal Classification', 'Asset / Liability Pool', 'Net Value'];
+                const assetData = bsData?.assets?.items?.map((item: any) => ['ASSET', item.accountName, (item.balance / 100).toFixed(2)]) || [];
+                const liabilityData = bsData?.liabilities?.items?.map((item: any) => ['LIABILITY', item.accountName, (item.balance / 100).toFixed(2)]) || [];
+                const equityData = bsData?.equity?.items?.map((item: any) => ['EQUITY', item.accountName, (item.balance / 100).toFixed(2)]) || [];
+                data = [...assetData, ...liabilityData, ...equityData];
+              } else if (activeTab === 'ageing') {
+                headers = ['Trading Entity', '0-30D', '31-60D', '61-90D', '90D+', 'Total Due'];
+                data = ageingData.map((row: any) => [
+                  row.name,
+                  (row.buckets['0-30'] / 100).toFixed(2),
+                  (row.buckets['31-60'] / 100).toFixed(2),
+                  (row.buckets['61-90'] / 100).toFixed(2),
+                  (row.buckets['90+'] / 100).toFixed(2),
+                  (row.total / 100).toFixed(2)
+                ]);
+              } else if (activeTab === 'tb') {
+                headers = ['Account Identification', 'Debit Balance', 'Credit Balance'];
+                data = tbData.map((row: any) => [
+                  row.accountName,
+                  (row.debit / 100).toFixed(2),
+                  (row.credit / 100).toFixed(2)
+                ]);
+              }
+
+              if (data.length > 0) {
+                exportToPDF(headers, data, filename, title);
+                toast.success('Professional Audit File Generated');
+              } else {
+                toast.error('No data available to export');
+              }
             }}
             className="h-11 px-6 bg-accent-600 hover:bg-accent-700 text-white shadow-lg shadow-accent-600/20 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-95"
           >

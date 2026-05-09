@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { IndianRupee, Calendar, MessageSquare } from 'lucide-react';
 
 interface LabourExpenseModalProps {
   labourId: string;
@@ -86,7 +87,7 @@ export function LabourExpenseModal({ labourId, initialData, onSuccess, onCancel 
           label="Amount (₹) *" 
           type="number" 
           step="0.01" 
-          icon="💰" 
+          icon={<IndianRupee className="h-4 w-4" />} 
           error={(errors.amount as any)?.message} 
           {...register('amount', { valueAsNumber: true })} 
         />
@@ -94,7 +95,7 @@ export function LabourExpenseModal({ labourId, initialData, onSuccess, onCancel 
         <Input 
           label="Date *" 
           type="date" 
-          icon="📅" 
+          icon={<Calendar className="h-4 w-4" />} 
           error={(errors.date as any)?.message} 
           {...register('date')} 
         />
@@ -118,7 +119,7 @@ export function LabourExpenseModal({ labourId, initialData, onSuccess, onCancel 
           <Input 
             label="Message / Remarks *" 
             placeholder="e.g. Advance for personal emergency" 
-            icon="💬" 
+            icon={<MessageSquare className="h-4 w-4" />} 
             error={(errors.message as any)?.message} 
             {...register('message')} 
           />

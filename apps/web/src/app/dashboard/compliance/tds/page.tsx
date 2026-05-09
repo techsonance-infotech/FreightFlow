@@ -5,7 +5,7 @@ import {
   FileText, Landmark, Download, RefreshCcw, 
   Search, Calendar, Filter, Users, ChevronRight,
   Package, Layers, Calculator, ShieldCheck,
-  Plus, ArrowRight, Printer, FileSpreadsheet,
+  Plus, ArrowRight, FileSpreadsheet,
   ChevronLeft, LayoutGrid, CheckCircle2, ShieldAlert,
   Info, FileCheck
 } from 'lucide-react';

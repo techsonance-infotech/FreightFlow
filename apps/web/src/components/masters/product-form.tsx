@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { QuickAddModal } from './quick-add-modal';
 import { ProductCategoryForm } from './product-category-form';
 import { ProductUnitForm } from './product-unit-form';
+import { Package, Hash, Image as ImageIcon } from 'lucide-react';
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
@@ -127,7 +128,7 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="col-span-full">
-          <Input label="Product Name *" placeholder="e.g. Ultratech Cement 50kg" icon="📦" error={errors.name?.message as any} {...register('name')} />
+          <Input label="Product Name *" placeholder="e.g. Ultratech Cement 50kg" icon={<Package className="h-4 w-4" />} error={errors.name?.message as any} {...register('name')} />
         </div>
 
         <div className="space-y-1.5">
@@ -184,7 +185,7 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
           {errors.unitId && <p className="text-[10px] font-bold text-red-500 px-1">{errors.unitId.message as string}</p>}
         </div>
 
-        <Input label="HSN Code *" placeholder="e.g. 2523" icon="🔢" error={errors.hsnCode?.message as any} {...register('hsnCode')} />
+        <Input label="HSN Code *" placeholder="e.g. 2523" icon={<Hash className="h-4 w-4" />} error={errors.hsnCode?.message as any} {...register('hsnCode')} />
         
         <div className="space-y-1.5">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">GST Rate (%) *</label>
@@ -251,7 +252,7 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 block mb-2">Product Image</label>
           <div className="flex items-center gap-4">
             <label className="flex-1 flex items-center justify-center gap-2 px-4 py-8 border-2 border-dashed border-slate-100 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
-              <span className="text-2xl">🖼️</span>
+              <ImageIcon className="h-6 w-6 text-slate-400" />
               <div className="text-left">
                 <p className="text-sm font-black text-slate-900">{productImage ? productImage.name : 'Select Image'}</p>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">PNG, JPG up to 5MB</p>

@@ -5,7 +5,8 @@ import { ModuleGrid, ModuleCard } from '@/components/dashboard/widgets';
 import { 
   ShieldCheck, Calculator, AlertCircle, FileText, 
   TrendingUp, BarChart3, Clock, Zap, Landmark,
-  ChevronRight, ArrowRight, Download, RefreshCcw
+  ChevronRight, ArrowRight, Download, RefreshCcw,
+  Scissors
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -229,35 +230,35 @@ export default function ComplianceHubPage() {
           <ModuleCard 
             title="GSTR-1 Preparation" 
             description="Outward supply reporting and JSON generation" 
-            icon="📊" 
+            icon={<BarChart3 className="h-6 w-6" />} 
             path="/dashboard/compliance/gst/gstr1" 
             color="#1565C0" 
           />
           <ModuleCard 
             title="GSTR-3B Summary" 
             description="Net tax liability calculation (Sales vs ITC)" 
-            icon="🧮" 
+            icon={<Calculator className="h-6 w-6" />} 
             path="/dashboard/compliance/gst/gstr3b" 
             color="#2E7D32" 
           />
           <ModuleCard 
             title="e-Invoice Management" 
             description="IRN generation and QR code tracking" 
-            icon="🧾" 
+            icon={<FileText className="h-6 w-6" />} 
             path="/dashboard/compliance/gst/einvoice" 
             color="#1E88E5" 
           />
           <ModuleCard 
             title="TDS Management" 
             description="Quarterly deductions, Form 26Q and challans" 
-            icon="✂️" 
+            icon={<Scissors className="h-6 w-6" />} 
             path="/dashboard/compliance/tds" 
             color="#C62828" 
           />
           <ModuleCard 
             title="GSTR-2A Recon" 
             description="Reconcile books with portal data to safeguard ITC" 
-            icon="🛡️" 
+            icon={<ShieldCheck className="h-6 w-6" />} 
             path="/dashboard/compliance/gst/gstr2a" 
             color="#6A1B9A" 
           />

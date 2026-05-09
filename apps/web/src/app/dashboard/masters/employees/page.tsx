@@ -190,7 +190,7 @@ export default function EmployeesMasterPage() {
                 <tr>
                   <td colSpan={5} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-4 opacity-40">
-                      <span className="text-4xl">👥</span>
+                      <Users className="h-12 w-12 text-slate-400" />
                       <p className="text-xs font-black uppercase tracking-widest text-slate-900">No Employee Records Found</p>
                     </div>
                   </td>

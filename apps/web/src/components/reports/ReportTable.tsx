@@ -3,6 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Inbox } from 'lucide-react';
 
 interface Column {
   header: string;
@@ -58,8 +59,8 @@ export default function ReportTable({
             <tr>
               <td colSpan={columns.length} className="px-6 py-20 text-center">
                 <div className="flex flex-col items-center">
-                  <div className="h-16 w-16 bg-neutral-50 rounded-2xl flex items-center justify-center mb-4 text-2xl">
-                    📪
+                  <div className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner mb-4">
+                    <Inbox className="h-8 w-8 text-slate-300" />
                   </div>
                   <p className="text-sm font-black text-neutral-900 uppercase tracking-widest">{emptyMessage}</p>
                   <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Adjust filters or create a new entry</p>

@@ -7,7 +7,7 @@ interface StatCardProps {
   label: string;
   value: string | number;
   subValue?: string;
-  icon: string;
+  icon: React.ReactNode;
   trend?: {
     value: string;
     isUp: boolean;
@@ -47,7 +47,7 @@ export function StatCard({ label, value, subValue, icon, trend, color, bg }: Sta
           )}
         </div>
         <div 
-          className="flex h-14 w-14 items-center justify-center rounded-2xl text-3xl shadow-inner transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
+          className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl shadow-inner transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
           style={{ background: bg }}
         >
           {icon}
@@ -63,7 +63,7 @@ export function StatCard({ label, value, subValue, icon, trend, color, bg }: Sta
   );
 }
 
-export function RecentActivity({ title, icon, children }: { title: string, icon: string, children: React.ReactNode }) {
+export function RecentActivity({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-white shadow-sm border border-slate-100 overflow-hidden">
       <div className="flex items-center justify-between border-b border-slate-50 px-6 py-5 bg-slate-50/30">
@@ -90,14 +90,14 @@ export function ModuleGrid({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ModuleCard({ title, description, icon, path, color }: { title: string, description: string, icon: string, path: string, color: string }) {
+export function ModuleCard({ title, description, icon, path, color }: { title: string, description: string, icon: React.ReactNode, path: string, color: string }) {
   return (
     <a 
       href={path}
       className="group flex flex-col p-6 rounded-2xl bg-white border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-blue-200 hover:-translate-y-1"
     >
       <div 
-        className="h-12 w-12 rounded-xl flex items-center justify-center text-2xl mb-4 shadow-sm group-hover:scale-110 transition-transform duration-300"
+        className="h-12 w-12 rounded-xl flex items-center justify-center text-xl mb-4 shadow-sm group-hover:scale-110 transition-transform duration-300"
         style={{ backgroundColor: `${color}15`, color: color }}
       >
         {icon}

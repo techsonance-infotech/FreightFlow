@@ -82,6 +82,8 @@ export class TripEngine {
     companyId: string;
     settledBy: string;
     notes?: string;
+    demurrage?: number;
+    extraCharges?: number;
   }) {
     return await prisma.$transaction(async (tx) => {
       const trip = await tx.trip.findUnique({
@@ -93,7 +95,13 @@ export class TripEngine {
       if (trip.status === 'settled') throw new Error('Trip already settled');
 
       const totalExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
-      const balance = trip.advanceAmount - totalExpenses;
+      const demurrage = params.demurrage || 0;
+      const extraCharges = params.extraCharges || 0;
+      
+      // Balance = Advance - (Expenses + Demurrage + ExtraCharges)
+      // Actually, Demurrage is often a REVENUE or a PAYABLE depending on context.
+      // In this context, let's assume these are additional EXPENSES or ADJUSTMENTS for the driver/vehicle.
+      const balance = trip.advanceAmount - (totalExpenses + demurrage + extraCharges);
       const settlementType = balance >= 0 ? 'refund' : 'additional_payment';
 
       const settlement = await tx.tripSettlement.create({
@@ -103,6 +111,8 @@ export class TripEngine {
           tripId: params.tripId,
           advanceAmount: trip.advanceAmount,
           totalExpenses,
+          demurrage,
+          extraCharges,
           balance,
           settlementType,
           settledBy: params.settledBy,

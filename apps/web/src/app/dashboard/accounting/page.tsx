@@ -15,7 +15,8 @@ import {
   TrendingUp, TrendingDown, Wallet, ArrowUpRight, 
   ArrowDownLeft, Clock, ShieldCheck, AlertCircle,
   Landmark, CreditCard, Receipt, FileText, Settings2,
-  ChevronRight, ArrowRight, Activity
+  ChevronRight, ArrowRight, Activity, Folders, FileEdit,
+  ArrowDownToLine, ArrowUpFromLine, Banknote, Scale
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -283,42 +284,42 @@ export default function AccountingHubPage() {
           <ModuleCard 
             title="Chart of Accounts" 
             description="Manage your GL structure, groups and accounts" 
-            icon="🗂️" 
+            icon={<Folders className="h-6 w-6" />} 
             path="/dashboard/accounting/coa" 
             color="#1565C0" 
           />
           <ModuleCard 
             title="Journal Vouchers" 
             description="Create and review double-entry journal entries" 
-            icon="📝" 
+            icon={<FileEdit className="h-6 w-6" />} 
             path="/dashboard/accounting/vouchers" 
             color="#1E88E5" 
           />
           <ModuleCard 
             title="Accounts Receivable" 
             description="Track customer dues, ageing and collections" 
-            icon="📥" 
+            icon={<ArrowDownToLine className="h-6 w-6" />} 
             path="/dashboard/accounting/ar" 
             color="#2E7D32" 
           />
           <ModuleCard 
             title="Accounts Payable" 
             description="Manage vendor bills, payments and TDS" 
-            icon="📤" 
+            icon={<ArrowUpFromLine className="h-6 w-6" />} 
             path="/dashboard/accounting/ap" 
             color="#E65100" 
           />
           <ModuleCard 
             title="Bank Reconciliation" 
             description="Auto-match bank statements with system ledgers" 
-            icon="🏦" 
+            icon={<Banknote className="h-6 w-6" />} 
             path="/dashboard/accounting/bank" 
             color="#0277BD" 
           />
           <ModuleCard 
             title="Tax & Compliance" 
             description="GST preparation, e-Invoicing and statutory returns" 
-            icon="⚖️" 
+            icon={<Scale className="h-6 w-6" />} 
             path="/dashboard/compliance" 
             color="#7B1FA2" 
           />

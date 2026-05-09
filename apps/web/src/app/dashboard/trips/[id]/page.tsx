@@ -6,15 +6,16 @@ import {
   Truck, User, MapPin, Calendar, Clock, 
   Package, Receipt, Calculator, TrendingUp,
   Plus, CheckCircle2, AlertCircle, ArrowLeft,
-  DollarSign, FileText, Download, Printer,
+  DollarSign, FileText, Download,
   ChevronRight, ArrowRight, Loader2, XCircle,
-  ArrowUpRight, Ban
+  ArrowUpRight, Ban, Fuel, Milestone, Wrench, IndianRupee, ShieldAlert, FileEdit
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { FreightInvoiceModal } from '@/components/accounting/freight-invoice-modal';
 import { VALID_STATUS_TRANSITIONS } from '@freightflow/shared';
+import { generateTripPDF } from '@/lib/pdf/trip-pdf';
+import { cn } from '@/lib/utils';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -23,7 +24,9 @@ export default function TripDetailPage() {
   const [trip, setTrip] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showSettleModal, setShowSettleModal] = useState(false);
   const [expenseData, setExpenseData] = useState({ type: 'fuel', amount: 0, description: '' });
+  const [settleData, setSettleData] = useState({ demurrage: 0, extraCharges: 0, notes: '' });
   
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -68,9 +71,15 @@ export default function TripDetailPage() {
       const res = await fetch(`/api/v1/trips/${id}/settle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...settleData,
+          demurrage: settleData.demurrage * 100, // to paise
+          extraCharges: settleData.extraCharges * 100, // to paise
+        }),
       });
       if (!res.ok) throw new Error('Failed to settle trip');
       toast.success('Trip settled successfully');
+      setShowSettleModal(false);
       fetchTrip();
     } catch (error: any) {
       toast.error(error.message);
@@ -122,11 +131,28 @@ export default function TripDetailPage() {
   };
 
   const getExpenseIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      fuel: '⛽', toll: '🛣️', repair: '🔧', driver_allowance: '💰',
-      police_rto: '🚔', loading: '📦', unloading: '📦', other: '📝',
+    const icons: Record<string, React.ReactNode> = {
+      fuel: <Fuel className="h-5 w-5" />,
+      toll: <Milestone className="h-5 w-5" />,
+      repair: <Wrench className="h-5 w-5" />,
+      driver_allowance: <IndianRupee className="h-5 w-5" />,
+      police_rto: <ShieldAlert className="h-5 w-5" />,
+      loading: <Package className="h-5 w-5" />,
+      unloading: <Package className="h-5 w-5" />,
+      other: <FileEdit className="h-5 w-5" />,
     };
-    return icons[type] || '📝';
+    return icons[type] || <FileEdit className="h-5 w-5" />;
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const configRes = await fetch('/api/v1/companies/branding');
+      const config = await configRes.json();
+      await generateTripPDF(trip, config.data);
+      toast.success('PDF Generated');
+    } catch (err) {
+      toast.error('Failed to generate PDF');
+    }
   };
   if (loading) return <div className="p-20 text-center animate-pulse font-black uppercase text-slate-400 tracking-widest">Synchronizing Mission Data...</div>;
   if (!trip) return <div className="p-20 text-center font-bold text-red-500">Mission Not Found.</div>;
@@ -169,8 +195,8 @@ export default function TripDetailPage() {
           </div>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-5 py-2.5 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest">
-            <Printer className="h-4 w-4" /> Print Trip
+          <button onClick={handleDownloadPDF} className="flex items-center gap-2 px-5 py-2.5 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest">
+            <Download className="h-4 w-4 text-blue-600" /> Download PDF
           </button>
           {/* Status transition buttons */}
           {trip.status !== 'settled' && trip.status !== 'cancelled' && (
@@ -184,7 +210,7 @@ export default function TripDetailPage() {
                 </button>
               ))}
               {trip.status === 'delivered' && (
-                <button onClick={handleSettle} disabled={transitioning}
+                <button onClick={() => setShowSettleModal(true)} disabled={transitioning}
                   className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-black shadow-lg shadow-green-600/20 text-[10px] uppercase tracking-widest disabled:opacity-50">
                   <CheckCircle2 className="h-4 w-4" /> Settle Trip
                 </button>
@@ -475,7 +501,7 @@ export default function TripDetailPage() {
                   ) : (
                     <div className="mt-12 flex justify-end">
                       <button 
-                        onClick={handleSettle}
+                        onClick={() => setShowSettleModal(true)}
                         className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
                       >
                         Execute Settlement
@@ -658,6 +684,85 @@ export default function TripDetailPage() {
                 Confirm
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Settle Modal */}
+      {showSettleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-2xl p-10 shadow-2xl relative overflow-hidden">
+            <div className="relative z-10">
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-8 flex items-center gap-3">
+                <div className="p-2 bg-green-50 rounded-xl text-green-600"><Calculator className="h-5 w-5" /></div>
+                Mission Settlement Audit
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Demurrage Charges (₹)</label>
+                  <input 
+                    type="number" 
+                    value={settleData.demurrage || ''}
+                    onChange={(e) => setSettleData({...settleData, demurrage: parseInt(e.target.value) || 0})}
+                    placeholder="Loading/Unloading delay"
+                    className="w-full px-5 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700"
+                  />
+                  <p className="text-[9px] text-slate-400 italic">Added to driver/vehicle mission cost</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Extra Charges (₹)</label>
+                  <input 
+                    type="number" 
+                    value={settleData.extraCharges || ''}
+                    onChange={(e) => setSettleData({...settleData, extraCharges: parseInt(e.target.value) || 0})}
+                    placeholder="Tolls, Fine, etc."
+                    className="w-full px-5 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-10">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Final Audit Notes</label>
+                <textarea 
+                  value={settleData.notes}
+                  onChange={(e) => setSettleData({...settleData, notes: e.target.value})}
+                  placeholder="Record any discrepancies or remarks for the accountant..."
+                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-medium text-slate-700 min-h-[100px]"
+                />
+              </div>
+
+              <div className="p-8 bg-slate-50 rounded-3xl mb-8 space-y-4">
+                 <div className="flex justify-between text-xs font-bold text-slate-500">
+                   <span>Advance Disbursed</span>
+                   <span>{formatCurrency(trip.advanceAmount)}</span>
+                 </div>
+                 <div className="flex justify-between text-xs font-bold text-red-500">
+                   <span>Total Mission Expenses</span>
+                   <span>-{formatCurrency(trip.expenses?.reduce((sum: number, e: any) => sum + e.amount, 0) || 0)}</span>
+                 </div>
+                 <div className="flex justify-between text-xs font-bold text-red-500">
+                   <span>Demurrage & Extra</span>
+                   <span>-{formatCurrency((settleData.demurrage + settleData.extraCharges) * 100)}</span>
+                 </div>
+                 <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
+                   <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Net Settlement</span>
+                   <span className="text-2xl font-black text-blue-600">
+                     {formatCurrency(
+                        trip.advanceAmount - 
+                        (trip.expenses?.reduce((sum: number, e: any) => sum + e.amount, 0) || 0) -
+                        ((settleData.demurrage + settleData.extraCharges) * 100)
+                     )}
+                   </span>
+                 </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button onClick={() => setShowSettleModal(false)} className="flex-1 px-4 py-4 border-2 border-slate-100 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Discard</button>
+                <button onClick={handleSettle} className="flex-2 px-10 py-4 bg-green-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-green-700 transition-all shadow-xl shadow-green-600/20 active:scale-95">Finalize Mission Audit</button>
+              </div>
+            </div>
+            <div className="absolute right-0 top-0 h-32 w-32 bg-green-600/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           </div>
         </div>
       )}

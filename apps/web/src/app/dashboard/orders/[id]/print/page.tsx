@@ -3,12 +3,30 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { format } from 'date-fns';
-import { Printer, Download, ArrowLeft } from 'lucide-react';
+import { Download, ArrowLeft, Loader2 } from 'lucide-react';
+import { generateLRPrintPDF } from '@/lib/pdf/lr-print';
+import { toast } from 'sonner';
 
 export default function LRPrintPage() {
   const { id } = useParams();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      const configRes = await fetch('/api/v1/companies/branding');
+      const config = await configRes.json();
+      const doc = await generateLRPrintPDF(order, config.data);
+      doc.save(`LR_${order.lrNo}_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      toast.success('LR PDF Generated');
+    } catch (err) {
+      toast.error('Failed to generate PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -36,27 +54,26 @@ export default function LRPrintPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/50 p-8 print:p-0 print:bg-white">
+    <div className="min-h-screen bg-muted/50 p-8">
       {/* Control Bar - Hidden during print */}
-      <div className="max-w-4xl mx-auto mb-6 flex justify-between items-center print:hidden">
+      <div className="max-w-4xl mx-auto mb-6 flex justify-between items-center">
         <button onClick={() => window.history.back()} className="flex items-center gap-2 text-sm font-medium hover:underline">
           <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </button>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-white hover:bg-muted transition-all text-sm font-medium">
-            <Download className="h-4 w-4" /> Download PDF
-          </button>
           <button 
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all font-semibold shadow-lg shadow-primary/20"
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold shadow-lg shadow-blue-600/20 disabled:opacity-50"
           >
-            <Printer className="h-4 w-4" /> Print LR
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Download Professional PDF
           </button>
         </div>
       </div>
 
       {/* LR Document */}
-      <div className="max-w-4xl mx-auto bg-white border border-black shadow-2xl print:shadow-none print:border-none p-8 font-serif text-black">
+      <div className="max-w-4xl mx-auto bg-white border border-black shadow-2xl p-8 font-serif text-black">
         {/* Header */}
         <div className="flex justify-between items-start border-b-2 border-black pb-6">
           <div className="space-y-1">

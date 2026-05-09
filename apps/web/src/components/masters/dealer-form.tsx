@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { uploadMasterDocument } from '@/app/actions/masters/labour';
+import { FileText, CreditCard, Banknote, CheckCircle2, Eye } from 'lucide-react';
 
 interface DealerFormProps {
   initialData?: Partial<Dealer>;
@@ -172,17 +173,21 @@ export const DealerForm: React.FC<DealerFormProps> = ({ initialData, onSuccess, 
           <Input label="Primary Operating Routes" placeholder="e.g. Mumbai - Delhi, Gujarat" error={errors.primaryRoutes?.message} {...register('primaryRoutes')} />
           
           <div className="space-y-4 pt-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">📄 Documents Vault</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <FileText className="h-3 w-3" /> Documents Vault
+            </p>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'GST', file: gstFile, setFile: setGstFile, url: initialData?.gstUrl, icon: '📝' },
-                { label: 'PAN', file: panFile, setFile: setPanFile, url: initialData?.panUrl, icon: '💳' },
-                { label: 'Bank', file: bankFile, setFile: setBankFile, url: initialData?.bankProofUrl, icon: '🏦' },
+                { label: 'GST', file: gstFile, setFile: setGstFile, url: initialData?.gstUrl, icon: <FileText className="h-5 w-5" /> },
+                { label: 'PAN', file: panFile, setFile: setPanFile, url: initialData?.panUrl, icon: <CreditCard className="h-5 w-5" /> },
+                { label: 'Bank', file: bankFile, setFile: setBankFile, url: initialData?.bankProofUrl, icon: <Banknote className="h-5 w-5" /> },
               ].map((doc, i) => (
                 <div key={i} className="space-y-2">
                   <label className="group relative flex flex-col items-center justify-center p-3 border-2 border-dashed border-slate-100 rounded-2xl hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer">
                     <input type="file" className="hidden" onChange={(e) => doc.setFile(e.target.files?.[0] || null)} accept=".pdf,image/*" />
-                    <span className="text-xl mb-1">{doc.file || doc.url ? '✅' : doc.icon}</span>
+                    <div className="text-slate-400 mb-1">
+                      {doc.file || doc.url ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : doc.icon}
+                    </div>
                     <span className="text-[9px] font-black text-slate-400 group-hover:text-blue-600 uppercase tracking-tighter">{doc.label} Copy</span>
                   </label>
                   {(doc.file || doc.url) && (
@@ -193,7 +198,7 @@ export const DealerForm: React.FC<DealerFormProps> = ({ initialData, onSuccess, 
                       className="w-full text-[9px] font-bold text-blue-600"
                       onClick={() => window.open(doc.file ? URL.createObjectURL(doc.file) : doc.url!, '_blank')}
                     >
-                      👁️ VIEW
+                    <Eye className="h-3 w-3 mr-1" /> VIEW
                     </Button>
                   )}
                 </div>

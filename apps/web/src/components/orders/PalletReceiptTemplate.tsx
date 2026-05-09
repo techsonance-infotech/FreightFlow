@@ -14,7 +14,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
   const primaryColor = company?.primaryColor || '#3b82f6';
 
   return (
-    <div className="bg-white p-8 border-2 border-slate-900 text-slate-900 font-sans leading-tight print:border-none print:p-0 min-h-[500px] flex flex-col relative overflow-hidden">
+    <div className="bg-white p-8 border-2 border-slate-900 text-slate-900 font-sans leading-tight min-h-[500px] flex flex-col relative overflow-hidden">
       
       {/* Watermark */}
       {company?.enableWatermark && (
@@ -174,7 +174,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
 
         {/* Global Footer Tag */}
         <div className="pt-6 border-t border-slate-100 flex justify-between items-center opacity-30">
-          <p className="text-[8px] font-black uppercase tracking-[0.4em]">FreightFlow Pro Logistics Engine</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.4em]">FreightFlow Logistics Engine</p>
           <p className="text-[8px] font-black uppercase">System Generated Manifest - {new Date().toISOString()}</p>
         </div>
       </div>

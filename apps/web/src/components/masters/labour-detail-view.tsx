@@ -10,6 +10,12 @@ import { LabourExpenseModal } from '@/components/masters/labour-expense-modal';
 
 import { AttendanceTab } from '@/components/masters/labour-attendance-tab';
 import { PayrollTab } from '@/components/masters/labour-payroll-tab';
+import { 
+  User, Phone, IndianRupee, Fingerprint, 
+  FileText, ScrollText, Calendar, Banknote, 
+  Search, ArrowRight, Smartphone, Landmark,
+  Pencil, Trash2, CheckCircle2, X
+} from 'lucide-react';
 
 interface LabourDetailViewProps {
   labour: any;
@@ -91,8 +97,8 @@ export function LabourDetailView({ labour, onClose }: LabourDetailViewProps) {
       <div className="p-8 border-b border-slate-50 bg-slate-50/30">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-6">
-            <div className="h-20 w-20 rounded-3xl bg-blue-600 flex items-center justify-center text-4xl shadow-2xl shadow-blue-200">
-              👤
+            <div className="h-20 w-20 rounded-3xl bg-blue-600 flex items-center justify-center shadow-2xl shadow-blue-200 text-white">
+              <User className="h-10 w-10" />
             </div>
             <div>
               <div className="flex items-center gap-3">
@@ -105,38 +111,40 @@ export function LabourDetailView({ labour, onClose }: LabourDetailViewProps) {
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                  <span className="text-blue-500">📱</span> {labour.phone || 'N/A'}
+                  <Phone className="h-3 w-3 text-blue-500" /> {labour.phone || 'N/A'}
                 </span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                  <span className="text-blue-500">💰</span> ₹{(labour.salary / 100).toLocaleString()}/mo
+                  <IndianRupee className="h-3 w-3 text-blue-500" /> ₹{(labour.salary / 100).toLocaleString()}/mo
                 </span>
                 {labour.aadharNo && (
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100">
-                    <span className="text-blue-500">🆔</span> {labour.aadharNo}
+                    <Fingerprint className="h-3 w-3 text-blue-500" /> {labour.aadharNo}
                   </span>
                 )}
                 {labour.aadharUrl && (
                   <a href={labour.aadharUrl} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors">
-                    <span>📄</span> Aadhar Doc
+                    <FileText className="h-3 w-3" /> Aadhar Doc
                   </a>
                 )}
                 {labour.panUrl && (
                   <a href={labour.panUrl} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors">
-                    <span>📄</span> PAN Doc
+                    <FileText className="h-3 w-3" /> PAN Doc
                   </a>
                 )}
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl h-12 w-12 hover:bg-slate-100 text-slate-400">✕</Button>
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-xl h-12 w-12 hover:bg-slate-100 text-slate-400">
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 mt-8">
           {[
-            { id: 'ledger', label: 'Transaction Ledger', icon: '📜' },
-            { id: 'attendance', label: 'Attendance', icon: '📅' },
-            { id: 'payroll', label: 'Payroll & Settlement', icon: '🏦' }
+            { id: 'ledger', label: 'Transaction Ledger', icon: <ScrollText className="h-4 w-4" /> },
+            { id: 'attendance', label: 'Attendance', icon: <Calendar className="h-4 w-4" /> },
+            { id: 'payroll', label: 'Payroll & Settlement', icon: <Banknote className="h-4 w-4" /> }
           ].map(tab => (
             <button
               key={tab.id}
@@ -164,7 +172,7 @@ export function LabourDetailView({ labour, onClose }: LabourDetailViewProps) {
                   value={search} 
                   onChange={(e) => setSearch(e.target.value)} 
                   className="w-64 bg-white border-slate-200 h-11 rounded-xl shadow-sm"
-                  icon="🔍"
+                  icon={<Search className="h-4 w-4" />}
                 />
                 <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
                   <input 
@@ -173,7 +181,7 @@ export function LabourDetailView({ labour, onClose }: LabourDetailViewProps) {
                     onChange={(e) => setFromDate(e.target.value)}
                     className="bg-transparent border-none text-[10px] font-black uppercase p-2 outline-none"
                   />
-                  <span className="text-slate-300 font-black">→</span>
+                  <ArrowRight className="h-3 w-3 text-slate-300" />
                   <input 
                     type="date" 
                     value={toDate} 
@@ -209,7 +217,7 @@ export function LabourDetailView({ labour, onClose }: LabourDetailViewProps) {
                     <tr>
                       <td colSpan={5} className="px-6 py-24 text-center">
                         <div className="flex flex-col items-center opacity-40">
-                          <span className="text-4xl mb-4">📜</span>
+                          <ScrollText className="h-10 w-10 mb-4" />
                           <p className="text-xs font-black uppercase tracking-widest">Empty Ledger</p>
                         </div>
                       </td>
@@ -234,7 +242,7 @@ export function LabourDetailView({ labour, onClose }: LabourDetailViewProps) {
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm">{e.paymentMode === 'Cash' ? '💵' : e.paymentMode === 'Bank' ? '🏦' : '📱'}</span>
+                            <span className="text-slate-400">{e.paymentMode === 'Cash' ? <Banknote className="h-4 w-4" /> : e.paymentMode === 'Bank' ? <Landmark className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}</span>
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{e.paymentMode}</span>
                           </div>
                         </td>
@@ -245,8 +253,8 @@ export function LabourDetailView({ labour, onClose }: LabourDetailViewProps) {
                         </td>
                         <td className="px-6 py-5 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => setEditingExpense(e)} className="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white transition-all text-xs shadow-sm">✏️</button>
-                            <button onClick={() => handleDeleteExpense(e.id)} className="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-red-500 hover:text-white transition-all text-xs shadow-sm">🗑️</button>
+                            <button onClick={() => setEditingExpense(e)} className="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white transition-all text-xs shadow-sm text-slate-400"><Pencil className="h-3 w-3" /></button>
+                            <button onClick={() => handleDeleteExpense(e.id)} className="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-red-500 hover:text-white transition-all text-xs shadow-sm text-slate-400"><Trash2 className="h-3 w-3" /></button>
                           </div>
                         </td>
                       </tr>

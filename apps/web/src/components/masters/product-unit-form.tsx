@@ -7,6 +7,7 @@ import { ProductUnitSchema, type ProductUnit } from '@freightflow/shared';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Ruler, Scale } from 'lucide-react';
 
 interface ProductUnitFormProps {
   onSuccess: (data: ProductUnit) => void;
@@ -37,7 +38,9 @@ export function ProductUnitForm({ onSuccess, onCancel }: ProductUnitFormProps) {
   return (
     <div className="space-y-8">
       <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100/50 flex items-center gap-3">
-        <span className="text-xl">📏</span>
+        <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100">
+          <Ruler className="h-5 w-5 text-blue-600" />
+        </div>
         <p className="text-[11px] font-bold text-orange-700 uppercase tracking-wider">Define standard units of measurement for your inventory (e.g., BOX, KG, MT).</p>
       </div>
 
@@ -45,7 +48,7 @@ export function ProductUnitForm({ onSuccess, onCancel }: ProductUnitFormProps) {
         <Input 
           label="Unit Name *" 
           placeholder="e.g. Metric Ton, Kilogram" 
-          icon="⚖️" 
+          icon={<Scale className="h-4 w-4" />} 
           error={errors.name?.message} 
           {...register('name')} 
         />

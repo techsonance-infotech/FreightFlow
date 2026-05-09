@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { decrypt, updateSession } from '@/lib/auth-utils';
+import { findNavItemByPath, hasPermission } from '@/config/rbac';
 import { redis, CACHE_KEYS, type CachedLicense } from '@/lib/redis';
 
 // Define which routes require which modules
@@ -54,7 +55,34 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/super-admin');
 
-  // 1. Not logged in -> Redirect to Login for protected pages
+  const isAdminPage = pathname.startsWith('/admin') || pathname.startsWith('/super-admin');
+  const isAdminAuthPage = pathname === '/admin/login';
+
+  // 1. Admin Session Check
+  const adminToken = request.cookies.get('ff_admin_session')?.value;
+  const adminSession = adminToken ? await decrypt(adminToken) : null;
+
+  // Protect /admin routes
+  if (isAdminPage && !isAdminAuthPage) {
+    if (!adminSession || !['super_admin', 'platform_admin'].includes(adminSession.role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/login';
+      url.searchParams.set('redirectTo', pathname);
+      
+      const response = NextResponse.redirect(url);
+      if (adminToken) response.cookies.delete('ff_admin_session');
+      return response;
+    }
+  }
+
+  // Redirect logged-in admin away from login page
+  if (adminSession && isAdminAuthPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin/dashboard';
+    return NextResponse.redirect(url);
+  }
+
+  // 2. Not logged in -> Redirect to Login for protected pages
   if (!user && (isDashboardPage || isOnboardingPage)) {
     // Exception for verify-email as it might be accessed via link
     if (!isVerifyEmailPage) {
@@ -71,7 +99,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 2. Logged in -> Redirect away from Auth pages (Persistent Session)
+  // 3. Logged in -> Redirect away from Auth pages (Persistent Session)
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = (user.role === 'super_admin' || user.companyId) ? '/dashboard' : '/onboarding';
@@ -109,7 +137,7 @@ export async function proxy(request: NextRequest) {
       if (redis) {
         try {
           const cachedLicense = await redis.get<CachedLicense>(CACHE_KEYS.TENANT_LICENSE(tenantId));
-          if (cachedLicense && !cachedLicense.isActive && pathname !== '/dashboard/settings/billing') {
+          if (cachedLicense && !cachedLicense.isActive && pathname !== '/dashboard/settings/billing' && pathname !== '/dashboard/support') {
             const url = request.nextUrl.clone();
             url.pathname = '/dashboard/settings/billing';
             url.searchParams.set('error', 'license_expired');
@@ -139,16 +167,28 @@ export async function proxy(request: NextRequest) {
         }
       }
 
-      // RBAC Check
-      const requiredRoles = Object.entries(ROLE_REQUIREMENTS).find(([route]) =>
-        pathname.startsWith(route)
-      )?.[1];
-
-      if (requiredRoles && role && !requiredRoles.includes(role)) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/dashboard';
-        url.searchParams.set('error', 'unauthorized_role');
-        return NextResponse.redirect(url);
+      // RBAC Check (Dynamic based on NAV_ITEMS)
+      const navItem = findNavItemByPath(pathname);
+      
+      if (navItem) {
+        if (!hasPermission(role, navItem, user.permissions)) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/dashboard';
+          url.searchParams.set('error', 'unauthorized_access');
+          return NextResponse.redirect(url);
+        }
+      } else {
+        // Fallback for paths not explicitly in NAV_ITEMS but requiring protection
+        const requiredRoles = Object.entries(ROLE_REQUIREMENTS).find(([route]) =>
+          pathname.startsWith(route)
+        )?.[1];
+  
+        if (requiredRoles && role && !requiredRoles.includes(role)) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/dashboard';
+          url.searchParams.set('error', 'unauthorized_role');
+          return NextResponse.redirect(url);
+        }
       }
     }
   }
@@ -160,6 +200,10 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
   }
+
+  // Inject current path for Server Components
+  response.headers.set('x-url', request.url);
+  response.headers.set('x-pathname', pathname);
 
   return response;
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ModuleGrid, ModuleCard } from '@/components/dashboard/widgets';
+import { Truck, IndianRupee, ClipboardList, TrendingUp } from 'lucide-react';
 
 export default function ReportsHubPage() {
   return (
@@ -13,21 +14,21 @@ export default function ReportsHubPage() {
         <ModuleCard 
           title="Transport Analytics" 
           description="Trip efficiency, route profitability and fleet stats" 
-          icon="🚛" 
+          icon={<Truck className="h-6 w-6" />} 
           path="/dashboard/reports/transport" 
           color="#1565C0" 
         />
         <ModuleCard 
           title="Financial Reports" 
           description="P&L, Balance Sheet, Ageing and GST Registers" 
-          icon="💰" 
+          icon={<IndianRupee className="h-6 w-6" />} 
           path="/dashboard/reports/financial" 
           color="#2E7D32" 
         />
         <ModuleCard 
           title="LR Register" 
           description="Detailed log of all Lorry Receipts generated" 
-          icon="📋" 
+          icon={<ClipboardList className="h-6 w-6" />} 
           path="/api/v1/reports/lr-register" 
           color="#E65100" 
         />
@@ -43,7 +44,7 @@ export default function ReportsHubPage() {
             </p>
           </div>
           <div className="absolute right-[-20px] bottom-[-20px] opacity-10 rotate-12 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-0">
-             <span className="text-[120px]">📈</span>
+             <TrendingUp className="h-32 w-32" />
           </div>
         </div>
       </div>
