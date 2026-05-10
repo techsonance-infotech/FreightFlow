@@ -27,7 +27,18 @@ export const NAV_ITEMS: NavGroup[] = [
     group: 'Operations',
     items: [
       { id: 'orders', label: 'Lorry Receipts (LR)', icon: 'box', path: '/dashboard/orders', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'], category: 'operations' },
-      { id: 'pallets', label: 'Pallet Tracking', icon: 'inbox', path: '/dashboard/pallets', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'], category: 'operations' },
+      { 
+        id: 'pallets', 
+        label: 'Pallet Tracking', 
+        icon: 'inbox', 
+        path: '/dashboard/pallets', 
+        allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'], 
+        category: 'operations',
+        subItems: [
+          { id: 'pallets-outward', label: 'Outward Load', icon: 'outbox', path: '/dashboard/pallets', allowedRoles: ['tenant_owner', 'ops_manager', 'dispatch_officer'] },
+          { id: 'pallets-return', label: 'Pallet Returns', icon: 'trending', path: '/dashboard/pallets/returns', allowedRoles: ['tenant_owner', 'ops_manager', 'dispatch_officer'] },
+        ]
+      },
       { 
         id: 'trips', 
         label: 'Trip Management', 

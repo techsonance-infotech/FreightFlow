@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
+    const type = searchParams.get('type');
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -28,6 +29,10 @@ export async function GET(request: Request) {
 
     if (status) {
       where.status = status;
+    }
+
+    if (type) {
+      where.type = type;
     }
 
     if (search) {
@@ -115,19 +120,29 @@ export async function POST(request: Request) {
         igstAmount: body.igstAmount || 0,
         totalAmount: body.totalAmount || 0,
         gstPct: validatedData.gstPct,
+        type: validatedData.type,
         status: validatedData.status,
-        palletDetails: {
-          create: validatedData.palletDetails.map((d) => ({
+        palletDetails: validatedData.type === 'OUTWARD' ? {
+          create: (validatedData.palletDetails || []).map((d) => ({
             companyId: user.companyId!,
             palletDisplayId: d.palletDisplayId,
             consigneeName: d.consigneeName,
             qty: d.qty,
             rate: d.rate,
           })),
-        },
+        } : undefined,
+        consigneeDetails: validatedData.type === 'RETURN' ? {
+          create: (validatedData.consigneeDetails || []).map((d) => ({
+            companyId: user.companyId!,
+            consigneeName: d.consigneeName,
+            qty: d.qty,
+            rate: d.rate,
+          })),
+        } : undefined,
       },
       include: {
         palletDetails: true,
+        consigneeDetails: true,
       },
     });
 
