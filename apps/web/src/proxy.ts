@@ -38,7 +38,13 @@ const ROLE_REQUIREMENTS: Record<string, string[]> = {
 };
 
 export async function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  const { pathname } = request.nextUrl;
+
+  // Skip middleware logic for Server Action requests to prevent fetch failures
+  if (request.headers.has('next-action')) {
+    return NextResponse.next();
+  }
+
   const sessionToken = request.cookies.get('session')?.value;
   const session = sessionToken ? await decrypt(sessionToken) : null;
   const user = session?.user;
@@ -133,38 +139,34 @@ export async function proxy(request: NextRequest) {
     const { tenantId, role } = user;
 
     if (tenantId) {
-      // License Check via Redis
-      if (redis) {
-        try {
-          const cachedLicense = await redis.get<CachedLicense>(CACHE_KEYS.TENANT_LICENSE(tenantId));
-          if (cachedLicense && !cachedLicense.isActive && pathname !== '/dashboard/settings/billing' && pathname !== '/dashboard/support') {
-            const url = request.nextUrl.clone();
-            url.pathname = '/dashboard/settings/billing';
-            url.searchParams.set('error', 'license_expired');
-            return NextResponse.redirect(url);
-          }
-        } catch (e) {
-          // Ignore Redis errors, fallback to allowing
-        }
-      }
-
-      // Module Check via Redis
+      // Parallelize external checks (Redis)
       const requiredModule = Object.entries(MODULE_REQUIREMENTS).find(([route]) =>
         pathname.startsWith(route)
       )?.[1];
 
-      if (requiredModule && redis) {
-        try {
-          const cached = await redis.get<{ enabledModules: string[] }>(CACHE_KEYS.TENANT_MODULES(tenantId));
-          if (cached && !cached.enabledModules.includes(requiredModule)) {
-            const url = request.nextUrl.clone();
-            url.pathname = '/dashboard';
-            url.searchParams.set('error', 'module_disabled');
-            return NextResponse.redirect(url);
-          }
-        } catch (e) {
-          // Ignore Redis errors
+      try {
+        const [cachedLicense, cachedModules] = await Promise.all([
+          redis ? redis.get<CachedLicense>(CACHE_KEYS.TENANT_LICENSE(tenantId)) : Promise.resolve(null),
+          (requiredModule && redis) ? redis.get<{ enabledModules: string[] }>(CACHE_KEYS.TENANT_MODULES(tenantId)) : Promise.resolve(null)
+        ]);
+
+        // License Check
+        if (cachedLicense && !cachedLicense.isActive && pathname !== '/dashboard/settings/billing' && pathname !== '/dashboard/support') {
+          const url = request.nextUrl.clone();
+          url.pathname = '/dashboard/settings/billing';
+          url.searchParams.set('error', 'license_expired');
+          return NextResponse.redirect(url);
         }
+
+        // Module Check
+        if (requiredModule && cachedModules && !cachedModules.enabledModules.includes(requiredModule)) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/dashboard';
+          url.searchParams.set('error', 'module_disabled');
+          return NextResponse.redirect(url);
+        }
+      } catch (e) {
+        // Quietly fallback on Redis errors
       }
 
       // RBAC Check (Dynamic based on NAV_ITEMS)
@@ -175,6 +177,12 @@ export async function proxy(request: NextRequest) {
           const url = request.nextUrl.clone();
           url.pathname = '/dashboard';
           url.searchParams.set('error', 'unauthorized_access');
+          
+          // Guard against infinite loop if already on /dashboard
+          if (pathname === '/dashboard') {
+            return response;
+          }
+          
           return NextResponse.redirect(url);
         }
       } else {
@@ -187,6 +195,12 @@ export async function proxy(request: NextRequest) {
           const url = request.nextUrl.clone();
           url.pathname = '/dashboard';
           url.searchParams.set('error', 'unauthorized_role');
+
+          // Guard against infinite loop if already on /dashboard
+          if (pathname === '/dashboard') {
+            return response;
+          }
+
           return NextResponse.redirect(url);
         }
       }

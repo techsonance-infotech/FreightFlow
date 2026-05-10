@@ -1,6 +1,7 @@
 import { prisma } from '@freightflow/db';
 import { format } from 'date-fns';
 import { startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths, differenceInDays } from 'date-fns';
+import { unstable_cache } from 'next/cache';
 
 export class ReportEngine {
   /**
@@ -147,6 +148,16 @@ export class ReportEngine {
    * Dashboard KPIs with trends and fleet alerts.
    */
   static async getDashboardKPIs(tenantId: string, companyId: string) {
+    return unstable_cache(
+      async (tId: string, cId: string) => {
+        return this._getDashboardKPIsInternal(tId, cId);
+      },
+      [`dashboard-kpis-${tenantId}-${companyId}`],
+      { revalidate: 600, tags: [`dashboard-kpis-${tenantId}`] } // 10 minutes
+    )(tenantId, companyId);
+  }
+
+  private static async _getDashboardKPIsInternal(tenantId: string, companyId: string) {
     const today = new Date();
     const startOfToday = startOfDay(today);
     const endOfToday = endOfDay(today);
@@ -156,55 +167,49 @@ export class ReportEngine {
     const startOfYesterday = startOfDay(yesterday);
     const endOfYesterday = endOfDay(yesterday);
 
-    // 1. Today's LRs vs Yesterday
-    const [todayLrs, yesterdayLrs] = await Promise.all([
-      prisma.order.count({ where: { companyId, createdAt: { gte: startOfToday, lte: endOfToday } } }),
-      prisma.order.count({ where: { companyId, createdAt: { gte: startOfYesterday, lte: endOfYesterday } } }),
-    ]);
-
-    // 2. Today's Revenue vs Yesterday
-    const [todayRev, yesterdayRev] = await Promise.all([
-      prisma.order.aggregate({ where: { companyId, createdAt: { gte: startOfToday, lte: endOfToday } }, _sum: { totalAmount: true } }),
-      prisma.order.aggregate({ where: { companyId, createdAt: { gte: startOfYesterday, lte: endOfYesterday } }, _sum: { totalAmount: true } }),
-    ]);
-
-    // 3. Outstanding Receivables
-    const outstanding = await prisma.freightInvoice.aggregate({
-      where: { companyId, status: { notIn: ['paid', 'cancelled'] } },
-      _sum: { totalAmount: true },
-      _count: { id: true }
-    });
-
-    // 4. Fleet Stats
-    const [totalVehicles, onTripVehicles, maintenanceVehicles] = await Promise.all([
-      prisma.vehicle.count({ where: { companyId } }),
-      prisma.trip.count({ where: { companyId, status: 'in_transit' } }),
-      prisma.maintenanceJob.count({ where: { companyId, status: 'in_progress' } })
-    ]);
-
-    // 5. Documents Expiring (within 30 days)
     const thirtyDaysLater = new Date();
     thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
-    const expiringDocsCount = await prisma.vehicleDocument.count({
-      where: { companyId, expiryDate: { lte: thirtyDaysLater, gte: new Date() } }
-    });
 
-    // 6. Top 5 Customers by Revenue
-    const topCustomers = await prisma.order.groupBy({
-      by: ['dealerId'],
-      where: { companyId },
-      _sum: { totalAmount: true },
-      orderBy: { _sum: { totalAmount: 'desc' } },
-      take: 5
-    });
+    // Parallelize ALL independent queries into a single execution block
+    const [
+      todayLrs, yesterdayLrs, 
+      todayRev, yesterdayRev, 
+      outstanding, 
+      totalVehicles, onTripVehicles, maintenanceVehicles,
+      expiringDocsCount,
+      topCustomersData
+    ] = await Promise.all([
+      prisma.order.count({ where: { companyId, createdAt: { gte: startOfToday, lte: endOfToday } } }),
+      prisma.order.count({ where: { companyId, createdAt: { gte: startOfYesterday, lte: endOfYesterday } } }),
+      prisma.order.aggregate({ where: { companyId, createdAt: { gte: startOfToday, lte: endOfToday } }, _sum: { totalAmount: true } }),
+      prisma.order.aggregate({ where: { companyId, createdAt: { gte: startOfYesterday, lte: endOfYesterday } }, _sum: { totalAmount: true } }),
+      prisma.freightInvoice.aggregate({
+        where: { companyId, status: { notIn: ['paid', 'cancelled'] } },
+        _sum: { totalAmount: true },
+        _count: { id: true }
+      }),
+      prisma.vehicle.count({ where: { companyId } }),
+      prisma.trip.count({ where: { companyId, status: 'in_transit' } }),
+      prisma.maintenanceJob.count({ where: { companyId, status: 'in_progress' } }),
+      prisma.vehicleDocument.count({
+        where: { companyId, expiryDate: { lte: thirtyDaysLater, gte: new Date() } }
+      }),
+      prisma.order.groupBy({
+        by: ['dealerId'],
+        where: { companyId },
+        _sum: { totalAmount: true },
+        orderBy: { _sum: { totalAmount: 'desc' } },
+        take: 5
+      })
+    ]);
 
-    const dealerIds = topCustomers.map(c => c.dealerId).filter(Boolean) as string[];
+    const dealerIds = topCustomersData.map(c => c.dealerId).filter(Boolean) as string[];
     const dealers = await prisma.dealer.findMany({
       where: { id: { in: dealerIds } },
       select: { id: true, name: true }
     });
 
-    const customersWithNames = topCustomers.map(c => ({
+    const customersWithNames = topCustomersData.map(c => ({
       name: dealers.find(d => d.id === c.dealerId)?.name || 'Unknown',
       revenue: (c._sum.totalAmount || 0) / 100
     }));
@@ -328,32 +333,38 @@ export class ReportEngine {
    * Revenue Trend (Last 6 Months)
    */
   static async getRevenueTrend(tenantId: string, companyId: string) {
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const date = subMonths(new Date(), i);
-      months.push({
-        start: startOfMonth(date),
-        end: endOfMonth(date),
-        label: format(date, 'MMM yy')
-      });
-    }
+    return unstable_cache(
+      async (tId: string, cId: string) => {
+        const months = [];
+        for (let i = 5; i >= 0; i--) {
+          const date = subMonths(new Date(), i);
+          months.push({
+            start: startOfMonth(date),
+            end: endOfMonth(date),
+            label: format(date, 'MMM yy')
+          });
+        }
 
-    const trend = await Promise.all(months.map(async (m) => {
-      const revenue = await prisma.order.aggregate({
-        where: { 
-          companyId, 
-          date: { gte: m.start, lte: m.end },
-          status: { not: 'cancelled' }
-        },
-        _sum: { totalAmount: true }
-      });
-      return {
-        month: m.label,
-        revenue: (revenue._sum.totalAmount || 0) / 100 // Convert to main currency
-      };
-    }));
+        const trend = await Promise.all(months.map(async (m) => {
+          const revenue = await prisma.order.aggregate({
+            where: { 
+              companyId: cId, 
+              date: { gte: m.start, lte: m.end },
+              status: { not: 'cancelled' }
+            },
+            _sum: { totalAmount: true }
+          });
+          return {
+            month: m.label,
+            revenue: (revenue._sum.totalAmount || 0) / 100 // Convert to main currency
+          };
+        }));
 
-    return trend;
+        return trend;
+      },
+      [`revenue-trend-${tenantId}-${companyId}`],
+      { revalidate: 1800, tags: [`revenue-trend-${tenantId}`] } // 30 minutes
+    )(tenantId, companyId);
   }
 
   /**

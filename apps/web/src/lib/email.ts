@@ -10,10 +10,8 @@ function getTransporter() {
   const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
   const smtpPort = parseInt(process.env.SMTP_PORT || '587');
 
-  console.log(`[Email Config] Attempting to initialize with User: ${smtpUser ? 'Defined' : 'UNDEFINED'}, Host: ${smtpHost}:${smtpPort}`);
-
   if (!smtpUser || !smtpPass) {
-    console.error('[Email Config] CRITICAL: SMTP_USER or SMTP_PASS is missing in environment variables.');
+    // Handle missing SMTP credentials silently or via monitoring
   }
 
   transporter = nodemailer.createTransport({
@@ -34,17 +32,14 @@ function getTransporter() {
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
   try {
     const transport = getTransporter();
-    console.log(`[Email] Attempting to send email to: ${to} with subject: ${subject}`);
     const info = await transport.sendMail({
       from: `"FreightFlow" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to,
       subject,
       html,
     });
-    console.log(`[Email] Success! Message ID: ${info.messageId}`);
     return info;
   } catch (error) {
-    console.error('[Email] Error sending email:', error);
     throw error;
   }
 }
