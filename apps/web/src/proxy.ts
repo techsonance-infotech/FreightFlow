@@ -38,7 +38,13 @@ const ROLE_REQUIREMENTS: Record<string, string[]> = {
 };
 
 export async function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  const { pathname } = request.nextUrl;
+
+  // Skip middleware logic for Server Action requests to prevent fetch failures
+  if (request.headers.has('next-action')) {
+    return NextResponse.next();
+  }
+
   const sessionToken = request.cookies.get('session')?.value;
   const session = sessionToken ? await decrypt(sessionToken) : null;
   const user = session?.user;
@@ -175,6 +181,12 @@ export async function proxy(request: NextRequest) {
           const url = request.nextUrl.clone();
           url.pathname = '/dashboard';
           url.searchParams.set('error', 'unauthorized_access');
+          
+          // Guard against infinite loop if already on /dashboard
+          if (pathname === '/dashboard') {
+            return response;
+          }
+          
           return NextResponse.redirect(url);
         }
       } else {
@@ -187,6 +199,12 @@ export async function proxy(request: NextRequest) {
           const url = request.nextUrl.clone();
           url.pathname = '/dashboard';
           url.searchParams.set('error', 'unauthorized_role');
+
+          // Guard against infinite loop if already on /dashboard
+          if (pathname === '/dashboard') {
+            return response;
+          }
+
           return NextResponse.redirect(url);
         }
       }

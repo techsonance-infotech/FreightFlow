@@ -15,12 +15,14 @@ export async function encrypt(payload: any, expiration: string = '1h') {
 }
 
 export async function decrypt(input: string): Promise<any> {
+  if (!input) return null;
   try {
     const { payload } = await jwtVerify(input, secret, {
       algorithms: ['HS256'],
     });
     return payload;
-  } catch (error) {
+  } catch (error: any) {
+    console.error(`[Auth] Decrypt failed: ${error.message}`);
     return null;
   }
 }
@@ -49,15 +51,18 @@ export async function setSession(
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
+    path: '/', // Explicitly set path to root
   });
 }
 
 import { cache } from 'react';
 
 export const getSession = cache(async () => {
-  const session = (await cookies()).get('session')?.value;
+  const cookieStore = await cookies();
+  const session = cookieStore.get('session')?.value;
   if (!session) return null;
-  return await decrypt(session);
+  const decoded = await decrypt(session);
+  return decoded;
 });
 
 export async function deleteSession() {
@@ -84,6 +89,7 @@ export async function updateSession(request: NextRequest) {
     expires: parsed.expires,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
+    path: '/',
   });
   return res;
 }
