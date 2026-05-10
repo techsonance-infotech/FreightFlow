@@ -9,9 +9,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompanySwitcher } from './company-switcher';
-import { SearchCommand } from './search-command';
-import { format } from 'date-fns';
 import { logout } from '@/app/actions/auth';
+import dynamic from 'next/dynamic';
+
+const SearchCommand = dynamic(() => import('./search-command').then(mod => mod.SearchCommand), { ssr: false });
 
 interface TopbarProps {
   title?: string;
@@ -40,7 +41,7 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
       <div className="flex items-center gap-4 min-w-0">
         <div className="hidden xl:flex flex-col shrink-0 min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400 leading-none mb-1.5">
-            {format(new Date(), 'EEEE, dd MMMM yyyy')}
+            {new Intl.DateTimeFormat('en-US', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).format(new Date())}
           </p>
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-accent-600 uppercase tracking-[0.1em] leading-none mb-1">

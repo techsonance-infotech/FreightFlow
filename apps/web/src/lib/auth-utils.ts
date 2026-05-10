@@ -73,20 +73,28 @@ export async function updateSession(request: NextRequest) {
   const session = request.cookies.get('session')?.value;
   if (!session) return null;
 
-  // Refresh the session so it doesn't expire
+  // Refresh the session only if it's nearing expiration (e.g., less than 50% time left)
   const parsed = await decrypt(session);
   if (!parsed) return null;
 
-  // If session has a rememberMe flag, refresh for 7 days, else 1 hour
+  const now = Date.now();
+  const expiry = new Date(parsed.expires).getTime();
   const duration = parsed.rememberMe ? 7 * 24 * 60 * 60 * 1000 : 1 * 60 * 60 * 1000;
-  parsed.expires = new Date(Date.now() + duration);
+  
+  // Only refresh if less than half the duration remains
+  if (expiry - now > duration / 2) {
+    return NextResponse.next();
+  }
+
+  const newExpires = new Date(now + duration);
+  parsed.expires = newExpires;
   
   const res = NextResponse.next();
   res.cookies.set({
     name: 'session',
     value: await encrypt(parsed, parsed.rememberMe ? '7d' : '1h'),
     httpOnly: true,
-    expires: parsed.expires,
+    expires: newExpires,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
