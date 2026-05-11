@@ -6,10 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { PalletSchema, type Pallet } from '@freightflow/shared';
 import { 
   Plus, Trash2, Save, Truck, User, Building2, 
-  Hash, Calendar, CreditCard, ChevronRight, Calculator,
-  Package, Scale, Info, Search, Box, MapPin, Navigation,
-  ShieldCheck, AlertCircle, TrendingUp, TrendingDown, FileText, Zap,
-  Users
+  Hash, Calendar, Calculator,
+  Package, Box, MapPin, Navigation, Search,
+  ShieldCheck, AlertCircle, TrendingUp, FileText, Zap,
+  Users, CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,22 +23,20 @@ import { VehicleForm } from '@/components/masters/vehicle-form';
 import { PalletMasterForm } from '@/components/masters/pallet-master-form';
 import { toast } from 'sonner';
 import { PalletInvoiceDownloader } from './PalletInvoiceDownloader';
-import { CheckCircle2, X } from 'lucide-react';
 
-interface OrderPalletFormProps {
+interface PalletReturnFormProps {
   initialData?: any;
   onSuccess: (data: any) => void;
   onCancel: () => void;
 }
 
-export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalletFormProps) {
+export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletReturnFormProps) {
   const [dealers, setDealers] = useState<any[]>([]);
   const [consignees, setConsignees] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [palletMasters, setPalletMasters] = useState<any[]>([]);
   const [loadingMasters, setLoadingMasters] = useState(true);
   const [isDealerModalOpen, setIsDealerModalOpen] = useState(false);
-  const [isConsigneeModalOpen, setIsConsigneeModalOpen] = useState(false);
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [isPalletModalOpen, setIsPalletModalOpen] = useState(false);
   const [successPallet, setSuccessPallet] = useState<any>(null);
@@ -62,9 +60,9 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
       companyName: initialData?.companyName || '',
       partyCode: initialData?.partyCode || '',
       fromLocation: initialData?.fromLocation || '',
-      fromAddress: initialData?.fromAddress || '',
-      toLocation: initialData?.toLocation || '',
-      toAddress: initialData?.toAddress || '',
+      fromAddress: initialData?.fromAddress || 'Hub / Warehouse',
+      toLocation: initialData?.toLocation || 'Destination Hub',
+      toAddress: initialData?.toAddress || 'Hub Address',
       freight: initialData?.freight ? initialData.freight / 100 : 0,
       hamali: initialData?.hamali ? initialData.hamali / 100 : 0,
       rate: initialData?.rate ? initialData.rate / 100 : 0,
@@ -73,7 +71,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
       cgstPct: initialData?.cgstPct || 2.5,
       sgstPct: initialData?.sgstPct || 2.5,
       igstPct: initialData?.igstPct || 5.0,
-      type: 'OUTWARD',
+      type: 'RETURN',
       palletDetails: initialData?.palletDetails?.length > 0 
         ? initialData.palletDetails.map((p: any) => ({
             ...p,
@@ -91,12 +89,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   }) || [];
 
   const watchedDealerId = useWatch({ control, name: 'dealerId' });
-  const watchedConsigneeId = useWatch({ control, name: 'consigneeId' });
   const watchedVehicleId = useWatch({ control, name: 'vehicleId' });
-  const watchedFreight = useWatch({ control, name: 'freight' }) || 0;
-  const watchedHamali = useWatch({ control, name: 'hamali' }) || 0;
-  const watchedRate = useWatch({ control, name: 'rate' }) || 0;
-  const watchedRateOn = useWatch({ control, name: 'rateOn' });
   const watchedGstType = useWatch({ control, name: 'gstType' });
   const watchedCgstPct = useWatch({ control, name: 'cgstPct' }) || 0;
   const watchedSgstPct = useWatch({ control, name: 'sgstPct' }) || 0;
@@ -105,7 +98,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
 
   const [totals, setTotals] = useState({
     totalQty: 0,
-    totalPallets: 0,
+    totalReturns: 0,
     baseFreight: 0,
     subtotal: 0,
     cgstAmount: 0,
@@ -118,16 +111,16 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   useEffect(() => {
     async function loadMasters() {
       try {
-        const [dealersRes, consigneesRes, vehiclesRes, palletsRes] = await Promise.all([
+        const [dealersRes, consigneesRes, vehiclesRes, palletMastersRes] = await Promise.all([
           fetch('/api/v1/masters/dealers?limit=100').then(r => r.json()),
           fetch('/api/v1/masters/consignees?limit=100').then(r => r.json()),
           fetch('/api/v1/masters/vehicles?limit=100').then(r => r.json()),
-          fetch('/api/v1/masters/pallets').then(r => r.json()),
+          fetch('/api/v1/masters/pallets?limit=100').then(r => r.json()),
         ]);
         setDealers(dealersRes.data || []);
         setConsignees(consigneesRes.data || []);
         setVehicles(vehiclesRes.data || []);
-        setPalletMasters(palletsRes.data || []);
+        setPalletMasters(palletMastersRes.data || []);
       } catch (error) {
         console.error('Failed to load masters');
       } finally {
@@ -156,26 +149,16 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
 
   // Calculation Logic
   useEffect(() => {
-    const totalQty = watchedPallets.reduce((acc, curr) => acc + (parseInt(curr.qty as any) || 0), 0);
-    const totalPallets = watchedPallets.length;
+    const totalQty = watchedPallets.reduce((acc: number, curr: any) => acc + (parseInt(curr.qty as any) || 0), 0);
+    const totalReturns = watchedPallets.length;
     
-    // Calculate Internal Base Freight (Net Profit) from the table breakdown
-    const internalBaseFreight = watchedPallets.reduce((acc, curr) => {
+    // Total value calculated directly from the payload table
+    const subtotal = watchedPallets.reduce((acc: number, curr: any) => {
       const q = parseInt(curr.qty as any) || 0;
       const r = parseFloat(curr.rate as any) || 0;
       return acc + (q * r);
     }, 0);
 
-    // Calculate Billing Base Total from the sidebar rate and basis
-    let billingBaseTotal = 0;
-    if (watchedRateOn === 'fixed') {
-      billingBaseTotal = parseFloat(watchedRate as any) || 0;
-    } else {
-      billingBaseTotal = totalQty * (parseFloat(watchedRate as any) || 0);
-    }
-
-    const subtotal = billingBaseTotal + (parseFloat(watchedFreight as any) || 0) + (parseFloat(watchedHamali as any) || 0);
-    
     let cgst = 0, sgst = 0, igst = 0;
     if (watchedGstType === 'intra') {
       cgst = (subtotal * watchedCgstPct) / 100;
@@ -185,28 +168,27 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
     }
 
     const totalAmount = subtotal + cgst + sgst + igst;
-    const margin = internalBaseFreight; 
 
     setTotals({
       totalQty,
-      totalPallets,
-      baseFreight: billingBaseTotal,
+      totalReturns,
+      baseFreight: subtotal,
       subtotal,
       cgstAmount: cgst,
       sgstAmount: sgst,
       igstAmount: igst,
       totalAmount,
-      margin
+      margin: subtotal
     });
-  }, [watchedPallets, watchedFreight, watchedHamali, watchedRate, watchedRateOn, watchedGstType, watchedCgstPct, watchedSgstPct, watchedIgstPct]);
+  }, [watchedPallets, watchedGstType, watchedCgstPct, watchedSgstPct, watchedIgstPct]);
 
   const onSubmit = async (data: Pallet) => {
     try {
       const payload = {
         ...data,
-        freight: Math.round(parseFloat(data.freight as any) * 100),
-        hamali: Math.round(parseFloat(data.hamali as any) * 100),
-        rate: Math.round(parseFloat(data.rate as any) * 100),
+        freight: Math.round(parseFloat((data.freight || 0) as any) * 100),
+        hamali: Math.round(parseFloat((data.hamali || 0) as any) * 100),
+        rate: Math.round(parseFloat((data.rate || 0) as any) * 100),
         subtotal: Math.round(totals.subtotal * 100),
         cgstAmount: Math.round(totals.cgstAmount * 100),
         sgstAmount: Math.round(totals.sgstAmount * 100),
@@ -215,12 +197,13 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
         totalWeight: 0,
         totalBoxes: totals.totalQty,
         totalQty: totals.totalQty,
-        type: 'OUTWARD',
-        palletDetails: data.palletDetails.map((p: any) => ({
+        type: 'RETURN',
+        palletDetails: (data as any).palletDetails.map((p: any) => ({
           ...p,
           qty: parseInt(p.qty as any) || 0,
           rate: p.rate ? Math.round(parseFloat(p.rate as any) * 100) : 0,
         })),
+        consigneeDetails: [] // Optional since we are using palletDetails
       };
 
       const url = initialData?.id ? `/api/v1/pallets/${initialData.id}` : '/api/v1/pallets';
@@ -234,7 +217,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
 
       if (response.ok) {
         const result = await response.json();
-        toast.success(initialData?.id ? 'Palletized record updated' : 'Palletized Order Synchronized Successfully');
+        toast.success(initialData?.id ? 'Palletized return updated' : 'Palletized Return Registered Successfully');
         if (!initialData?.id) {
           setSuccessPallet(result.data || result);
         } else {
@@ -242,7 +225,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
         }
       } else {
         const err = await response.json();
-        toast.error(err.error || 'Failed to establish pallet order');
+        toast.error(err.error || 'Failed to establish pallet return');
       }
     } catch {
       toast.error('A communication error occurred');
@@ -262,10 +245,10 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center">
               <Zap className="h-4 w-4" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Advanced Fleet Ops</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Reverse Logistics Hub</span>
           </div>
-          <h1 className="text-4xl font-black tracking-tighter uppercase">{initialData?.id ? 'Edit Pallet Load' : 'Establish Palletized Load'}</h1>
-          <p className="text-blue-100 font-bold mt-2 opacity-80 uppercase tracking-widest text-[10px]">Configure multi-tenant palletized inventory routes</p>
+          <h1 className="text-4xl font-black tracking-tighter uppercase">{initialData?.id ? 'Edit Pallet Return' : 'Register Pallet Return'}</h1>
+          <p className="text-blue-100 font-bold mt-2 opacity-80 uppercase tracking-widest text-[10px]">Collect delivered pallets from consignees to hub</p>
         </div>
       </div>
 
@@ -297,23 +280,6 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                 </div>
               </FormInputWrapper>
 
-              <FormInputWrapper label="Consignee *" error={errors.consigneeId?.message}>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watchedConsigneeId} onValueChange={(val) => setValue('consigneeId', val, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Consignee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {consignees.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <button type="button" onClick={() => setIsConsigneeModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
-                    <Plus className="h-5 w-5" />
-                  </button>
-                </div>
-              </FormInputWrapper>
 
               <FormInputWrapper label="Vehicle Allocation *" error={errors.vehicleId?.message}>
                 <div className="flex gap-2">
@@ -379,85 +345,63 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
           <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
             <FormSectionHeader icon={<MapPin className="text-rose-500" />} title="Territory Mapping" sub="Define pick-up and delivery points" />
             
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 gap-8">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Origin Address *</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-4 h-4 w-4 text-blue-500" />
-                    <Textarea 
-                      {...register('fromAddress')} 
-                      placeholder="Enter detailed street address, building, etc..."
-                      className={cn(
-                        "min-h-[80px] pl-12 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none",
-                        errors.fromAddress && "border-rose-300 ring-4 ring-rose-50"
-                      )}
-                    />
-                    {errors.fromAddress && <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1.5 ml-1"><AlertCircle className="h-3 w-3" /> {errors.fromAddress.message}</p>}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Destination Address *</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-4 h-4 w-4 text-emerald-500" />
-                    <Textarea 
-                      {...register('toAddress')} 
-                      placeholder="Enter detailed street address, building, etc..."
-                      className={cn(
-                        "min-h-[80px] pl-12 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none",
-                        errors.toAddress && "border-rose-300 ring-4 ring-rose-50"
-                      )}
-                    />
-                    {errors.toAddress && <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1.5 ml-1"><AlertCircle className="h-3 w-3" /> {errors.toAddress.message}</p>}
-                  </div>
-                </div>
-              </div>
-
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Origin City/Point *</label>
-                  <div className="relative">
+                <FormInputWrapper label="Origin City/Point (Hub) *" error={errors.fromLocation?.message}>
+                  <div className="relative group/field">
                     <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400" />
                     <input 
                       {...register('fromLocation')} 
-                      placeholder="e.g. Mumbai, Maharashtra..."
-                      className={cn(
-                        "w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none",
-                        errors.fromLocation && "border-rose-300 ring-4 ring-rose-50"
-                      )}
+                      placeholder="e.g. Mumbai Hub"
+                      className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none" 
                     />
-                    {errors.fromLocation && <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1.5 ml-1"><AlertCircle className="h-3 w-3" /> {errors.fromLocation.message}</p>}
                   </div>
-                </div>
+                </FormInputWrapper>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Destination City/Point *</label>
-                  <div className="relative">
+                <FormInputWrapper label="Origin Full Address *" error={errors.fromAddress?.message}>
+                  <div className="relative group/field">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                    <input 
+                      {...register('fromAddress')} 
+                      placeholder="Street, Area, PIN..."
+                      className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none" 
+                    />
+                  </div>
+                </FormInputWrapper>
+
+                <FormInputWrapper label="Destination Point *" error={errors.toLocation?.message}>
+                  <div className="relative group/field">
                     <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400" />
                     <input 
                       {...register('toLocation')} 
-                      placeholder="e.g. Bangalore, Karnataka..."
-                      className={cn(
-                        "w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none",
-                        errors.toLocation && "border-rose-300 ring-4 ring-rose-50"
-                      )}
+                      placeholder="e.g. Pune Factory"
+                      className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none" 
                     />
-                    {errors.toLocation && <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1.5 ml-1"><AlertCircle className="h-3 w-3" /> {errors.toLocation.message}</p>}
                   </div>
-                </div>
+                </FormInputWrapper>
+
+                <FormInputWrapper label="Destination Address *" error={errors.toAddress?.message}>
+                  <div className="relative group/field">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                    <input 
+                      {...register('toAddress')} 
+                      placeholder="Full Destination Address"
+                      className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none" 
+                    />
+                  </div>
+                </FormInputWrapper>
               </div>
             </div>
           </div>
 
-          {/* Inventory Payload (Pallet Breakdown) */}
+          {/* Return Payload */}
           <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
             <div className="p-8 bg-white border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
                   <Box className="h-5 w-5 text-blue-600" />
                 </div>
-                <h3 className="font-black text-slate-900 uppercase tracking-[0.2em] text-[10px]">Inventory Payload</h3>
+                <h3 className="font-black text-slate-900 uppercase tracking-[0.2em] text-[10px]">Return Payload</h3>
               </div>
               <Button 
                 type="button" 
@@ -473,8 +417,9 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                 <thead className="bg-slate-50/30 text-slate-400">
                   <tr>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest w-16">Sr.</th>
-                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest">Pallet Identification *</th>
-                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest w-32 text-center">Qty *</th>
+                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest">Consignee Name *</th>
+                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest">Pallet Option *</th>
+                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest w-24 text-center">Qty *</th>
                     <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest w-32 text-center">Rate *</th>
                     <th className="px-6 py-4 w-16"></th>
                   </tr>
@@ -486,6 +431,19 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                         <span className="text-[11px] font-black text-slate-300 group-hover:text-blue-500">#{index + 1}</span>
                       </td>
                       <td className="px-4 py-6 align-top">
+                        <Select 
+                          value={watch(`palletDetails.${index}.consigneeName` as any)} 
+                          onValueChange={(val) => setValue(`palletDetails.${index}.consigneeName` as any, val, { shouldValidate: true })}
+                        >
+                          <SelectTrigger className="w-full h-11 px-4 bg-slate-50/50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50/50 transition-all outline-none">
+                            <SelectValue placeholder="Consignee" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {consignees.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-4 py-6 align-top">
                         <div className="flex gap-2">
                           <div className="flex-1 relative">
                             <div className="relative group/field">
@@ -493,7 +451,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                                 <Search className="h-4 w-4" />
                               </div>
                               <input 
-                                {...register(`palletDetails.${index}.palletDisplayId`)} 
+                                {...register(`palletDetails.${index}.palletDisplayId` as any)} 
                                 autoComplete="off"
                                 placeholder="Search Pallet ID..." 
                                 className="w-full h-11 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-xs outline-none" 
@@ -510,7 +468,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                                         key={p.id}
                                         type="button"
                                         onMouseDown={() => {
-                                          setValue(`palletDetails.${index}.palletDisplayId`, p.palletId, { shouldDirty: true });
+                                          setValue(`palletDetails.${index}.palletDisplayId` as any, p.palletId, { shouldDirty: true });
                                         }}
                                         className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
                                       >
@@ -541,32 +499,25 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                         </div>
                       </td>
                       <td className="px-4 py-6 align-top">
-                        <div className={cn(
-                          "bg-slate-50/50 rounded-xl p-1 border border-slate-100 focus-within:border-blue-300 shadow-inner",
-                          errors.palletDetails?.[index]?.qty && "border-rose-300 ring-2 ring-rose-50"
-                        )}>
+                        <div className="bg-slate-50/50 rounded-xl p-1 border border-slate-100 focus-within:border-blue-300 shadow-inner">
                           <input 
                             type="number" 
-                            {...register(`palletDetails.${index}.qty` as const, { valueAsNumber: true })} 
+                            {...register(`palletDetails.${index}.qty` as any, { valueAsNumber: true })} 
                             className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-sm h-9" 
                             min="0"
-                            onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
                           />
                         </div>
-                        {errors.palletDetails?.[index]?.qty && <p className="text-[9px] font-bold text-rose-500 mt-1 text-center">{errors.palletDetails[index]?.qty?.message}</p>}
                       </td>
                       <td className="px-4 py-6 align-top">
                         <div className="bg-slate-50/50 rounded-xl p-1 border border-slate-100 focus-within:border-blue-300 shadow-inner">
                           <input 
                             type="number" 
                             step="0.01"
-                            {...register(`palletDetails.${index}.rate` as const, { valueAsNumber: true })} 
+                            {...register(`palletDetails.${index}.rate` as any, { valueAsNumber: true })} 
                             className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-sm h-9" 
                             min="0"
-                            onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
                           />
                         </div>
-                        {errors.palletDetails?.[index]?.rate && <p className="text-[9px] font-bold text-rose-500 mt-1 text-center">{errors.palletDetails[index]?.rate?.message}</p>}
                       </td>
                       <td className="px-6 py-6 text-center align-top">
                         <button 
@@ -585,9 +536,9 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
               <div className="p-8 bg-white border-t border-slate-50 flex justify-between items-center rounded-b-3xl">
                 <div className="flex gap-16">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Pallets</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Returns</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{totals.totalPallets}</span>
+                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{totals.totalReturns}</span>
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nodes</span>
                     </div>
                   </div>
@@ -596,12 +547,6 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                     <p className="text-3xl font-black text-slate-900 tracking-tighter">
                       {totals.totalQty} <span className="text-xs text-slate-400 font-bold ml-1 uppercase">Units</span>
                     </p>
-                  </div>
-                </div>
-                <div className="hidden md:block">
-                  <div className="flex items-center gap-3 px-6 py-3 bg-blue-50 rounded-2xl border border-blue-100">
-                    <Info className="h-4 w-4 text-blue-500" />
-                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Load metrics synchronized</p>
                   </div>
                 </div>
               </div>
@@ -623,70 +568,13 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             </div>
 
             <div className="space-y-8">
-              <div className="grid grid-cols-2 gap-4">
-                <FormInputWrapper label="Rate Per Qty *" dark>
-                  <div className="relative group/fin">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 group-focus-within/fin:text-blue-400 transition-colors">₹</div>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      {...register('rate', { valueAsNumber: true })} 
-                      className="w-full h-12 pl-8 pr-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-sm font-bold text-white focus:bg-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none" 
-                      min="0"
-                      onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                    />
-                  </div>
-                </FormInputWrapper>
-
-                <FormInputWrapper label="Rate Basis *" dark>
-                  <Select value={watchedRateOn} onValueChange={(val) => setValue('rateOn', val as any)}>
-                    <SelectTrigger className="w-full h-12 px-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-sm font-bold text-white focus:bg-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none">
-                      <SelectValue placeholder="Basis" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-800 text-white">
-                      <SelectItem value="qty">Per Unit</SelectItem>
-                      <SelectItem value="fixed">Fixed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormInputWrapper>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormInputWrapper label="Additional Freight" dark>
-                  <div className="relative group/fin">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 group-focus-within/fin:text-blue-400 transition-colors">₹</div>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      {...register('freight', { valueAsNumber: true })} 
-                      className="w-full h-12 pl-8 pr-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-sm font-bold text-white focus:bg-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none" 
-                      min="0"
-                      onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                    />
-                  </div>
-                </FormInputWrapper>
-
-                <FormInputWrapper label="Hamali" dark error={errors.hamali?.message}>
-                  <div className="relative group/fin">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 group-focus-within/fin:text-blue-400 transition-colors">₹</div>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      {...register('hamali', { valueAsNumber: true })} 
-                      className="w-full h-12 pl-8 pr-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-sm font-bold text-white focus:bg-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none" 
-                      min="0"
-                      onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                    />
-                  </div>
-                </FormInputWrapper>
-              </div>
 
               <div className="p-6 bg-slate-800/30 rounded-3xl border border-slate-700/50 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">GST Setup</span>
                   <div className="flex bg-slate-800 rounded-full p-1 border border-slate-700">
                     <button type="button" onClick={() => setValue('gstType', 'intra')} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", watchedGstType === 'intra' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-500 hover:text-slate-300')}>Intra</button>
-                    <button type="button" onClick={() => setValue('gstType', 'inter')} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", watchedGstType === 'inter' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-500 hover:text-slate-300')}>Inter</button>
+                    <button type="button" onClick={() => setValue('gstType', 'inter')} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", watchedGstType === 'inter' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-500 hover:text-slate-300')}>Inter</button>
                   </div>
                 </div>
 
@@ -699,8 +587,6 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                         step="0.1" 
                         {...register('cgstPct', { valueAsNumber: true })} 
                         className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-blue-400 outline-none" 
-                        min="0"
-                        onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -710,8 +596,6 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                         step="0.1" 
                         {...register('sgstPct', { valueAsNumber: true })} 
                         className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-blue-400 outline-none" 
-                        min="0"
-                        onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
                       />
                     </div>
                   </div>
@@ -722,9 +606,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                       type="number" 
                       step="0.1" 
                       {...register('igstPct', { valueAsNumber: true })} 
-                      className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-indigo-400 outline-none" 
-                      min="0"
-                      onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                      className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-blue-400 outline-none" 
                     />
                   </div>
                 )}
@@ -736,24 +618,6 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                   <span className="text-sm font-black text-white">₹{totals.subtotal.toFixed(2)}</span>
                 </div>
                 
-                {watchedGstType === 'intra' ? (
-                  <>
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span className="text-[10px] font-black uppercase tracking-widest">CGST ({watchedCgstPct}%)</span>
-                      <span className="text-xs font-bold text-blue-400">+ ₹{totals.cgstAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span className="text-[10px] font-black uppercase tracking-widest">SGST ({watchedSgstPct}%)</span>
-                      <span className="text-xs font-bold text-blue-400">+ ₹{totals.sgstAmount.toFixed(2)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span className="text-[10px] font-black uppercase tracking-widest">IGST ({watchedIgstPct}%)</span>
-                    <span className="text-xs font-bold text-indigo-400">+ ₹{totals.igstAmount.toFixed(2)}</span>
-                  </div>
-                )}
-
                 <div className="pt-6 flex justify-between items-center border-t border-slate-800/50">
                   <span className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">Grand Settlement</span>
                   <span className="text-3xl font-black text-white tracking-tighter">₹{totals.totalAmount.toFixed(2)}</span>
@@ -768,16 +632,41 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
               <TrendingUp className="h-32 w-32" />
             </div>
             <div className="relative z-10">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-1">Expected Net Margin</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-1">Expected Net Return Value</h4>
               <p className="text-3xl font-black tracking-tighter mb-4">₹{totals.margin.toFixed(2)}</p>
               <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
                 <div className="h-full bg-white w-2/3" />
               </div>
-              <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-white/70 flex items-center gap-2">
-                <ShieldCheck className="h-3 w-3" /> Basic Ops Shield
-              </p>
             </div>
           </div>
+
+          {/* Global Error Summary */}
+          {Object.keys(errors).length > 0 && (
+            <div className="p-6 bg-rose-50 border border-rose-100 rounded-[2rem] space-y-3 animate-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-2 text-rose-600">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Validation Blocked</span>
+              </div>
+              <ul className="space-y-1">
+                {Object.entries(errors).map(([key, error]: any) => {
+                  if (key === 'palletDetails' && Array.isArray(error)) {
+                    return error.map((err: any, idx: number) => 
+                      Object.entries(err || {}).map(([subKey, subErr]: any) => (
+                        <li key={`${key}-${idx}-${subKey}`} className="text-[10px] font-bold text-rose-400 uppercase tracking-widest ml-6">
+                          • Row {idx + 1}: {subErr?.message || 'Invalid'}
+                        </li>
+                      ))
+                    );
+                  }
+                  return (
+                    <li key={key} className="text-[10px] font-bold text-rose-400 uppercase tracking-widest ml-6">
+                      • {key}: {(error as any).message || 'Field is required'}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="pt-4 flex flex-col gap-3">
@@ -787,7 +676,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
               className="h-16 bg-blue-600 text-white rounded-3xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-blue-600/10 hover:bg-blue-700 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
             >
               {isSubmitting ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-5 w-5" />}
-              {isSubmitting ? 'ESTABLISHING RECORD...' : 'PUBLISH CONSIGNMENT'}
+              {isSubmitting ? 'REGISTERING RETURN...' : 'PUBLISH RETURN'}
             </Button>
             <Button 
               type="button" 
@@ -801,13 +690,14 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
         </div>
       </div>
 
+      <Modal isOpen={isPalletModalOpen} onClose={() => setIsPalletModalOpen(false)} title="Register New Pallet" size="lg">
+        <PalletMasterForm onSuccess={(p) => { setPalletMasters(prev => [p, ...prev]); setIsPalletModalOpen(false); }} onCancel={() => setIsPalletModalOpen(false)} />
+      </Modal>
+
       <Modal isOpen={isDealerModalOpen} onClose={() => setIsDealerModalOpen(false)} title="Quick Add Dealer" size="lg">
         <DealerForm onSuccess={(d) => { setDealers(prev => [d, ...prev]); setValue('dealerId', d.id!); setIsDealerModalOpen(false); }} onCancel={() => setIsDealerModalOpen(false)} />
       </Modal>
 
-      <Modal isOpen={isConsigneeModalOpen} onClose={() => setIsConsigneeModalOpen(false)} title="Quick Add Consignee" size="lg">
-        <ConsigneeForm onSuccess={(c) => { setConsignees(prev => [c, ...prev]); setValue('consigneeId', c.id!); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
-      </Modal>
 
       <Modal isOpen={!!successPallet} onClose={() => onSuccess(successPallet)} title="" size="md">
         <div className="p-8 text-center space-y-8">
@@ -818,32 +708,15 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
           </div>
           
           <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase mb-2">Pallet Established</h2>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase mb-2">Return Registered</h2>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Record #{successPallet?.lrNo} has been synchronized with the global ledger.
+              Return Record #{successPallet?.lrNo} has been synchronized.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <PalletInvoiceDownloader 
-              palletId={successPallet?.id} 
-              lrNo={successPallet?.lrNo}
-              variant="receipt"
-              label="Download Challan"
-              className="h-16 bg-slate-900 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-black transition-all"
-            />
-            <PalletInvoiceDownloader 
-              palletId={successPallet?.id} 
-              lrNo={successPallet?.lrNo}
-              variant="invoice"
-              label="Download Invoice"
-              className="h-16 bg-blue-600 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all"
-            />
-          </div>
           <Button 
-            variant="ghost" 
             onClick={() => onSuccess(successPallet)}
-            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-400"
+            className="w-full h-16 bg-blue-600 text-white rounded-3xl font-black uppercase tracking-widest text-[11px]"
           >
             Back to Overview
           </Button>
@@ -852,14 +725,6 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
 
       <Modal isOpen={isVehicleModalOpen} onClose={() => setIsVehicleModalOpen(false)} title="Quick Add Vehicle" size="lg">
         <VehicleForm onSuccess={(v) => { setVehicles(prev => [v, ...prev]); setValue('vehicleId', v.id!); setIsVehicleModalOpen(false); }} onCancel={() => setIsVehicleModalOpen(false)} />
-      </Modal>
-
-      <Modal isOpen={isPalletModalOpen} onClose={() => setIsPalletModalOpen(false)} title="Quick Add Pallet Master" size="md">
-        <PalletMasterForm onSuccess={(p) => { 
-          setPalletMasters(prev => [p, ...prev]); 
-          // We don't set a single value here because it's for a list row
-          setIsPalletModalOpen(false); 
-        }} onCancel={() => setIsPalletModalOpen(false)} />
       </Modal>
 
     </form>

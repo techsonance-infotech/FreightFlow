@@ -73,8 +73,10 @@ export const PalletSchema = z.object({
   igstPct: z.number().min(0).default(5.0),
   gstType: z.string().default('intra'),
   gstPct: z.number().min(0).max(100).default(0),
+  type: z.enum(['OUTWARD', 'RETURN']).default('OUTWARD'),
   status: z.string().default('active'),
-  palletDetails: z.array(PalletDetailSchema).min(1, 'At least one pallet is required'),
+  palletDetails: z.array(PalletDetailSchema).min(0),
+  consigneeDetails: z.array(PalletConsigneeDetailSchema).optional(),
 });
 
 export type Order = z.infer<typeof OrderSchema>;

@@ -16,12 +16,22 @@ export async function GET() {
     const todayEnd = endOfDay(now);
     const monthStart = startOfMonth(now);
 
-    const [todayCount, monthlyCount, allDetails] = await Promise.all([
+    const [todayOutward, todayReturn, monthlyOutward, monthlyReturn, allDetails] = await Promise.all([
       // Today's records
       prisma.orderPallet.count({
         where: {
           tenantId: user.tenantId,
           companyId: user.companyId,
+          type: 'OUTWARD',
+          createdAt: { gte: todayStart, lte: todayEnd },
+          deletedAt: null,
+        }
+      }),
+      prisma.orderPallet.count({
+        where: {
+          tenantId: user.tenantId,
+          companyId: user.companyId,
+          type: 'RETURN',
           createdAt: { gte: todayStart, lte: todayEnd },
           deletedAt: null,
         }
@@ -31,6 +41,16 @@ export async function GET() {
         where: {
           tenantId: user.tenantId,
           companyId: user.companyId,
+          type: 'OUTWARD',
+          createdAt: { gte: monthStart },
+          deletedAt: null,
+        }
+      }),
+      prisma.orderPallet.count({
+        where: {
+          tenantId: user.tenantId,
+          companyId: user.companyId,
+          type: 'RETURN',
           createdAt: { gte: monthStart },
           deletedAt: null,
         }
@@ -57,8 +77,10 @@ export async function GET() {
     }), { weight: 0, boxes: 0 });
 
     return NextResponse.json({
-      todayCount,
-      monthlyCount,
+      todayCount: todayOutward,
+      todayReturnCount: todayReturn,
+      monthlyCount: monthlyOutward,
+      monthlyReturnCount: monthlyReturn,
       totalWeight: totals.weight,
       totalBoxes: totals.boxes
     });
