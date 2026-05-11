@@ -207,6 +207,8 @@ export function Sidebar({ user }: SidebarProps) {
             src="/apple-touch-icon.png" 
             alt="FreightFlow" 
             fill
+            priority
+            sizes="40px"
             className="object-cover"
           />
         </div>

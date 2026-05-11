@@ -1,14 +1,9 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, AreaChart, Area, PieChart, Pie, Cell 
-} from 'recharts';
-import { 
-  TrendingUp, TrendingDown, Package, IndianRupee, Truck, 
-  Users, AlertCircle, ArrowUpRight, Activity, Calendar
+  TrendingUp, TrendingDown, Package, IndianRupee, 
+  AlertCircle, Activity, Calendar
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -19,35 +14,25 @@ import { ActivityFeed } from '@/components/dashboard/activity-feed';
 import { ComplianceCalendarWidget } from '@/components/dashboard/compliance-widget';
 import { TodayLRWidget } from '@/components/dashboard/TodayLRWidget';
 import { TodayPalletWidget } from '@/components/dashboard/TodayPalletWidget';
+import { getSession } from '@/lib/auth-utils';
+import { ReportEngine } from '@/services/report-engine';
+import { redirect } from 'next/navigation';
+import { DashboardChartsLazy } from '@/components/dashboard/dashboard-charts-lazy';
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
-export default function ExecutiveDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/v1/reports/dashboard-kpis');
-      const json = await res.json();
-      setData(json);
-    } catch (error) {
-      console.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  if (loading) {
-    return <DashboardSkeleton />;
+export default async function ExecutiveDashboard() {
+  const session = await getSession();
+  
+  if (!session?.user) {
+    redirect('/auth/login');
   }
 
-  const { kpis, trend } = data || {};
+  const { tenantId, companyId } = session.user;
+
+  // Simultaneous Server-Side Data Fetching (Fastest Method)
+  const [kpis, trend] = await Promise.all([
+    ReportEngine.getDashboardKPIs(tenantId, companyId),
+    ReportEngine.getRevenueTrend(tenantId, companyId),
+  ]);
 
   return (
     <div className="flex-1 space-y-8 p-8 pt-6 bg-slate-50/30 min-h-screen">
@@ -72,9 +57,8 @@ export default function ExecutiveDashboard() {
       {/* Quick Action Center */}
       <ActionCommandCenter />
 
-      {/* KPI Row */}
+      {/* KPI Row - Rendered instantly on server */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* ... existing KPI cards ... */}
         <KPICard 
           title="Today's LRs" 
           value={kpis?.todayLrs || 0} 
@@ -115,131 +99,14 @@ export default function ExecutiveDashboard() {
         <TodayPalletWidget />
       </div>
 
+      {/* Heavy Charts - Lazy Loaded on Client */}
+      <Suspense fallback={<Skeleton className="h-[450px] w-full rounded-3xl" />}>
+        <DashboardChartsLazy kpis={kpis} trend={trend} />
+      </Suspense>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        {/* Left Column: Analytics & Financial Insights */}
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-lg font-bold">Revenue Performance</CardTitle>
-                <CardDescription className="text-xs font-medium uppercase tracking-wider">Last 6 Months Trend</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 rounded-lg text-[10px] font-bold text-blue-600">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  REVENUE
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trend}>
-                    <defs>
-                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis 
-                      dataKey="month" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} 
-                      dy={10}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} 
-                      tickFormatter={(value) => `₹${value/1000}k`} 
-                    />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
-                      itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                      labelStyle={{ fontSize: '10px', fontWeight: '800', marginBottom: '4px', color: '#64748b' }}
-                      formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Revenue']}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#3b82f6" 
-                      strokeWidth={3} 
-                      fillOpacity={1} 
-                      fill="url(#colorRev)" 
-                      animationDuration={2000}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">Top Customers</CardTitle>
-              <CardDescription className="text-xs font-medium uppercase tracking-wider">By Revenue Share</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-              {kpis?.topCustomers?.map((customer: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-slate-500">
-                      {idx + 1}
-                    </div>
-                    <span className="text-sm font-bold text-slate-700">{customer.name}</span>
-                  </div>
-                  <span className="text-sm font-black text-blue-600">₹{(customer.revenue / 1000).toFixed(1)}k</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: Fleet & Intelligence */}
+        <div className="lg:col-span-4" /> {/* Spacer for chart layout alignment if needed */}
         <div className="lg:col-span-3 space-y-6">
-          <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">Fleet Status</CardTitle>
-              <CardDescription className="text-xs font-medium uppercase tracking-wider">Real-time Utilization</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'On Trip', value: kpis?.fleetUtilization?.onTrip || 0 },
-                        { name: 'Idle', value: kpis?.fleetUtilization?.idle || 0 },
-                        { name: 'Service', value: kpis?.fleetUtilization?.maintenance || 0 },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={85}
-                      paddingAngle={8}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      <Cell fill="#3b82f6" />
-                      <Cell fill="#10b981" />
-                      <Cell fill="#f43f5e" />
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 20px rgba(0,0,0,0.05)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <StatusItem label="On Trip" value={kpis?.fleetUtilization?.onTrip} color="bg-blue-500" />
-                <StatusItem label="Idle" value={kpis?.fleetUtilization?.idle} color="bg-emerald-500" />
-                <StatusItem label="Service" value={kpis?.fleetUtilization?.maintenance} color="bg-rose-500" />
-              </div>
-            </CardContent>
-          </Card>
-
           <ActivityFeed />
           <ComplianceCalendarWidget />
         </div>
@@ -284,37 +151,3 @@ function KPICard({ title, value, trend, badge, icon, color, footer }: any) {
     </Card>
   );
 }
-
-function StatusItem({ label, value, color }: any) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className={`h-1.5 w-8 rounded-full ${color}`} />
-      <span className="text-[10px] font-bold text-slate-400 uppercase">{label}</span>
-      <span className="text-sm font-black text-slate-700">{value || 0}</span>
-    </div>
-  );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="flex-1 space-y-8 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <Skeleton className="h-10 w-[250px] rounded-xl" />
-        <Skeleton className="h-8 w-[180px] rounded-xl" />
-      </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-32 w-full rounded-2xl" />
-        ))}
-      </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <Skeleton className="lg:col-span-4 h-[450px] rounded-3xl" />
-        <div className="lg:col-span-3 space-y-6">
-          <Skeleton className="h-[280px] rounded-3xl" />
-          <Skeleton className="h-[280px] rounded-3xl" />
-        </div>
-      </div>
-    </div>
-  );
-}
-

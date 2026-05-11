@@ -1147,6 +1147,7 @@ model OrderPallet {
   totalAmount  Int       @default(0) @map("total_amount") // paise
 
   gstPct      Decimal   @default(0) @map("gst_pct") @db.Decimal(5, 2)
+  type        String    @default("OUTWARD") @db.VarChar(20)
   status      String    @default("created") @db.VarChar(20)
   metadata    Json?     @db.JsonB
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()

@@ -6,8 +6,7 @@ export async function GET(request: Request) {
     // Basic API Key protection for cron endpoints (Vercel Cron automatically sends a secure header)
     const authHeader = request.headers.get('authorization');
     if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      console.warn('Unauthorized cron invocation attempted');
-      // Uncomment to strictly enforce: return new NextResponse('Unauthorized', { status: 401 });
+      // Unauthorized
     }
 
     // 1. Check Core Vehicle Expiries
@@ -65,12 +64,11 @@ export async function GET(request: Request) {
 
     // TODO: Integrate Email / SMS Provider (e.g. Resend, Twilio)
     if (alertsToSend.length > 0) {
-      console.log(`[CRON] Generating ${alertsToSend.length} Compliance Alerts:`, alertsToSend);
+      // Alerts to process
     }
 
     return NextResponse.json({ success: true, alertsGenerated: alertsToSend.length, details: alertsToSend });
   } catch (error: any) {
-    console.error('Cron Fleet Compliance Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

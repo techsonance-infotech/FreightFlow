@@ -1,4 +1,4 @@
-export type UserRole = 'super_admin' | 'tenant_owner' | 'fleet_owner' | 'ops_manager' | 'accountant' | 'hr_manager' | 'dispatch_officer' | 'maintenance_supervisor' | 'auditor' | 'driver';
+export type UserRole = 'super_admin' | 'tenant_owner' | 'fleet_owner' | 'ops_manager' | 'accountant' | 'hr_manager' | 'dispatch_officer' | 'maintenance_supervisor' | 'auditor' | 'driver' | 'staff';
 
 export interface NavItem {
   id: string;
@@ -19,15 +19,26 @@ export const NAV_ITEMS: NavGroup[] = [
   {
     group: 'Main',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: 'home', path: '/dashboard', allowedRoles: ['super_admin', 'tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'dispatch_officer', 'maintenance_supervisor', 'auditor', 'driver'] },
-      { id: 'support', label: 'Support', icon: 'message', path: '/dashboard/support', allowedRoles: ['super_admin', 'tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'dispatch_officer', 'maintenance_supervisor', 'auditor', 'driver'] },
+      { id: 'dashboard', label: 'Dashboard', icon: 'home', path: '/dashboard', allowedRoles: ['super_admin', 'tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'dispatch_officer', 'maintenance_supervisor', 'auditor', 'driver', 'staff'] },
+      { id: 'support', label: 'Support', icon: 'message', path: '/dashboard/support', allowedRoles: ['super_admin', 'tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'dispatch_officer', 'maintenance_supervisor', 'auditor', 'driver', 'staff'] },
     ]
   },
   {
     group: 'Operations',
     items: [
       { id: 'orders', label: 'Lorry Receipts (LR)', icon: 'box', path: '/dashboard/orders', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'], category: 'operations' },
-      { id: 'pallets', label: 'Pallet Tracking', icon: 'inbox', path: '/dashboard/pallets', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'], category: 'operations' },
+      { 
+        id: 'pallets', 
+        label: 'Pallet Tracking', 
+        icon: 'inbox', 
+        path: '/dashboard/pallets', 
+        allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'], 
+        category: 'operations',
+        subItems: [
+          { id: 'pallets-outward', label: 'Outward Load', icon: 'outbox', path: '/dashboard/pallets', allowedRoles: ['tenant_owner', 'ops_manager', 'dispatch_officer'] },
+          { id: 'pallets-return', label: 'Pallet Returns', icon: 'trending', path: '/dashboard/pallets/returns', allowedRoles: ['tenant_owner', 'ops_manager', 'dispatch_officer'] },
+        ]
+      },
       { 
         id: 'trips', 
         label: 'Trip Management', 
@@ -189,7 +200,7 @@ export const NAV_CATEGORIES = [
 ];
 
 export function hasPermission(userRole: string, item: NavItem, permissions?: any): boolean {
-  if (userRole === 'super_admin' || userRole === 'tenant_owner') return true;
+  if (userRole === 'super_admin' || userRole === 'tenant_owner' || userRole === 'fleet_owner') return true;
   
   // 1. Check Role-based permission
   const hasRoleAccess = item.allowedRoles.includes(userRole as UserRole);

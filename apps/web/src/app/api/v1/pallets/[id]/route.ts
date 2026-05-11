@@ -80,18 +80,32 @@ export async function PATCH(
         igstAmount: body.igstAmount || 0,
         totalAmount: body.totalAmount || 0,
         gstPct: validatedData.gstPct,
+        type: validatedData.type,
         status: validatedData.status,
-        palletDetails: {
+        palletDetails: validatedData.type === 'OUTWARD' ? {
           deleteMany: {},
-          create: validatedData.palletDetails.map((d) => ({
+          create: (validatedData.palletDetails || []).map((d) => ({
             companyId: user.companyId!,
             palletDisplayId: d.palletDisplayId,
             consigneeName: d.consigneeName,
             qty: d.qty,
             rate: d.rate,
           })),
-        },
+        } : { deleteMany: {} },
+        consigneeDetails: validatedData.type === 'RETURN' ? {
+          deleteMany: {},
+          create: (validatedData.consigneeDetails || []).map((d) => ({
+            companyId: user.companyId!,
+            consigneeName: d.consigneeName,
+            qty: d.qty,
+            rate: d.rate,
+          })),
+        } : { deleteMany: {} },
       },
+      include: {
+        palletDetails: true,
+        consigneeDetails: true,
+      }
     });
 
     return NextResponse.json(pallet);
