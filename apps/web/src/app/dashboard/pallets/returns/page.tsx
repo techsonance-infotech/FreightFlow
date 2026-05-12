@@ -13,6 +13,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function PalletReturnListPage() {
   const [pallets, setPallets] = useState<any[]>([]);
@@ -43,6 +52,37 @@ export default function PalletReturnListPage() {
     }
   };
 
+  const handleExport = (exportFormat: 'csv' | 'excel' | 'pdf') => {
+    const exportData = pallets.map(p => ({
+      'Return ID': `#${p.lrNo}`,
+      'Date': format(new Date(p.date), 'dd MMM yyyy'),
+      'Dealer': p.dealer?.name || p.companyName,
+      'Vehicle': p.vehicle?.regNo || 'N/A',
+      'Units': (p.palletDetails?.length > 0 ? p.palletDetails : (p.consigneeDetails || [])).reduce((acc: number, d: any) => acc + d.qty, 0),
+      'Tax %': p.gstPct,
+      'Subtotal': p.subtotal / 100,
+      'Total Amount': p.totalAmount / 100,
+    }));
+
+    if (exportFormat === 'csv' || exportFormat === 'excel') {
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "PalletReturns");
+      XLSX.writeFile(wb, `Pallet_Returns_Export_${new Date().getTime()}.${exportFormat === 'excel' ? 'xlsx' : 'csv'}`);
+      toast.success(`Data exported as ${exportFormat.toUpperCase()}`);
+    } else if (exportFormat === 'pdf') {
+      const doc = new jsPDF();
+      doc.text("Pallet Return Records", 14, 15);
+      autoTable(doc, {
+        startY: 20,
+        head: [['Return ID', 'Date', 'Dealer', 'Vehicle', 'Units', 'Total']],
+        body: exportData.map(d => [d['Return ID'], d['Date'], d['Dealer'], d['Vehicle'], d['Units'], `Rs. ${d['Total Amount']}`]),
+      });
+      doc.save(`Pallet_Returns_Report_${new Date().getTime()}.pdf`);
+      toast.success("Data exported as PDF");
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => fetchPallets(1), 300);
     return () => clearTimeout(timer);
@@ -62,9 +102,18 @@ export default function PalletReturnListPage() {
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12 text-blue-500/50">Reverse Logistics Pipeline</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">
-            <Download className="h-4 w-4 mr-2" /> Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase h-14 px-6">
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 p-2 shadow-2xl">
+              <DropdownMenuItem onClick={() => handleExport('csv')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer">Export CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('excel')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer">Export Excel</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('pdf')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer text-rose-500">Export PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link href="/dashboard/pallets/returns/new">
             <Button className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/10 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
               <Plus className="h-4 w-4" /> Log Return
@@ -76,9 +125,9 @@ export default function PalletReturnListPage() {
       {/* Stats Summary - Minimal for Returns */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Active Returns', value: meta.total.toString(), icon: <RefreshCw className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
-          { label: 'Pending Collection', value: '12', icon: <Box className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
-          { label: 'Completed Hub', value: '45', icon: <CheckCircle2 className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
+          { label: 'Total Returns', value: meta.total.toString(), icon: <RefreshCw className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
+          { label: 'Units Collected', value: pallets.reduce((acc, p) => acc + (p.palletDetails?.reduce((sum: number, d: any) => sum + d.qty, 0) || p.consigneeDetails?.reduce((sum: number, d: any) => sum + d.qty, 0) || 0), 0).toString(), icon: <Box className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
+          { label: 'Active Fleet', value: Array.from(new Set(pallets.map(p => p.vehicleId).filter(Boolean))).length.toString(), icon: <Truck className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md group">
             <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", stat.color)}>{stat.icon}</div>
@@ -195,19 +244,33 @@ export default function PalletReturnListPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <Box className="h-3 w-3 text-blue-500" />
                           <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter">
-                            {pallet.consigneeDetails?.reduce((acc: number, d: any) => acc + d.qty, 0)} Units Returned
+                            {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).reduce((acc: number, d: any) => acc + d.qty, 0)} Units Returned
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Package className="h-3 w-3 text-slate-300" />
                           <span className="text-[10px] font-bold text-slate-400 uppercase">
-                            {pallet.consigneeDetails?.length} Consignees
+                            {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).length} Consignees
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-6 text-right font-black text-slate-900">{pallet.gstPct}%</td>
                       <td className="px-6 py-6" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-2">
+                          <PalletInvoiceDownloader 
+                            palletId={pallet.id} 
+                            lrNo={pallet.lrNo}
+                            variant="invoice"
+                            label="Invoice"
+                            className="h-9 px-4 rounded-full bg-white border border-slate-100 text-slate-600 hover:bg-slate-50 transition-all shadow-sm font-black text-[10px] uppercase flex items-center gap-2"
+                          />
+                          <PalletInvoiceDownloader 
+                            palletId={pallet.id} 
+                            lrNo={pallet.lrNo}
+                            variant="receipt"
+                            label="Receipt"
+                            className="h-9 px-4 rounded-full bg-white border border-slate-100 text-slate-600 hover:bg-slate-50 transition-all shadow-sm font-black text-[10px] uppercase flex items-center gap-2"
+                          />
                           <Link href={`/dashboard/pallets/returns/${pallet.id}`} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-amber-600 hover:text-white transition-all shadow-sm"><Edit className="h-4 w-4" /></Link>
                         </div>
                       </td>
@@ -232,9 +295,16 @@ export default function PalletReturnListPage() {
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-50">
-                                    {(pallet.consigneeDetails || []).map((detail: any, dIdx: number) => (
+                                    {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).map((detail: any, dIdx: number) => (
                                       <tr key={dIdx}>
-                                        <td className="px-6 py-4 text-xs font-bold text-slate-700">{detail.consigneeName}</td>
+                                        <td className="px-6 py-4 text-xs font-bold text-slate-700">
+                                          {detail.consigneeName}
+                                          {detail.palletDisplayId && (
+                                            <span className="ml-2 px-1.5 py-0.5 bg-slate-100 rounded text-[9px] text-slate-400 font-black">
+                                              {detail.palletDisplayId}
+                                            </span>
+                                          )}
+                                        </td>
                                         <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.qty}</td>
                                         <td className="px-4 py-4 text-xs font-black text-slate-900 text-right">{(detail.rate / 100).toLocaleString()}</td>
                                       </tr>
@@ -246,37 +316,27 @@ export default function PalletReturnListPage() {
 
                             {/* Financial Summary */}
                             <div className="space-y-6">
-                              <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm space-y-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Truck className="h-4 w-4 text-blue-600" />
-                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Financial Context</h4>
-                                </div>
-                                <div className="space-y-3">
-                                  <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Billing Party</p>
-                                    <p className="text-xs font-black text-slate-700 mt-1">{pallet.dealer?.name || 'N/A'}</p>
-                                  </div>
-                                  <div className="pt-3 border-t border-slate-50 flex justify-between items-end">
-                                    <div>
-                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Subtotal</p>
-                                      <p className="text-xl font-black text-slate-900 tracking-tighter">
-                                        ₹{(pallet.subtotal / 100).toLocaleString()}
-                                      </p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Bill</p>
-                                      <p className="text-xl font-black text-slate-900 tracking-tighter">
-                                        ₹{(pallet.totalAmount / 100).toLocaleString()}
-                                      </p>
-                                    </div>
+                                  <div className="flex gap-2">
+                                    <PalletInvoiceDownloader 
+                                      palletId={pallet.id} 
+                                      lrNo={pallet.lrNo}
+                                      variant="receipt"
+                                      label="Download Challan"
+                                      className="flex-1 h-12 rounded-2xl bg-slate-800 hover:bg-black text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-slate-200"
+                                    />
+                                    <PalletInvoiceDownloader 
+                                      palletId={pallet.id} 
+                                      lrNo={pallet.lrNo}
+                                      variant="invoice"
+                                      label="Download Invoice"
+                                      className="flex-1 h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-200"
+                                    />
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
+                            </td>
+                          </tr>
+                        )}
                   </React.Fragment>
                 ))
               )}

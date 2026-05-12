@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         companyId: user.companyId!,
         lrNo: validatedData.lrNo,
         dealerId: validatedData.dealerId,
-        consigneeId: validatedData.consigneeId,
+        consigneeId: validatedData.consigneeId || null,
         vehicleId: validatedData.vehicleId,
         date: new Date(validatedData.date),
         companyName: validatedData.companyName,
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
         gstPct: validatedData.gstPct,
         type: validatedData.type,
         status: validatedData.status,
-        palletDetails: validatedData.type === 'OUTWARD' ? {
+        palletDetails: {
           create: (validatedData.palletDetails || []).map((d) => ({
             companyId: user.companyId!,
             palletDisplayId: d.palletDisplayId,
@@ -130,15 +130,7 @@ export async function POST(request: Request) {
             qty: d.qty,
             rate: d.rate,
           })),
-        } : undefined,
-        consigneeDetails: validatedData.type === 'RETURN' ? {
-          create: (validatedData.consigneeDetails || []).map((d) => ({
-            companyId: user.companyId!,
-            consigneeName: d.consigneeName,
-            qty: d.qty,
-            rate: d.rate,
-          })),
-        } : undefined,
+        },
       },
       include: {
         palletDetails: true,
