@@ -75,6 +75,7 @@ export const PalletSchema = z.object({
   gstPct: z.number().min(0).max(100).default(0),
   type: z.enum(['OUTWARD', 'RETURN']).default('OUTWARD'),
   status: z.string().default('active'),
+  isGstRequired: z.boolean().default(false),
   palletDetails: z.array(PalletDetailSchema).min(0),
   consigneeDetails: z.array(PalletConsigneeDetailSchema).optional(),
 });

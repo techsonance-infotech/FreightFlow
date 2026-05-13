@@ -13,6 +13,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function PalletListPage() {
   const [pallets, setPallets] = useState<any[]>([]);
@@ -34,7 +43,10 @@ export default function PalletListPage() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/v1/pallets/stats');
+      let url = '/api/v1/pallets/stats?type=OUTWARD';
+      if (filters.startDate) url += `&startDate=${filters.startDate}`;
+      if (filters.endDate) url += `&endDate=${filters.endDate}`;
+      const res = await fetch(url);
       const data = await res.json();
       setStats(data);
     } catch (error) {
@@ -60,12 +72,75 @@ export default function PalletListPage() {
     }
   };
 
+  const handleExport = (exportFormat: 'csv' | 'excel' | 'pdf') => {
+    const exportData = pallets.map(p => ({
+      'LR No': `#${p.lrNo}`,
+      'Date': format(new Date(p.date), 'dd MMM yyyy'),
+      'Dealer': p.dealer?.name || p.companyName,
+      'Vehicle': p.vehicle?.regNo || 'N/A',
+      'Pallets': p.palletDetails?.reduce((acc: number, d: any) => acc + (parseInt(d.qty as any) || 0), 0),
+      'Tax %': p.gstPct,
+      'Total Amount': p.totalAmount / 100,
+    }));
+
+    if (exportFormat === 'csv' || exportFormat === 'excel') {
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "PalletTracking");
+      XLSX.writeFile(wb, `Pallet_Tracking_Export_${new Date().getTime()}.${exportFormat === 'excel' ? 'xlsx' : 'csv'}`);
+      toast.success(`Data exported as ${exportFormat.toUpperCase()}`);
+    } else if (exportFormat === 'pdf') {
+      const doc = new jsPDF();
+      
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(30, 41, 59); // Slate 800
+      doc.text("FREIGHTFLOW LOGISTICS", 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // Slate 400
+      doc.text("Inventory & Distribution Control Report", 14, 28);
+      doc.text(`Generated on: ${format(new Date(), 'dd MMM yyyy HH:mm')}`, 14, 33);
+      
+      doc.setDrawColor(226, 232, 240); // Slate 200
+      doc.line(14, 38, 196, 38);
+
+      autoTable(doc, {
+        startY: 45,
+        head: [['LR No', 'Date', 'Dealer', 'Vehicle', 'Pallets', 'Total Amount']],
+        body: exportData.map(d => [d['LR No'], d['Date'], d['Dealer'], d['Vehicle'], d['Pallets'], `Rs. ${d['Total Amount'].toLocaleString()}`]),
+        headStyles: { 
+          fillColor: [37, 99, 235], 
+          textColor: 255, 
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { halign: 'left' },
+          1: { halign: 'left' },
+          2: { halign: 'left' },
+          3: { halign: 'center' },
+          4: { halign: 'center' },
+          5: { halign: 'right' }
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { top: 45 }
+      });
+      
+      doc.save(`Pallet_Tracking_Report_${new Date().getTime()}.pdf`);
+      toast.success("Data exported as PDF");
+    }
+  };
+
   useEffect(() => {
     fetchStats();
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchPallets(1), 300);
+    const timer = setTimeout(() => {
+      fetchPallets(1);
+      fetchStats();
+    }, 300);
     return () => clearTimeout(timer);
   }, [search, filters]);
 
@@ -83,9 +158,18 @@ export default function PalletListPage() {
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Inventory & Distribution Control</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">
-            <Download className="h-4 w-4 mr-2" /> Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase h-14 px-6">
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 p-2 shadow-2xl">
+              <DropdownMenuItem onClick={() => handleExport('csv')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer">Export CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('excel')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer">Export Excel</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('pdf')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer text-rose-500">Export PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link href="/dashboard/pallets/new">
             <Button className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/10 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
               <Plus className="h-4 w-4" /> Establish Load
@@ -99,7 +183,7 @@ export default function PalletListPage() {
         {[
           { label: 'Today Records', value: stats.todayCount.toString(), icon: <Inbox className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
           { label: 'Total Weight', value: `${(stats.totalWeight / 1000).toFixed(1)} MT`, icon: <Scale className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
-          { label: 'Total Boxes', value: stats.totalBoxes.toString(), icon: <Package className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
+          { label: 'Total Pallets', value: stats.totalBoxes.toString(), icon: <Box className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
           { label: 'This Month', value: stats.monthlyCount.toString(), icon: <BarChart3 className="h-6 w-6 text-purple-600" />, color: 'bg-purple-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md group">
@@ -240,13 +324,13 @@ export default function PalletListPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <Box className="h-3 w-3 text-blue-500" />
                           <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter">
-                            {pallet.palletDetails?.reduce((acc: number, d: any) => acc + d.qty, 0)} Pallets
+                            {pallet.palletDetails?.reduce((acc: number, d: any) => acc + (parseInt(d.qty as any) || 0), 0)} Units
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Package className="h-3 w-3 text-slate-300" />
                           <span className="text-[10px] font-bold text-slate-400 uppercase">
-                            {pallet.palletDetails?.reduce((acc: number, d: any) => acc + d.boxQty, 0)} Boxes
+                            {pallet.palletDetails?.length} Destinations
                           </span>
                         </div>
                       </td>
@@ -285,18 +369,18 @@ export default function PalletListPage() {
                                 <table className="w-full text-left">
                                   <thead className="bg-slate-50/50">
                                     <tr>
-                                      <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Pallet ID</th>
-                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Boxes</th>
-                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Weight</th>
-                                      <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Consignee</th>
+                                      <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Pallet Identification</th>
+                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Quantity</th>
+                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Unit Rate</th>
+                                      <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Consignee Ref</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-50">
                                     {(pallet.palletDetails || []).map((detail: any, dIdx: number) => (
                                       <tr key={dIdx}>
                                         <td className="px-6 py-4 text-xs font-bold text-slate-700">{detail.palletDisplayId}</td>
-                                        <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.boxQty}</td>
-                                        <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.weight} KG</td>
+                                        <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.qty} Nodes</td>
+                                        <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">₹{(parseFloat(detail.rate as any) / 100).toFixed(2)}</td>
                                         <td className="px-6 py-4 text-xs font-bold text-slate-400 text-right">{detail.consigneeName || '-'}</td>
                                       </tr>
                                     ))}
@@ -325,13 +409,13 @@ export default function PalletListPage() {
                                     <div>
                                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Load</p>
                                       <p className="text-xl font-black text-slate-900 tracking-tighter">
-                                        {(pallet.palletDetails || []).reduce((acc: number, d: any) => acc + (d.weight || 0), 0).toFixed(2)} KG
+                                        {(pallet.palletDetails || []).reduce((acc: number, d: any) => acc + (parseFloat(d.weight as any) || 0), 0).toFixed(2)} KG
                                       </p>
                                     </div>
                                     <div className="text-right">
                                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Revenue (Base)</p>
                                       <p className="text-xl font-black text-slate-900 tracking-tighter">
-                                        ₹{((pallet.palletDetails || []).reduce((acc: number, d: any) => acc + (d.rate || 0), 0) / 100).toLocaleString()}
+                                        ₹{( (pallet.palletDetails || []).reduce((acc: number, d: any) => acc + ( (parseInt(d.qty as any) || 0) * (parseFloat(d.rate as any) || 0) ), 0) / 100).toLocaleString()}
                                       </p>
                                     </div>
                                   </div>
@@ -364,6 +448,52 @@ export default function PalletListPage() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+      {/* Pagination Footer */}
+      <div className="flex items-center justify-between px-8 py-6 bg-white border border-slate-100 rounded-[32px] shadow-sm">
+        <div className="flex items-center gap-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            Showing <span className="text-slate-900">{pallets.length}</span> of <span className="text-slate-900">{meta.total}</span> records
+          </p>
+          <div className="h-4 w-[1px] bg-slate-100" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            Page <span className="text-slate-900">{meta.page}</span> of <span className="text-slate-900">{meta.totalPages}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            disabled={meta.page <= 1}
+            onClick={() => fetchPallets(meta.page - 1)}
+            className="h-10 px-4 rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase disabled:opacity-30"
+          >
+            Previous
+          </Button>
+          {Array.from({ length: Math.min(5, meta.totalPages) }).map((_, i) => {
+            const pageNum = i + 1;
+            return (
+              <Button 
+                key={pageNum}
+                variant={meta.page === pageNum ? 'default' : 'outline'}
+                onClick={() => fetchPallets(pageNum)}
+                className={cn(
+                  "h-10 w-10 p-0 rounded-xl font-bold text-[10px] transition-all",
+                  meta.page === pageNum ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                )}
+              >
+                {pageNum}
+              </Button>
+            );
+          })}
+          <Button 
+            variant="outline" 
+            disabled={meta.page >= meta.totalPages}
+            onClick={() => fetchPallets(meta.page + 1)}
+            className="h-10 px-4 rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase disabled:opacity-30"
+          >
+            Next
+          </Button>
         </div>
       </div>
     </div>

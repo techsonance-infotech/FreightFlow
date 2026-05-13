@@ -33,6 +33,25 @@ export default function PalletReturnListPage() {
     startDate: '',
     endDate: '',
   });
+  const [stats, setStats] = useState({
+    todayCount: 0,
+    totalWeight: 0,
+    totalBoxes: 0,
+    monthlyCount: 0
+  });
+
+  const fetchStats = async () => {
+    try {
+      let url = '/api/v1/pallets/stats?type=RETURN';
+      if (filters.startDate) url += `&startDate=${filters.startDate}`;
+      if (filters.endDate) url += `&endDate=${filters.endDate}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Failed to fetch stats', error);
+    }
+  };
 
   const fetchPallets = async (page = 1) => {
     try {
@@ -84,7 +103,14 @@ export default function PalletReturnListPage() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchPallets(1), 300);
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchPallets(1);
+      fetchStats();
+    }, 300);
     return () => clearTimeout(timer);
   }, [search, filters]);
 
@@ -125,9 +151,9 @@ export default function PalletReturnListPage() {
       {/* Stats Summary - Minimal for Returns */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Returns', value: meta.total.toString(), icon: <RefreshCw className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
-          { label: 'Units Collected', value: pallets.reduce((acc, p) => acc + (p.palletDetails?.reduce((sum: number, d: any) => sum + d.qty, 0) || p.consigneeDetails?.reduce((sum: number, d: any) => sum + d.qty, 0) || 0), 0).toString(), icon: <Box className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
-          { label: 'Active Fleet', value: Array.from(new Set(pallets.map(p => p.vehicleId).filter(Boolean))).length.toString(), icon: <Truck className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
+          { label: 'Total Returns', value: stats.todayCount.toString(), icon: <RefreshCw className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
+          { label: 'Units Collected', value: stats.totalBoxes.toString(), icon: <Box className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
+          { label: 'This Month', value: stats.monthlyCount.toString(), icon: <BarChart3 className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md group">
             <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", stat.color)}>{stat.icon}</div>
@@ -342,6 +368,53 @@ export default function PalletReturnListPage() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Pagination Footer */}
+      <div className="flex items-center justify-between px-8 py-6 bg-white border border-slate-100 rounded-[32px] shadow-sm">
+        <div className="flex items-center gap-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            Showing <span className="text-slate-900">{pallets.length}</span> of <span className="text-slate-900">{meta.total}</span> records
+          </p>
+          <div className="h-4 w-[1px] bg-slate-100" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            Page <span className="text-slate-900">{meta.page}</span> of <span className="text-slate-900">{meta.totalPages}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            disabled={meta.page <= 1}
+            onClick={() => fetchPallets(meta.page - 1)}
+            className="h-10 px-4 rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase disabled:opacity-30"
+          >
+            Previous
+          </Button>
+          {Array.from({ length: Math.min(5, meta.totalPages) }).map((_, i) => {
+            const pageNum = i + 1;
+            return (
+              <Button 
+                key={pageNum}
+                variant={meta.page === pageNum ? 'default' : 'outline'}
+                onClick={() => fetchPallets(pageNum)}
+                className={cn(
+                  "h-10 w-10 p-0 rounded-xl font-bold text-[10px] transition-all",
+                  meta.page === pageNum ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                )}
+              >
+                {pageNum}
+              </Button>
+            );
+          })}
+          <Button 
+            variant="outline" 
+            disabled={meta.page >= meta.totalPages}
+            onClick={() => fetchPallets(meta.page + 1)}
+            className="h-10 px-4 rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase disabled:opacity-30"
+          >
+            Next
+          </Button>
         </div>
       </div>
     </div>

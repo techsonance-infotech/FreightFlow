@@ -3,8 +3,13 @@ import { getSession } from '@/lib/auth-utils';
 import { prisma } from '@freightflow/db';
 import { startOfDay, startOfMonth, endOfDay } from 'date-fns';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const typeFilter = searchParams.get('type');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     const session = await getSession();
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -16,73 +21,62 @@ export async function GET() {
     const todayEnd = endOfDay(now);
     const monthStart = startOfMonth(now);
 
-    const [todayOutward, todayReturn, monthlyOutward, monthlyReturn, allDetails] = await Promise.all([
-      // Today's records
+    const whereBase: any = {
+      tenantId: user.tenantId,
+      companyId: user.companyId,
+      deletedAt: null,
+    };
+
+    if (typeFilter) {
+      whereBase.type = typeFilter;
+    }
+
+    if (startDate || endDate) {
+      whereBase.date = {};
+      if (startDate) whereBase.date.gte = new Date(startDate);
+      if (endDate) whereBase.date.lte = new Date(endDate);
+    }
+
+    const [todayCount, monthlyCount, allDetails] = await Promise.all([
+      // Filtered today's records
       prisma.orderPallet.count({
         where: {
-          tenantId: user.tenantId,
-          companyId: user.companyId,
-          type: 'OUTWARD',
+          ...whereBase,
           createdAt: { gte: todayStart, lte: todayEnd },
-          deletedAt: null,
         }
       }),
+      // Filtered monthly records
       prisma.orderPallet.count({
         where: {
-          tenantId: user.tenantId,
-          companyId: user.companyId,
-          type: 'RETURN',
-          createdAt: { gte: todayStart, lte: todayEnd },
-          deletedAt: null,
-        }
-      }),
-      // Monthly records
-      prisma.orderPallet.count({
-        where: {
-          tenantId: user.tenantId,
-          companyId: user.companyId,
-          type: 'OUTWARD',
+          ...whereBase,
           createdAt: { gte: monthStart },
-          deletedAt: null,
         }
       }),
-      prisma.orderPallet.count({
-        where: {
-          tenantId: user.tenantId,
-          companyId: user.companyId,
-          type: 'RETURN',
-          createdAt: { gte: monthStart },
-          deletedAt: null,
-        }
-      }),
-      // Total Weight & Boxes (all active)
+      // Filtered total Weight & Boxes
       prisma.palletDetail.findMany({
         where: {
           companyId: user.companyId,
-          pallet: {
-            tenantId: user.tenantId,
-            deletedAt: null,
-          }
+          pallet: whereBase
         },
         select: {
           weight: true,
           boxQty: true,
+          qty: true,
         }
       })
     ]);
 
     const totals = allDetails.reduce((acc, curr) => ({
       weight: acc.weight + Number(curr.weight || 0),
-      boxes: acc.boxes + (curr.boxQty || 0),
+      boxes: acc.boxes + (curr.boxQty || 0) + (curr.qty || 0),
     }), { weight: 0, boxes: 0 });
 
     return NextResponse.json({
-      todayCount: todayOutward,
-      todayReturnCount: todayReturn,
-      monthlyCount: monthlyOutward,
-      monthlyReturnCount: monthlyReturn,
+      todayCount,
+      monthlyCount,
       totalWeight: totals.weight,
-      totalBoxes: totals.boxes
+      totalBoxes: totals.boxes,
+      allTimeCount: await prisma.orderPallet.count({ where: whereBase })
     });
   } catch (error) {
     console.error('[PALLETS_STATS_GET]', error);
