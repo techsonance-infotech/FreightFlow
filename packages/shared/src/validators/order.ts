@@ -39,6 +39,7 @@ export const OrderSchema = z.object({
 export const PalletDetailSchema = z.object({
   id: z.string().uuid().optional(),
   palletDisplayId: z.string().default(''),
+  code: z.string().optional().nullable().or(z.literal('')),
   qty: z.number().int().min(1, 'Quantity is required'),
   rate: z.number().int().min(0), // in paise
   consigneeName: z.string().default(''),

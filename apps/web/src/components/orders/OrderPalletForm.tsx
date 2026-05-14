@@ -691,7 +691,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             </div>
             <Button 
               type="button" 
-              onClick={() => appendPallet({ palletDisplayId: '', qty: 1, rate: 0, consigneeName: '' })}
+              onClick={() => appendPallet({ palletDisplayId: '', code: '', qty: 1, rate: 0, consigneeName: '' })}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-8 py-4 h-auto text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 flex items-center gap-3 transition-all hover:-translate-y-0.5"
             >
               <Plus className="h-4 w-4" /> Add Row
@@ -703,7 +703,8 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
               <thead className="bg-slate-50/50 text-slate-400">
                 <tr>
                   <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest w-20">Sr.</th>
-                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest">Pallet Identification *</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[350px]">Pallet Identification *</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[250px]">Code</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-32 text-center">Qty *</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-center">Unit Rate *</th>
                   <th className="px-8 py-6 w-20"></th>
@@ -741,6 +742,9 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                                       type="button"
                                       onMouseDown={() => {
                                         setValue(`palletDetails.${index}.palletDisplayId`, p.palletId, { shouldDirty: true });
+                                        if (p.code) {
+                                          setValue(`palletDetails.${index}.code`, p.code, { shouldDirty: true });
+                                        }
                                       }}
                                       className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
                                     >
@@ -768,6 +772,17 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                         >
                           <Plus className="h-5 w-5" />
                         </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-8 align-top">
+                      <div className="bg-slate-50/50 rounded-2xl border border-slate-100 shadow-inner h-12 flex items-center px-4">
+                        <input 
+                          type="text" 
+                          {...register(`palletDetails.${index}.code` as const)} 
+                          readOnly
+                          placeholder="-"
+                          className="w-full bg-transparent border-none font-bold text-slate-500 text-sm focus:ring-0 outline-none" 
+                        />
                       </div>
                     </td>
                     <td className="px-4 py-8 align-top">

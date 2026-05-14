@@ -37,6 +37,7 @@ export const NAV_ITEMS: NavGroup[] = [
         subItems: [
           { id: 'pallets-outward', label: 'Outward Load', icon: 'outbox', path: '/dashboard/pallets', allowedRoles: ['tenant_owner', 'ops_manager', 'dispatch_officer'] },
           { id: 'pallets-return', label: 'Pallet Returns', icon: 'trending', path: '/dashboard/pallets/returns', allowedRoles: ['tenant_owner', 'ops_manager', 'dispatch_officer'] },
+          { id: 'pallets-reconciliation', label: 'Reconciliation Report', icon: 'chart', path: '/dashboard/pallets/reconciliation', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'] },
         ]
       },
       { 
@@ -118,6 +119,7 @@ export const NAV_ITEMS: NavGroup[] = [
         allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'maintenance_supervisor'],
         category: 'fleet',
         subItems: [
+          { id: 'fleet-map', label: 'Global Fleet Map', icon: 'route', path: '/dashboard/fleet/map', allowedRoles: ['super_admin', 'tenant_owner', 'ops_manager'], category: 'operations' },
           { id: 'fleet-registry', label: 'Vehicle Registry', icon: 'truck', path: '/dashboard/masters/vehicles', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'], category: 'fleet' },
           { id: 'fleet-compliance', label: 'Compliance Engine', icon: 'alert', path: '/dashboard/fleet/compliance', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'], category: 'fleet' },
           { id: 'fleet-docs', label: 'Manual Docs (Archive)', icon: 'scale', path: '/dashboard/fleet/documents', allowedRoles: ['tenant_owner', 'maintenance_supervisor'], category: 'fleet' },
@@ -142,10 +144,19 @@ export const NAV_ITEMS: NavGroup[] = [
         category: 'intelligence',
         subItems: [
           { id: 'reports-transport', label: 'Transport Analytics', icon: 'truck', path: '/dashboard/reports/transport', allowedRoles: ['tenant_owner', 'ops_manager'], category: 'intelligence' },
+          { id: 'reports-pallets', label: 'Pallet Audit BI', icon: 'chart', path: '/dashboard/pallets/reconciliation', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
           { id: 'reports-routes', label: 'Route Profitability', icon: 'route', path: '/dashboard/reports/routes', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
           { id: 'reports-financial', label: 'Financial Reports', icon: 'rupee', path: '/dashboard/reports/financial', allowedRoles: ['tenant_owner', 'accountant', 'auditor'], category: 'intelligence' },
           { id: 'reports-automation', label: 'Report Automation', icon: 'bot', path: '/dashboard/reports/scheduler', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
         ]
+      },
+      {
+        id: 'elite-roadmap',
+        label: 'Implementation Roadmap',
+        icon: 'scroll',
+        path: '/dashboard/elite',
+        allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager'],
+        category: 'intelligence'
       },
       {
         id: 'masters-dropdown',

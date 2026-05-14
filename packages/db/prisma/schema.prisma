@@ -270,14 +270,19 @@ model SupportTicket {
   userId         String   @map("user_id") @db.Uuid
   subject        String   @db.VarChar(255)
   description    String   @db.Text
-  status         String   @default("open") @db.VarChar(20) // open, in_progress, resolved, closed
-  priority       String   @default("medium") @db.VarChar(20) // low, medium, high, critical
+  category       String   @default("support") @db.VarChar(50) // bug, license, support, billing
+  status         String   @default("open") @db.VarChar(50) // open, pending, blocked, solved, closed
+  priority       String   @default("medium") @db.VarChar(20) // low, medium, high, urgent
+  adminResponse  String?  @map("admin_response") @db.Text
+  attachments    Json?    @default("[]")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
+  @@index([userId])
   @@map("support_tickets")
 }
 
@@ -457,6 +462,7 @@ model User {
   licenseRequests LicenseRequest[]
   supportMessages SupportMessage[]
   supportTickets  SupportTicket[]
+  notifications   SystemNotification[]
 
   @@index([tenantId])
   @@index([companyId])
@@ -1011,6 +1017,7 @@ model PalletMaster {
   tenantId     String   @map("tenant_id") @db.Uuid
   companyId    String   @map("company_id") @db.Uuid
   palletId     String   @map("pallet_id") @db.VarChar(50)
+  code         String?  @db.VarChar(100)
   name         String?  @db.VarChar(255)
   dimensions   String?  @db.VarChar(100)
   weightCapacity Int?   @map("weight_capacity")
@@ -1174,6 +1181,7 @@ model PalletDetail {
   companyId String @map("company_id") @db.Uuid
   palletId      String  @map("pallet_id") @db.Uuid
   palletDisplayId String? @map("pallet_display_id") @db.VarChar(50)
+  code            String? @db.VarChar(100)
   boxQty        Int     @default(0) @map("box_qty")
   weight        Decimal @default(0) @db.Decimal(10, 2)
   consigneeName String? @map("consignee_name") @db.VarChar(255)
@@ -1952,4 +1960,24 @@ model AccountingSetting {
 
   @@unique([tenantId, companyId])
   @@map("accounting_settings")
+}
+
+model SystemNotification {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String?   @map("tenant_id") @db.Uuid
+  userId      String?   @map("user_id") @db.Uuid
+  title       String    @db.VarChar(255)
+  message     String    @db.Text
+  type        String    @default("info") // info | promotional | alert | maintenance | license
+  priority    String    @default("medium") // low | medium | high | urgent
+  link        String?   @db.Text
+  isRead      Boolean   @default(false) @map("is_read")
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz()
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([type])
+  @@map("system_notifications")
 }

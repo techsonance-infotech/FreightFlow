@@ -87,6 +87,7 @@ export async function PATCH(
           create: (validatedData.palletDetails || []).map((d) => ({
             companyId: user.companyId!,
             palletDisplayId: d.palletDisplayId,
+            code: d.code,
             consigneeName: d.consigneeName,
             qty: d.qty,
             rate: d.rate,

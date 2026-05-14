@@ -14,6 +14,8 @@ import dynamic from 'next/dynamic';
 
 const SearchCommand = dynamic(() => import('./search-command').then(mod => mod.SearchCommand), { ssr: false });
 
+import { NotificationCenter } from './notification-center';
+
 interface TopbarProps {
   title?: string;
   user: {
@@ -27,7 +29,6 @@ interface TopbarProps {
 
 export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -63,14 +64,8 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
         <SearchCommand />
 
         <div className="flex items-center gap-3">
-          {/* Notifications Trigger */}
-          <button 
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all hover:bg-neutral-50 hover:text-accent-600 shadow-sm active:scale-95"
-            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-error-500 ring-4 ring-white" />
-          </button>
+          {/* Notifications Center */}
+          <NotificationCenter />
           
           <button className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all hover:bg-neutral-50 hover:text-accent-600 shadow-sm active:scale-95">
             <Moon className="h-5 w-5" />

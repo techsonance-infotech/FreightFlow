@@ -15,7 +15,12 @@ import { EmployeeTransactionModal } from '@/components/masters/employee-transact
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { useSearchParams } from 'next/navigation';
+
 export default function EmployeesMasterPage() {
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get('id');
+  
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -30,6 +35,15 @@ export default function EmployeesMasterPage() {
       const res = await fetch('/api/v1/masters/employees?limit=100');
       const data = await res.json();
       setEmployees(data.data || []);
+      
+      // Handle deep linking from search
+      if (highlightId && data.data?.length > 0) {
+        const target = data.data.find((e: any) => e.id === highlightId);
+        if (target) {
+          setSelectedEmployee(target);
+          setShowModal(true);
+        }
+      }
     } catch (error) {
       toast.error('Failed to load employees');
     } finally {
@@ -39,7 +53,7 @@ export default function EmployeesMasterPage() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [highlightId]);
 
   const handleEdit = (emp: any) => {
     setSelectedEmployee(emp);

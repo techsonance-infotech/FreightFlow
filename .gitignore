@@ -63,3 +63,14 @@ docs/
 /FreightFlowPro_ColorPalette*
 /Transport invoice*
 packages/db/src/generated
+
+# AI Agents and Analysis
+.agents/
+graphify-out/
+
+# Lock files
+package-lock.json
+
+# Local scratch scripts
+scripts/update_form.js
+scripts/update_form.py

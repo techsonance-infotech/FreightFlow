@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 interface SearchResult {
   id: string;
   title: string;
-  type: 'Order' | 'Vehicle' | 'Driver' | 'Customer';
+  type: 'Order' | 'Vehicle' | 'Driver' | 'Dealer' | 'Consignor' | 'Consignee';
   href: string;
 }
 
@@ -17,6 +17,7 @@ export function SearchCommand() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -25,15 +26,19 @@ export function SearchCommand() {
         e.preventDefault();
         setIsOpen((open) => !open);
       }
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
     };
     document.addEventListener('keydown', down);
     return () => document.removeEventListener('keydown', down);
-  }, []);
+  }, [isOpen]);
 
   const handleSearch = useCallback(async (val: string) => {
     setQuery(val);
     if (val.length < 2) {
       setResults([]);
+      setSelectedIndex(0);
       return;
     }
 
@@ -41,7 +46,9 @@ export function SearchCommand() {
     try {
       const res = await fetch(`/api/v1/search?q=${encodeURIComponent(val)}`);
       const json = await res.json();
-      setResults(json.data || []);
+      const newResults = json.data || [];
+      setResults(newResults);
+      setSelectedIndex(0);
     } catch (err) {
       console.error('Search error:', err);
     } finally {
@@ -53,6 +60,24 @@ export function SearchCommand() {
     router.push(href);
     setIsOpen(false);
     setQuery('');
+    setSelectedIndex(0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % results.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + results.length) % results.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (results[selectedIndex]) {
+        navigate(results[selectedIndex].href);
+      }
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
   };
 
   const getTypeIcon = (type: string) => {
@@ -60,7 +85,9 @@ export function SearchCommand() {
       case 'Order': return <Package className="h-4 w-4" />;
       case 'Vehicle': return <Truck className="h-4 w-4" />;
       case 'Driver': return <User className="h-4 w-4" />;
-      case 'Customer': return <Building className="h-4 w-4" />;
+      case 'Dealer': return <Building className="h-4 w-4" />;
+      case 'Consignor': return <Building className="h-4 w-4 text-amber-500" />;
+      case 'Consignee': return <Building className="h-4 w-4 text-emerald-500" />;
       default: return <Search className="h-4 w-4" />;
     }
   };
@@ -73,7 +100,7 @@ export function SearchCommand() {
         className="hidden lg:flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2 text-slate-400 transition-all hover:border-blue-300 hover:bg-white shadow-sm flex-1 max-w-xs xl:max-w-md"
       >
         <Search className="h-4 w-4 shrink-0" />
-        <span className="text-left text-sm font-medium text-slate-400 truncate">Search LR, Vehicle, Driver...</span>
+        <span className="text-left text-sm font-medium text-slate-400 truncate">Search LR, Vehicle, Stakeholder...</span>
         <kbd className="inline-flex h-5 select-none items-center gap-1 rounded border border-slate-200 bg-white px-1.5 font-mono text-[10px] font-medium text-slate-400 shrink-0">
           <span className="text-xs">⌘</span>K
         </kbd>
@@ -93,6 +120,7 @@ export function SearchCommand() {
                 placeholder="Type to search everything..."
                 value={query}
                 onChange={(e) => handleSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
               />
               <button 
                 onClick={() => setIsOpen(false)}
@@ -110,20 +138,30 @@ export function SearchCommand() {
                 </div>
               ) : results.length > 0 ? (
                 <div className="space-y-1">
-                  {results.map((res) => (
+                  {results.map((res, index) => (
                     <button
                       key={`${res.type}-${res.id}`}
                       onClick={() => navigate(res.href)}
-                      className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group border border-transparent hover:border-slate-100"
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={cn(
+                        "w-full flex items-center gap-4 p-4 rounded-2xl transition-all group border border-transparent",
+                        index === selectedIndex ? "bg-slate-100 border-slate-200" : "hover:bg-slate-50 hover:border-slate-100"
+                      )}
                     >
-                      <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                      <div className={cn(
+                        "h-10 w-10 rounded-xl flex items-center justify-center transition-all shadow-sm",
+                        index === selectedIndex ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-blue-600 group-hover:text-white"
+                      )}>
                         {getTypeIcon(res.type)}
                       </div>
                       <div className="flex-1 text-left">
                         <p className="text-sm font-black text-slate-900">{res.title}</p>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{res.type}</p>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-slate-200 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                      <ArrowRight className={cn(
+                        "h-4 w-4 transition-all",
+                        index === selectedIndex ? "opacity-100 translate-x-1 text-blue-600" : "text-slate-200 opacity-0 group-hover:opacity-100 group-hover:translate-x-1"
+                      )} />
                     </button>
                   ))}
                 </div>

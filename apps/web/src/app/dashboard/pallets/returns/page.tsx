@@ -32,6 +32,7 @@ export default function PalletReturnListPage() {
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
+    month: '',
   });
   const [stats, setStats] = useState({
     todayCount: 0,
@@ -165,41 +166,67 @@ export default function PalletReturnListPage() {
         ))}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
           <Input 
-            placeholder="Search by LR No, Consignee or Dealer..." 
+            placeholder="Search by LR No, Dealer, Consignee, Company or Party Code..." 
             className="pl-14 h-16 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-100 font-bold"
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
           />
         </div>
         
-        <div className="flex items-center gap-2 bg-white px-4 rounded-2xl shadow-sm border border-slate-50">
-          <Calendar className="h-4 w-4 text-blue-500 ml-2" />
-          <input 
-            type="date" 
-            className="h-16 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none" 
-            value={filters.startDate}
-            onChange={(e) => setFilters(f => ({ ...f, startDate: e.target.value }))}
-          />
-          <span className="text-slate-300">→</span>
-          <input 
-            type="date" 
-            className="h-16 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none" 
-            value={filters.endDate}
-            onChange={(e) => setFilters(f => ({ ...f, endDate: e.target.value }))}
-          />
+        <div className="flex flex-col gap-1">
+          <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest ml-4">Month</span>
+          <div className="flex items-center gap-2 bg-white px-4 rounded-2xl shadow-sm border border-slate-50">
+            <Calendar className="h-4 w-4 text-purple-500" />
+            <input 
+              type="month" 
+              className="h-12 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none cursor-pointer" 
+              value={filters.month}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val) {
+                  const [year, month] = val.split('-');
+                  const start = `${year}-${month}-01`;
+                  const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+                  const end = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+                  setFilters(f => ({ ...f, month: val, startDate: start, endDate: end }));
+                } else {
+                  setFilters(f => ({ ...f, month: '', startDate: '', endDate: '' }));
+                }
+              }}
+            />
+          </div>
         </div>
 
-        {(filters.startDate || filters.endDate || search) && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest ml-4">Date Range</span>
+          <div className="flex items-center gap-2 bg-white px-4 rounded-2xl shadow-sm border border-slate-50">
+            <Calendar className="h-4 w-4 text-blue-500" />
+            <input 
+              type="date" 
+              className="h-12 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none" 
+              value={filters.startDate}
+              onChange={(e) => setFilters(f => ({ ...f, startDate: e.target.value, month: '' }))}
+            />
+            <span className="text-slate-300">→</span>
+            <input 
+              type="date" 
+              className="h-12 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none" 
+              value={filters.endDate}
+              onChange={(e) => setFilters(f => ({ ...f, endDate: e.target.value, month: '' }))}
+            />
+          </div>
+        </div>
+
+        {(filters.startDate || filters.endDate || filters.month || search) && (
           <Button 
             variant="ghost" 
             className="h-16 px-6 text-rose-500 font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 rounded-2xl"
             onClick={() => {
-              setFilters({ startDate: '', endDate: '' });
+              setFilters({ startDate: '', endDate: '', month: '' });
               setSearch('');
             }}
           >

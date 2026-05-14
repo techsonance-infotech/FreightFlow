@@ -7,13 +7,13 @@ import {
   CheckCircle2, XCircle, Eye, 
   Upload, Search, Filter, 
   MoreHorizontal, Download, ChevronRight,
-  ShieldCheck, ArrowUpRight
+  ShieldCheck, ArrowUpRight, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { verifyPod, submitPod } from '@/app/actions/logistics/pod';
+import { verifyPod, submitPod, bulkExportPods } from '@/app/actions/logistics/pod';
 
 interface Order {
   id: string;
@@ -62,8 +62,87 @@ export function PodManager({ orders }: PodManagerProps) {
     }
   };
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleBulkVerify = async () => {
+    if (selectedIds.length === 0) return;
+    setLoading(true);
+    try {
+      await Promise.all(selectedIds.map(id => verifyPod(id, 'verified')));
+      toast.success(`Successfully verified ${selectedIds.length} PODs`);
+      setSelectedIds([]);
+      // Note: Ideally revalidate or refresh here
+      window.location.reload(); 
+    } catch (err: any) {
+      toast.error('Failed to verify some PODs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (selectedIds.length === 0) return;
+    setLoading(true);
+    try {
+      const res = await bulkExportPods(selectedIds);
+      toast.success(res.message);
+    } catch (err: any) {
+      toast.error('Export failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
+    <div className="space-y-10 animate-in fade-in duration-700 pb-20 relative">
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[90] w-full max-w-2xl px-4 animate-in slide-in-from-bottom-10 duration-500">
+          <div className="bg-slate-900 rounded-[2.5rem] p-6 shadow-2xl flex items-center justify-between gap-6 border border-white/10">
+            <div className="flex items-center gap-4 pl-4">
+              <div className="h-10 w-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black">
+                {selectedIds.length}
+              </div>
+              <div>
+                <p className="text-xs font-black text-white uppercase tracking-widest">Selected Records</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ready for Batch Operation</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                onClick={() => setSelectedIds([])}
+                className="text-white hover:bg-white/10 font-black text-[10px] uppercase h-12 px-6 rounded-xl"
+              >
+                Cancel
+              </Button>
+              {filter === 'delivered' && (
+                <Button 
+                  onClick={handleBulkVerify}
+                  disabled={loading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase h-12 px-8 rounded-xl shadow-xl shadow-emerald-500/20"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                  Verify All
+                </Button>
+              )}
+              <Button 
+                onClick={handleExport}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase h-12 px-8 rounded-xl shadow-xl shadow-blue-500/20"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header & Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-2">
@@ -98,7 +177,7 @@ export function PodManager({ orders }: PodManagerProps) {
           {(['pending', 'delivered', 'completed'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setFilter(tab)}
+              onClick={() => { setFilter(tab); setSelectedIds([]); }}
               className={cn(
                 "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                 filter === tab ? "bg-white text-blue-600 shadow-md" : "text-slate-400 hover:text-slate-600"
@@ -127,8 +206,23 @@ export function PodManager({ orders }: PodManagerProps) {
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredOrders.map((order) => (
-          <div key={order.id} className="group p-8 rounded-[2.5rem] bg-white border border-slate-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500">
-            <div className="flex items-center justify-between mb-8">
+          <div 
+            key={order.id} 
+            onClick={() => toggleSelect(order.id)}
+            className={cn(
+              "group p-8 rounded-[2.5rem] bg-white border transition-all duration-500 cursor-pointer relative",
+              selectedIds.includes(order.id) ? "border-blue-500 shadow-2xl shadow-blue-500/10 ring-2 ring-blue-500/10" : "border-slate-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-500/5"
+            )}
+          >
+            {/* Checkbox Overlay */}
+            <div className={cn(
+              "absolute top-6 right-6 h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all",
+              selectedIds.includes(order.id) ? "bg-blue-600 border-blue-600" : "border-slate-200 bg-white"
+            )}>
+              {selectedIds.includes(order.id) && <CheckCircle2 className="h-4 w-4 text-white" />}
+            </div>
+
+            <div className="flex items-center justify-between mb-8 pr-8">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-blue-600 font-black text-xs shadow-inner">
                   LR
@@ -170,7 +264,7 @@ export function PodManager({ orders }: PodManagerProps) {
               {filter === 'delivered' ? (
                 <Button 
                   size="sm" 
-                  onClick={() => setSelectedOrder(order)}
+                  onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
                   className="h-10 px-6 rounded-xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest gap-2 shadow-xl shadow-slate-100"
                 >
                   <ShieldCheck className="h-4 w-4" />
@@ -179,7 +273,7 @@ export function PodManager({ orders }: PodManagerProps) {
               ) : filter === 'pending' ? (
                 <Button 
                   size="sm" 
-                  onClick={() => setSelectedOrder(order)}
+                  onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
                   variant="outline"
                   className="h-10 px-6 rounded-xl border-blue-100 text-blue-600 font-black text-[10px] uppercase tracking-widest gap-2"
                 >
@@ -189,6 +283,7 @@ export function PodManager({ orders }: PodManagerProps) {
               ) : (
                 <Button 
                   size="sm" 
+                  onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
                   variant="ghost"
                   className="h-10 px-6 rounded-xl text-emerald-600 font-black text-[10px] uppercase tracking-widest gap-2"
                 >

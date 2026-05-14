@@ -19,6 +19,8 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
     const type = searchParams.get('type');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -35,13 +37,25 @@ export async function GET(request: Request) {
       where.type = type;
     }
 
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate + 'T23:59:59.999Z');
+    }
+
     if (search) {
-      where.OR = [
-        { lrNo: isNaN(parseInt(search)) ? undefined : parseInt(search) },
+      const searchConditions: any[] = [
         { companyName: { contains: search, mode: 'insensitive' } },
         { partyCode: { contains: search, mode: 'insensitive' } },
         { dealer: { name: { contains: search, mode: 'insensitive' } } },
-      ].filter(Boolean);
+        { palletDetails: { some: { consigneeName: { contains: search, mode: 'insensitive' } } } },
+        { consigneeDetails: { some: { consigneeName: { contains: search, mode: 'insensitive' } } } },
+      ];
+      // Support numeric LR No search
+      if (!isNaN(parseInt(search))) {
+        searchConditions.push({ lrNo: parseInt(search) });
+      }
+      where.OR = searchConditions;
     }
 
     const [pallets, total] = await Promise.all([
@@ -51,6 +65,7 @@ export async function GET(request: Request) {
         take: limit,
         include: {
           dealer: { select: { name: true } },
+          consignee: { select: { name: true } },
           vehicle: { select: { regNo: true } },
           palletDetails: true,
           consigneeDetails: true,
@@ -126,6 +141,7 @@ export async function POST(request: Request) {
           create: (validatedData.palletDetails || []).map((d) => ({
             companyId: user.companyId!,
             palletDisplayId: d.palletDisplayId,
+            code: d.code,
             consigneeName: d.consigneeName,
             qty: d.qty,
             rate: d.rate,

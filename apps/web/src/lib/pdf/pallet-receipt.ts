@@ -107,27 +107,23 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   // 4. Goods Table
   autoTable(doc, {
     startY: currentY,
-    head: [['Sr.', 'Description of Goods', 'Code', 'Qty', 'UOM', 'Rate', 'Total']],
+    head: [['Sr.', 'Description of Goods', 'Code', 'Qty', 'UOM']],
     body: (pallet.palletDetails || []).map((item: any, idx: number) => [
       idx + 1,
       item.palletDisplayId || 'PALLET UNIT',
       item.code || '-',
       item.boxQty || item.qty || 0,
-      item.uom || 'UNIT',
-      (item.rate / 100).toFixed(2),
-      ((item.qty * item.rate) / 100).toFixed(2)
+      item.uom || 'UNIT'
     ]),
     theme: 'grid',
     headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },
     bodyStyles: { fontSize: 7 },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 80 },
+      1: { cellWidth: 135 },
       2: { cellWidth: 15, halign: 'center' },
       3: { cellWidth: 15, halign: 'center' },
       4: { cellWidth: 15, halign: 'center' },
-      5: { cellWidth: 25, halign: 'right' },
-      6: { cellWidth: 30, halign: 'right' },
     },
     margin: { left: margin, right: margin }
   });

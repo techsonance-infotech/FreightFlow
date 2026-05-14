@@ -477,10 +477,19 @@ export default function TripListPage() {
                         </div>
                       </td>
                       <td className="px-4 py-5 text-right">
-                        <Link href={`/dashboard/trips/${trip.id}`}
-                          className="p-2 hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 inline-flex">
-                          <Eye className="h-4 w-4" />
-                        </Link>
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          {trip.status === 'delivered' && (
+                            <Link href={`/dashboard/trips/${trip.id}/settle`}
+                              className="px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-600 hover:text-white rounded-xl transition-all font-black text-[9px] uppercase tracking-widest flex items-center gap-1 border border-green-100 shadow-sm"
+                            >
+                              <TrendingUp className="h-3 w-3" /> Settle
+                            </Link>
+                          )}
+                          <Link href={`/dashboard/trips/${trip.id}`}
+                            className="p-2 hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-400 hover:text-blue-600 inline-flex">
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

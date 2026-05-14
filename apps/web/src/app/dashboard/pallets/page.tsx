@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Plus, Search, Filter, FileText, Edit, Trash2, 
   Download, Calendar, MapPin, Truck, ChevronDown, ChevronUp, Package, Hash, Info, Box,
-  Inbox, Scale, BarChart3
+  Inbox, Scale, BarChart3, Users
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ export default function PalletListPage() {
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
+    month: '',
   });
   const [stats, setStats] = useState({
     todayCount: 0,
@@ -158,6 +159,11 @@ export default function PalletListPage() {
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Inventory & Distribution Control</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/dashboard/pallets/reconciliation">
+            <Button variant="outline" className="rounded-xl border-slate-200 text-blue-600 font-black text-[10px] uppercase h-14 px-6 hover:bg-blue-50 transition-all">
+              <BarChart3 className="h-4 w-4 mr-2" /> Reconciliation Report
+            </Button>
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase h-14 px-6">
@@ -201,36 +207,63 @@ export default function PalletListPage() {
         <div className="relative flex-1">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
           <Input 
-            placeholder="Search by LR No, Company or Party Code..." 
+            placeholder="Search by LR No, Dealer, Consignee, Company or Party Code..." 
             className="pl-14 h-16 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-100 font-bold"
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
           />
         </div>
         
-        <div className="flex items-center gap-2 bg-white px-4 rounded-2xl shadow-sm border border-slate-50">
-          <Calendar className="h-4 w-4 text-blue-500 ml-2" />
-          <input 
-            type="date" 
-            className="h-16 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none" 
-            value={filters.startDate}
-            onChange={(e) => setFilters(f => ({ ...f, startDate: e.target.value }))}
-          />
-          <span className="text-slate-300">→</span>
-          <input 
-            type="date" 
-            className="h-16 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none" 
-            value={filters.endDate}
-            onChange={(e) => setFilters(f => ({ ...f, endDate: e.target.value }))}
-          />
+        <div className="flex flex-col gap-1">
+          <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest ml-4">Month</span>
+          <div className="flex items-center gap-2 bg-white px-4 rounded-2xl shadow-sm border border-slate-50">
+            <Calendar className="h-4 w-4 text-purple-500" />
+            <input 
+              type="month" 
+              className="h-12 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none cursor-pointer" 
+              value={filters.month}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val) {
+                  const [year, month] = val.split('-');
+                  const start = `${year}-${month}-01`;
+                  const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+                  const end = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+                  setFilters(f => ({ ...f, month: val, startDate: start, endDate: end }));
+                } else {
+                  setFilters(f => ({ ...f, month: '', startDate: '', endDate: '' }));
+                }
+              }}
+            />
+          </div>
         </div>
 
-        {(filters.startDate || filters.endDate || search) && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest ml-4">Date Range</span>
+          <div className="flex items-center gap-2 bg-white px-4 rounded-2xl shadow-sm border border-slate-50">
+            <Calendar className="h-4 w-4 text-blue-500" />
+            <input 
+              type="date" 
+              className="h-12 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none" 
+              value={filters.startDate}
+              onChange={(e) => setFilters(f => ({ ...f, startDate: e.target.value, month: '' }))}
+            />
+            <span className="text-slate-300">→</span>
+            <input 
+              type="date" 
+              className="h-12 bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none" 
+              value={filters.endDate}
+              onChange={(e) => setFilters(f => ({ ...f, endDate: e.target.value, month: '' }))}
+            />
+          </div>
+        </div>
+
+        {(filters.startDate || filters.endDate || filters.month || search) && (
           <Button 
             variant="ghost" 
             className="h-16 px-6 text-rose-500 font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 rounded-2xl"
             onClick={() => {
-              setFilters({ startDate: '', endDate: '' });
+              setFilters({ startDate: '', endDate: '', month: '' });
               setSearch('');
             }}
           >
@@ -258,6 +291,7 @@ export default function PalletListPage() {
                 </th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Pallet Details</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Party Reference</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Consignee</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-blue-600">Inventory</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Tax (%)</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Action</th>
@@ -267,12 +301,12 @@ export default function PalletListPage() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={6} className="px-6 py-6"><div className="h-12 bg-slate-50 rounded-2xl" /></td>
+                    <td colSpan={7} className="px-6 py-6"><div className="h-12 bg-slate-50 rounded-2xl" /></td>
                   </tr>
                 ))
               ) : pallets.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center">
+                  <td colSpan={7} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <Package className="h-12 w-12 text-slate-100" />
                       <p className="text-xs font-black text-slate-300 uppercase tracking-widest">No palletized records found</p>
@@ -321,6 +355,33 @@ export default function PalletListPage() {
                         </div>
                       </td>
                       <td className="px-6 py-6">
+                        {(() => {
+                          const names: string[] = [];
+                          // From the main consignee relation
+                          if (pallet.consignee?.name) names.push(pallet.consignee.name);
+                          // From pallet details
+                          (pallet.palletDetails || []).forEach((d: any) => { if (d.consigneeName) names.push(d.consigneeName); });
+                          // From consignee details
+                          (pallet.consigneeDetails || []).forEach((d: any) => { if (d.consigneeName) names.push(d.consigneeName); });
+                          const consignees = [...new Set(names)];
+                          return consignees.length > 0 ? (
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Users className="h-3 w-3 text-blue-500" />
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{consignees.length} Consignee{consignees.length > 1 ? 's' : ''}</span>
+                              </div>
+                              {consignees.map((name: string, ci: number) => (
+                                <div key={ci} className="text-[10px] font-bold text-slate-700 uppercase truncate max-w-[200px]" title={name}>
+                                  {name}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-300 uppercase">-</span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-6 py-6">
                         <div className="flex items-center gap-2 mb-1">
                           <Box className="h-3 w-3 text-blue-500" />
                           <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter">
@@ -357,7 +418,7 @@ export default function PalletListPage() {
                     </tr>
                     {expandedPalletId === pallet.id && (
                       <tr className="bg-blue-50/20">
-                        <td colSpan={6} className="px-12 py-8 border-l-4 border-blue-500">
+                        <td colSpan={7} className="px-12 py-8 border-l-4 border-blue-500">
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             {/* Pallet Breakdown */}
                             <div className="lg:col-span-2 space-y-4">

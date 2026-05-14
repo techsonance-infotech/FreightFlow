@@ -176,8 +176,7 @@ export class ReportEngine {
       todayRev, yesterdayRev, 
       outstanding, 
       totalVehicles, onTripVehicles, maintenanceVehicles,
-      expiringDocsCount,
-      topCustomersData
+      expiringDocsCount
     ] = await Promise.all([
       prisma.order.count({ where: { companyId, createdAt: { gte: startOfToday, lte: endOfToday } } }),
       prisma.order.count({ where: { companyId, createdAt: { gte: startOfYesterday, lte: endOfYesterday } } }),
@@ -193,9 +192,98 @@ export class ReportEngine {
       prisma.maintenanceJob.count({ where: { companyId, status: 'in_progress' } }),
       prisma.vehicleDocument.count({
         where: { companyId, expiryDate: { lte: thirtyDaysLater, gte: new Date() } }
-      }),
+      })
+    ]);
+
+    // Get Top Customers for Total Revenue (LR + Pallet)
+    const [topOrders, topPallets] = await Promise.all([
       prisma.order.groupBy({
         by: ['dealerId'],
+        where: { companyId },
+        _sum: { totalAmount: true }
+      }),
+      prisma.orderPallet.groupBy({
+        by: ['dealerId'],
+        where: { companyId },
+        _sum: { totalAmount: true }
+      })
+    ]);
+
+    // Get Top Customers specifically for BOX LR
+    const topBoxOrders = await prisma.order.groupBy({
+      by: ['dealerId'],
+      where: { companyId, rateOn: 'box' },
+      _sum: { totalAmount: true },
+      orderBy: { _sum: { totalAmount: 'desc' } },
+      take: 5
+    });
+
+    // Merge for Total Share
+    const totalShareMap: Record<string, number> = {};
+    topOrders.forEach(o => { if(o.dealerId) totalShareMap[o.dealerId] = (totalShareMap[o.dealerId] || 0) + Number(o._sum.totalAmount || 0); });
+    topPallets.forEach(p => { if(p.dealerId) totalShareMap[p.dealerId] = (totalShareMap[p.dealerId] || 0) + Number(p._sum.totalAmount || 0); });
+
+    const topTotalIds = Object.entries(totalShareMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
+    
+    // Fetch all relevant dealer names
+    const allDealerIds = Array.from(new Set([
+      ...topTotalIds.map(t => t[0]),
+      ...topBoxOrders.map(b => b.dealerId).filter(Boolean) as string[],
+      ...topPallets.sort((a,b) => Number(b._sum.totalAmount || 0) - Number(a._sum.totalAmount || 0)).slice(0, 5).map(p => p.dealerId).filter(Boolean) as string[]
+    ]));
+
+    const dealers = await prisma.dealer.findMany({
+      where: { id: { in: allDealerIds } },
+      select: { id: true, name: true }
+    });
+
+    const formatCustomer = (id: string, amount: number) => ({
+      name: dealers.find(d => d.id === id)?.name || 'Direct / Walk-in',
+      amount: amount / 100
+    });
+
+    // Get Revenue Trend (Last 6 Months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    const revenueTrendRaw = await prisma.$queryRaw<any[]>`
+      SELECT 
+        TO_CHAR(date, 'Mon') as month,
+        SUM(total_amount) as revenue,
+        MIN(date) as sort_date
+      FROM (
+        SELECT date, total_amount FROM orders WHERE company_id = ${companyId}::uuid AND date >= ${sixMonthsAgo}
+        UNION ALL
+        SELECT date, total_amount FROM order_pallets WHERE company_id = ${companyId}::uuid AND date >= ${sixMonthsAgo}
+      ) combined
+      GROUP BY month
+      ORDER BY sort_date ASC
+    `;
+
+    // Get Settlement Analytics (Pending PODs)
+    const pendingSettlements = await prisma.trip.count({
+      where: { companyId, status: 'reached' }
+    });
+
+    // Get Recent Activity (Last 10 Logs)
+    const recentActivity = await prisma.auditLog.findMany({
+      where: { companyId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: { user: { select: { name: true } } }
+    });
+
+    // Get Route Analytics (Top Destinations by Revenue)
+    const [orderRoutes, palletRoutes] = await Promise.all([
+      prisma.order.groupBy({
+        by: ['toLocation'],
+        where: { companyId },
+        _sum: { totalAmount: true },
+        orderBy: { _sum: { totalAmount: 'desc' } },
+        take: 5
+      }),
+      prisma.orderPallet.groupBy({
+        by: ['toLocation'],
         where: { companyId },
         _sum: { totalAmount: true },
         orderBy: { _sum: { totalAmount: 'desc' } },
@@ -203,32 +291,65 @@ export class ReportEngine {
       })
     ]);
 
-    const dealerIds = topCustomersData.map(c => c.dealerId).filter(Boolean) as string[];
-    const dealers = await prisma.dealer.findMany({
-      where: { id: { in: dealerIds } },
-      select: { id: true, name: true }
+    const routeMap = new Map<string, number>();
+    orderRoutes.forEach(r => { if(r.toLocation) routeMap.set(r.toLocation, (routeMap.get(r.toLocation) || 0) + Number(r._sum.totalAmount || 0)); });
+    palletRoutes.forEach(r => { if(r.toLocation) routeMap.set(r.toLocation, (routeMap.get(r.toLocation) || 0) + Number(r._sum.totalAmount || 0)); });
+
+    const topRoutes = Array.from(routeMap.entries())
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+    // Get Compliance Detail (Upcoming Expiries)
+    const upcomingExpiries = await prisma.vehicleDocument.findMany({
+      where: { companyId, expiryDate: { lte: thirtyDaysLater, gte: new Date() } },
+      orderBy: { expiryDate: 'asc' },
+      take: 5
     });
 
-    const customersWithNames = topCustomersData.map(c => ({
-      name: dealers.find(d => d.id === c.dealerId)?.name || 'Unknown',
-      revenue: (c._sum.totalAmount || 0) / 100
-    }));
+    const lrsTrend = yesterdayLrs > 0 ? ((todayLrs - yesterdayLrs) / yesterdayLrs) * 100 : 0;
+    const todayRevVal = Number(todayRev._sum.totalAmount || 0);
+    const yesterdayRevVal = Number(yesterdayRev._sum.totalAmount || 0);
+    const revenueTrendPct = yesterdayRevVal > 0 ? ((todayRevVal - yesterdayRevVal) / yesterdayRevVal) * 100 : 0;
 
     return {
       todayLrs,
-      lrsTrend: yesterdayLrs > 0 ? ((todayLrs - yesterdayLrs) / yesterdayLrs) * 100 : 0,
-      todayRevenue: todayRev._sum.totalAmount || 0,
-      revenueTrend: (yesterdayRev._sum.totalAmount || 0) > 0 ? (((todayRev._sum.totalAmount || 0) - (yesterdayRev._sum.totalAmount || 0)) / (yesterdayRev._sum.totalAmount || 0)) * 100 : 0,
+      lrsTrend,
+      todayRevenue: todayRevVal,
+      revenueTrend: revenueTrendPct, // This is the % trend for the KPI card
+      revenueTrendSeries: revenueTrendRaw.map(r => ({ // This is for the area chart
+        month: r.month,
+        revenue: Number(r.revenue || 0) / 100
+      })),
       outstandingReceivables: outstanding._sum.totalAmount || 0,
       overdueCount: outstanding._count.id,
       expiringDocsCount,
-      topCustomers: customersWithNames,
+      customerIntelligence: {
+        total: topTotalIds.map(([id, amt]) => formatCustomer(id, amt)),
+        box: topBoxOrders.map(b => formatCustomer(b.dealerId!, Number(b._sum.totalAmount || 0))),
+        pallet: topPallets.sort((a,b) => Number(b._sum.totalAmount || 0) - Number(a._sum.totalAmount || 0)).slice(0, 5).map(p => formatCustomer(p.dealerId!, Number(p._sum.totalAmount || 0)))
+      },
       fleetUtilization: {
         total: totalVehicles,
         onTrip: onTripVehicles,
         maintenance: maintenanceVehicles,
         idle: Math.max(0, totalVehicles - onTripVehicles - maintenanceVehicles)
-      }
+      },
+      routeIntelligence: topRoutes,
+      pendingSettlements,
+      recentActivity: recentActivity.map(a => ({
+        id: a.id,
+        user: a.user?.name || 'System',
+        action: a.action,
+        timestamp: a.createdAt,
+        payload: a.payload
+      })),
+      compliance: upcomingExpiries.map(e => ({
+        id: e.id,
+        type: e.type,
+        expiryDate: e.expiryDate,
+        vehicleNo: 'Vehicle Doc' // Simplified
+      }))
     };
   }
 

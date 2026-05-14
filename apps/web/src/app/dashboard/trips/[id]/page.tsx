@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import { FreightInvoiceModal } from '@/components/accounting/freight-invoice-modal';
 import { VALID_STATUS_TRANSITIONS } from '@freightflow/shared';
 import { generateTripPDF } from '@/lib/pdf/trip-pdf';
@@ -210,10 +211,12 @@ export default function TripDetailPage() {
                 </button>
               ))}
               {trip.status === 'delivered' && (
-                <button onClick={() => setShowSettleModal(true)} disabled={transitioning}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-black shadow-lg shadow-green-600/20 text-[10px] uppercase tracking-widest disabled:opacity-50">
-                  <CheckCircle2 className="h-4 w-4" /> Settle Trip
-                </button>
+                <Link href={`/dashboard/trips/${id}/settle`}>
+                  <button disabled={transitioning}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-black shadow-lg shadow-green-600/20 text-[10px] uppercase tracking-widest disabled:opacity-50">
+                    <CheckCircle2 className="h-4 w-4" /> Settle Trip
+                  </button>
+                </Link>
               )}
               <button onClick={() => setConfirmStatus('cancelled')}
                 className="flex items-center gap-2 px-4 py-2.5 border-2 border-red-100 text-red-600 rounded-xl hover:bg-red-50 transition-all font-black text-[10px] uppercase tracking-widest">
@@ -225,9 +228,10 @@ export default function TripDetailPage() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit overflow-x-auto max-w-full">
         {[
           { id: 'summary', label: 'Summary', icon: <TrendingUp className="h-4 w-4" /> },
+          { id: 'route', label: 'Route Intelligence', icon: <MapPin className="h-4 w-4" /> },
           { id: 'orders', label: 'Assigned LRs', icon: <Package className="h-4 w-4" /> },
           { id: 'expenses', label: 'Expenses', icon: <Receipt className="h-4 w-4" /> },
           { id: 'settlement', label: 'Settlement', icon: <Calculator className="h-4 w-4" /> },
@@ -236,7 +240,7 @@ export default function TripDetailPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
               activeTab === tab.id 
                 ? 'bg-white text-blue-600 shadow-sm' 
                 : 'text-slate-400 hover:text-slate-600'
@@ -332,6 +336,80 @@ export default function TripDetailPage() {
                   })()}
                 </div>
               </div>
+            </div>
+          )}
+          
+          {activeTab === 'route' && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+               <div className="bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm">
+                  <div className="flex items-center justify-between mb-10">
+                     <div>
+                        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Mission Map Visualization</h2>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Simulation based on terminal checkpoints</p>
+                     </div>
+                     <div className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4" /> GPS Signal Verified
+                     </div>
+                  </div>
+
+                  {/* Simulated Map SVG */}
+                  <div className="relative aspect-[16/9] bg-slate-50 rounded-[2rem] border border-slate-100 overflow-hidden flex items-center justify-center group">
+                     <svg viewBox="0 0 800 450" className="w-full h-full opacity-40 group-hover:opacity-100 transition-opacity duration-1000">
+                        {/* Grid Lines */}
+                        <defs>
+                          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" strokeWidth="0.5"/>
+                          </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                        
+                        {/* Route Path */}
+                        <path 
+                           d="M 150,300 C 250,300 350,150 450,150 S 650,300 750,300" 
+                           fill="none" 
+                           stroke="#2563eb" 
+                           strokeWidth="4" 
+                           strokeDasharray="8,8"
+                           className="animate-pulse"
+                        />
+                        
+                        {/* Markers */}
+                        <circle cx="150" cy="300" r="12" fill="#ef4444" className="animate-bounce" />
+                        <circle cx="450" cy="150" r="8" fill="#3b82f6" />
+                        <circle cx="750" cy="300" r="12" fill="#10b981" />
+                        
+                        <text x="130" y="340" className="text-[12px] font-black fill-slate-400 uppercase tracking-widest">{trip.fromLocation}</text>
+                        <text x="730" y="340" className="text-[12px] font-black fill-slate-400 uppercase tracking-widest">{trip.toLocation}</text>
+                     </svg>
+                     
+                     {/* Floating Stats */}
+                     <div className="absolute top-6 left-6 p-4 bg-white/80 backdrop-blur-md rounded-2xl border border-white shadow-xl space-y-3">
+                        <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Progress</p>
+                           <p className="text-sm font-black text-slate-900">100% Completed</p>
+                        </div>
+                        <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Dist.</p>
+                           <p className="text-sm font-black text-slate-900">482 KM</p>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                     <div className="p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Primary Route</p>
+                        <p className="text-xs font-bold text-slate-700">NH-48 via Mumbai-Bangalore Highway</p>
+                     </div>
+                     <div className="p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Checkpoints Passed</p>
+                        <p className="text-xs font-bold text-slate-700">12 Terminals Verified</p>
+                     </div>
+                     <div className="p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Signal Strength</p>
+                        <p className="text-xs font-bold text-green-600 font-black">EXCELLENT (4G-VoLTE)</p>
+                     </div>
+                  </div>
+               </div>
             </div>
           )}
 
