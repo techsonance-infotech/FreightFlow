@@ -19,7 +19,7 @@ export default async function ManageOrganizationsPage() {
   });
 
   return (
-    <div className="p-8 lg:p-12">
+    <div className="p-4 md:p-8 lg:p-12">
       <CompanyManager 
         companies={companies.map(c => ({
           ...c,

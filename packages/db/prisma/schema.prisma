@@ -463,6 +463,7 @@ model User {
   supportMessages SupportMessage[]
   supportTickets  SupportTicket[]
   notifications   SystemNotification[]
+  otpVerifications OtpVerification[]
 
   @@index([tenantId])
   @@index([companyId])
@@ -1818,6 +1819,21 @@ model AuditLog {
   @@index([companyId])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+model OtpVerification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String   @db.VarChar(50) // company_switch, password_reset, etc.
+  otp       String   @db.VarChar(10)
+  targetId  String?  @map("target_id") @db.VarChar(100) // The companyId in this case
+  expiresAt DateTime @map("expires_at") @db.Timestamptz()
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_verifications")
 }
 
 model BankAccount {

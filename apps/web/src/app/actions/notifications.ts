@@ -10,14 +10,20 @@ export async function getMyNotifications() {
 
   return prisma.systemNotification.findMany({
     where: {
-      OR: [
-        { userId: session.user.id },
-        { userId: null, tenantId: session.user.tenantId },
-        { userId: null, tenantId: null } // Global broadcasts
-      ],
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
+      AND: [
+        {
+          OR: [
+            { userId: session.user.id },
+            { userId: null, tenantId: session.user.tenantId },
+            { userId: null, tenantId: null } // Global broadcasts
+          ]
+        },
+        {
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } }
+          ]
+        }
       ]
     },
     orderBy: {
@@ -46,11 +52,15 @@ export async function markAllAsRead() {
 
   await prisma.systemNotification.updateMany({
     where: {
-      OR: [
-        { userId: session.user.id },
-        { userId: null, tenantId: session.user.tenantId }
-      ],
-      isRead: false
+      AND: [
+        {
+          OR: [
+            { userId: session.user.id },
+            { userId: null, tenantId: session.user.tenantId }
+          ]
+        },
+        { isRead: false }
+      ]
     },
     data: { isRead: true }
   });

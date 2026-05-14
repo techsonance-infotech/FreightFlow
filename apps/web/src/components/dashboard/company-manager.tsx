@@ -5,12 +5,15 @@ import {
   Building2, Plus, CheckCircle2, XCircle, 
   ArrowRightLeft, ShieldCheck, MapPin, Loader2, 
   X, Hash, Phone, Globe, Eye, FileText, LayoutDashboard,
-  Calendar, Mail, ArrowRight
+  Calendar, Mail, ArrowRight, Edit3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { switchCompany, toggleCompanyStatus } from '@/app/actions/settings/organizations';
+import { toggleCompanyStatus } from '@/app/actions/settings/organizations';
+import { requestCompanySwitchOtp, verifyCompanySwitchOtp } from '@/app/actions/auth/otp';
 import { CompanySetupWizard } from './company-setup-wizard';
+import { CompanyEditForm } from './company-edit-form';
+import { OtpModal } from '../auth/otp-modal';
 
 interface Company {
   id: string;
@@ -36,21 +39,47 @@ interface CompanyManagerProps {
   currentCompanyId: string;
 }
 
+import Link from 'next/link';
+
 export function CompanyManager({ companies, currentCompanyId }: CompanyManagerProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
+  const [switchingTo, setSwitchingTo] = useState<Company | null>(null);
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleSwitch = async (id: string) => {
-    setLoading(id);
+  const handleSwitchRequest = async (company: Company) => {
+    setLoading(company.id);
     try {
-      toast.loading('Switching workspace context...', { id: 'switch' });
-      await switchCompany(id);
+      toast.loading('Requesting security code...', { id: 'switch' });
+      await requestCompanySwitchOtp(company.id);
+      setSwitchingTo(company);
+      setShowOtpModal(true);
+      toast.success('Security code sent to your email', { id: 'switch' });
     } catch (err: any) {
-      toast.error(err.message, { id: 'switch' });
+      toast.error(err.message || 'Failed to request OTP', { id: 'switch' });
     } finally {
       setLoading(null);
     }
+  };
+
+  const handleOtpVerify = async (otp: string) => {
+    if (!switchingTo) return;
+    try {
+      toast.loading('Verifying and switching context...', { id: 'verify' });
+      await verifyCompanySwitchOtp(switchingTo.id, otp);
+      toast.success('Workspace switched successfully', { id: 'verify' });
+      // Refresh to reload all data in the new context
+      window.location.href = '/dashboard';
+    } catch (err: any) {
+      toast.error(err.message || 'Verification failed', { id: 'verify' });
+      throw err;
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!switchingTo) return;
+    await requestCompanySwitchOtp(switchingTo.id);
+    toast.success('A new security code has been sent');
   };
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
@@ -58,6 +87,7 @@ export function CompanyManager({ companies, currentCompanyId }: CompanyManagerPr
       toast.loading('Updating status...', { id: 'toggle' });
       await toggleCompanyStatus(id, !currentStatus);
       toast.success(`Organization ${!currentStatus ? 'enabled' : 'disabled'}`, { id: 'toggle' });
+      window.location.reload();
     } catch (err: any) {
       toast.error(err.message, { id: 'toggle' });
     }
@@ -134,15 +164,21 @@ export function CompanyManager({ companies, currentCompanyId }: CompanyManagerPr
               </div>
 
               <div className="flex items-center gap-2 mt-4 md:mt-0">
-                <button 
-                  onClick={() => setViewingCompany(company)}
+                <Link 
+                  href={`/dashboard/settings/organization?id=${company.id}`}
                   className="px-4 py-2 rounded-xl bg-slate-50 text-slate-500 text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100"
                 >
-                  View Details
-                </button>
+                  View
+                </Link>
+                <Link 
+                  href={`/dashboard/settings/organization?id=${company.id}&edit=true`}
+                  className="px-4 py-2 rounded-xl bg-slate-50 text-blue-600 text-[11px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all border border-slate-100"
+                >
+                  Edit
+                </Link>
                 {!isActive && isEnabled && (
                   <button 
-                    onClick={() => handleSwitch(company.id)}
+                    onClick={() => handleSwitchRequest(company)}
                     disabled={loading === company.id}
                     className="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-200"
                   >
@@ -169,7 +205,20 @@ export function CompanyManager({ companies, currentCompanyId }: CompanyManagerPr
 
       {/* --- MODALS --- */}
 
-      {/* Add Company Modal - USING REUSABLE WIZARD */}
+      {/* OTP Verification Modal */}
+      <OtpModal 
+        isOpen={showOtpModal}
+        onClose={() => {
+          setShowOtpModal(false);
+          setSwitchingTo(null);
+        }}
+        onVerify={handleOtpVerify}
+        onResend={handleResendOtp}
+        title="Authorize Switch"
+        description={`A security code has been sent to verify your request to switch to ${switchingTo?.name}.`}
+      />
+
+      {/* Add Company Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsAddModalOpen(false)} />
@@ -190,94 +239,10 @@ export function CompanyManager({ companies, currentCompanyId }: CompanyManagerPr
               onComplete={() => {
                 toast.success('Organization established successfully!');
                 setIsAddModalOpen(false);
+                window.location.reload();
               }}
               onClose={() => setIsAddModalOpen(false)}
             />
-          </div>
-        </div>
-      )}
-
-      {/* View Details Modal */}
-      {viewingCompany && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-500" onClick={() => setViewingCompany(null)} />
-          <div className="relative w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-8 duration-500 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-10 py-8 border-b border-slate-50 shrink-0">
-              <div className="flex items-center gap-6">
-                <div className="h-16 w-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-blue-100">
-                  {viewingCompany.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{viewingCompany.name}</h2>
-                  <div className="flex items-center gap-4 text-slate-400 font-bold text-[11px] uppercase tracking-wider mt-1">
-                    <span className="flex items-center gap-1.5 text-blue-600"><MapPin className="h-3.5 w-3.5" /> {viewingCompany.city}, {viewingCompany.state}</span>
-                    <span className="h-1 w-1 rounded-full bg-slate-200" />
-                    <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Joined {new Date(viewingCompany.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => setViewingCompany(null)} className="h-10 w-10 rounded-xl bg-slate-50 text-slate-300 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-10 overflow-y-auto custom-scrollbar space-y-12">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="space-y-10">
-                  <PopupSection title="Tax & Compliance">
-                    <PopupItem icon={<ShieldCheck />} label="GSTIN Number" value={viewingCompany.gstin || 'Not Registered'} />
-                    <PopupItem icon={<Hash />} label="PAN Card" value={viewingCompany.pan || 'Pending Update'} />
-                    <PopupItem icon={<FileText />} label="Registration Status" value="Verified Active" />
-                  </PopupSection>
-                  <PopupSection title="Communication">
-                    <PopupItem icon={<Phone />} label="Primary Phone" value={viewingCompany.phone || '--'} />
-                    <PopupItem icon={<Mail />} label="Business Email" value={viewingCompany.email || '--'} />
-                  </PopupSection>
-                </div>
-                <div className="space-y-10">
-                  <PopupSection title="Operational Summary">
-                    <div className="grid grid-cols-2 gap-4">
-                      <PopupStat label="Fleet" value={viewingCompany._count.vehicles} unit="Units" />
-                      <PopupStat label="Staff" value={viewingCompany._count.employees} unit="Members" />
-                    </div>
-                  </PopupSection>
-                  <PopupSection title="Registered Office">
-                    <div className="p-6 rounded-3xl bg-slate-50/50 border border-slate-100 space-y-4 shadow-inner">
-                      <p className="text-[13px] font-bold text-slate-600 leading-relaxed">
-                        {viewingCompany.address || 'Registered address details not specified'}
-                      </p>
-                      <div className="pt-4 border-t border-slate-200/40 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                        <span>{viewingCompany.city}</span>
-                        <span>PIN {viewingCompany.pincode}</span>
-                      </div>
-                    </div>
-                  </PopupSection>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-8 border-t border-slate-50 bg-slate-50/20 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-300">
-                <Building2 className="h-3.5 w-3.5" />
-                Organization ID: FF-{viewingCompany.id.split('-')[0].toUpperCase()}
-              </div>
-              <div className="flex items-center gap-4">
-                <button onClick={() => setViewingCompany(null)} className="px-6 py-3 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-600 transition-all">
-                  Close
-                </button>
-                {viewingCompany.id !== currentCompanyId && viewingCompany.isActive && (
-                  <button 
-                    onClick={() => {
-                      handleSwitch(viewingCompany.id);
-                      setViewingCompany(null);
-                    }}
-                    className="flex items-center gap-2 px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all"
-                  >
-                    Switch Workspace <ArrowRight className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -285,6 +250,7 @@ export function CompanyManager({ companies, currentCompanyId }: CompanyManagerPr
   );
 }
 
+// Helper components (reused)
 function PopupSection({ title, children }: any) {
   return (
     <div className="space-y-5">
@@ -317,3 +283,5 @@ function PopupStat({ label, value, unit }: any) {
     </div>
   );
 }
+
+

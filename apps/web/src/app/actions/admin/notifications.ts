@@ -31,11 +31,10 @@ export async function broadcastNotification(data: {
     // Tenants without active subscription
     const tenants = await prisma.tenant.findMany({
       where: {
-        subscriptions: {
-          none: {
-            status: 'active'
-          }
-        }
+        OR: [
+          { status: { not: 'active' } },
+          { licenseExpiresAt: { lt: new Date() } }
+        ]
       },
       include: { users: { select: { id: true } } }
     });
@@ -45,11 +44,9 @@ export async function broadcastNotification(data: {
     const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const tenants = await prisma.tenant.findMany({
       where: {
-        subscriptions: {
-          some: {
-            status: 'active',
-            endDate: { lte: nextWeek, gt: new Date() }
-          }
+        licenseExpiresAt: {
+          lte: nextWeek,
+          gt: new Date()
         }
       },
       include: { users: { select: { id: true } } }

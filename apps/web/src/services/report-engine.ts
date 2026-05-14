@@ -342,11 +342,11 @@ export class ReportEngine {
         user: a.user?.name || 'System',
         action: a.action,
         timestamp: a.createdAt,
-        payload: a.payload
+        changes: a.changes
       })),
       compliance: upcomingExpiries.map(e => ({
         id: e.id,
-        type: e.type,
+        type: e.docType,
         expiryDate: e.expiryDate,
         vehicleNo: 'Vehicle Doc' // Simplified
       }))
