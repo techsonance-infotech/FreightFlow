@@ -286,10 +286,12 @@ export default function DealerBillingPage() {
     currentY += 45;
 
     if (reportType === 'detailed') {
-      const tableData = records.map((record, index) => {
-        const itemKey = `${record.details[0]?.productName || 'Yarn'}-${record.loadType === 'PALLET' ? 'Pallet' : (record.details[0]?.packingType || 'Box')}`;
+        const prodName = record.details[0]?.productName || (record.loadType === 'PALLET' ? 'Pallet' : 'Yarn');
+        const packType = record.loadType === 'PALLET' ? 'Pallet' : (record.details[0]?.packingType || 'Box');
+        const itemKey = `${prodName}-${packType}`;
+        
         const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
-        const multiplier = record.loadType === 'PALLET' ? record.totalBoxes : Number(record.totalWeight);
+        const multiplier = record.loadType === 'PALLET' ? (record.totalBoxes || 0) : Number(record.totalWeight || 0);
         const amount = multiplier * price;
         
         return [
