@@ -37,12 +37,15 @@ interface Company {
 interface CompanyManagerProps {
   companies: Company[];
   currentCompanyId: string;
+  userRole: string;
 }
 
 import Link from 'next/link';
 
-export function CompanyManager({ companies, currentCompanyId }: CompanyManagerProps) {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+export function CompanyManager({ companies, currentCompanyId, userRole }: CompanyManagerProps) {
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(
+    companies.find(c => c.id === currentCompanyId) || companies[0] || null
+  );
   const [switchingTo, setSwitchingTo] = useState<Company | null>(null);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
@@ -101,13 +104,15 @@ export function CompanyManager({ companies, currentCompanyId }: CompanyManagerPr
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Organizations</h2>
           <p className="text-sm text-slate-500 mt-1">Manage multiple business entities under your tenant account.</p>
         </div>
-        <button 
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95"
-        >
-          <Plus className="h-4 w-4" />
-          Add New Company
-        </button>
+        {(userRole === 'tenant_owner' || userRole === 'fleet_owner' || userRole === 'business_owner') && (
+          <Link 
+            href="/dashboard/settings/organizations/new"
+            className="flex items-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95"
+          >
+            <Plus className="h-4 w-4" />
+            Establish New Organization
+          </Link>
+        )}
       </div>
 
       {/* Company List */}
@@ -122,80 +127,91 @@ export function CompanyManager({ companies, currentCompanyId }: CompanyManagerPr
               className={cn(
                 "group relative flex flex-col md:flex-row md:items-center gap-6 p-5 rounded-3xl border transition-all duration-300",
                 isActive 
-                  ? "bg-blue-50/30 border-blue-200 shadow-sm" 
-                  : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-md"
+                  ? "bg-blue-50/30 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800 shadow-sm" 
+                  : isEnabled
+                    ? "bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-md"
+                    : "bg-slate-50 border-slate-100 dark:bg-slate-900/50 dark:border-slate-800 opacity-60 grayscale-[0.4]"
               )}
             >
               <div className="absolute top-5 right-6">
                 {isEnabled ? (
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
                     <CheckCircle2 className="h-3 w-3" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Active</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Active</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 text-slate-400 border border-slate-100">
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-800">
                     <XCircle className="h-3 w-3" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Disabled</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Deactivated</span>
                   </div>
                 )}
               </div>
 
               <div className={cn(
                 "h-16 w-16 shrink-0 rounded-2xl flex items-center justify-center text-2xl font-black shadow-inner transition-transform group-hover:scale-105",
-                isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : "bg-slate-100 text-slate-400"
+                isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-100 dark:shadow-none" : isEnabled ? "bg-slate-100 dark:bg-slate-800 text-slate-400" : "bg-slate-200 dark:bg-slate-800 text-slate-400"
               )}>
                 {company.name.charAt(0).toUpperCase()}
               </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-black text-slate-900 truncate tracking-tight">{company.name}</h3>
+                  <h3 className={cn("text-lg font-black truncate tracking-tight", isEnabled ? "text-slate-900 dark:text-slate-100" : "text-slate-400")}>{company.name}</h3>
                   {isActive && (
                     <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[8px] font-black uppercase tracking-tighter">Current Workspace</span>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mt-1.5 text-slate-400 text-[11px] font-bold">
-                  <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {company.city || 'Pending'}</span>
-                  <span className="h-1 w-1 rounded-full bg-slate-300" />
-                  <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> GST: {company.gstin || 'None'}</span>
-                  <span className="h-1 w-1 rounded-full bg-slate-300" />
-                  <span className="uppercase tracking-tight">{company._count.vehicles} Vehicles • {company._count.employees} Staff</span>
+                <div className={cn("flex flex-wrap items-center gap-y-2 gap-x-4 mt-1.5 text-[11px] font-bold", isEnabled ? "text-slate-400 dark:text-slate-500" : "text-slate-300 dark:text-slate-600")}>
+                  <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {isEnabled ? (company.city || 'Pending') : 'Restricted'}</span>
+                  <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                  <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> GST: {isEnabled ? (company.gstin || 'None') : '••••'}</span>
+                  <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                  <span className="uppercase tracking-tight">{isEnabled ? `${company._count.vehicles} Vehicles • ${company._count.employees} Staff` : 'Resources Offline'}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 mt-4 md:mt-0">
-                <Link 
-                  href={`/dashboard/settings/organization?id=${company.id}`}
-                  className="px-4 py-2 rounded-xl bg-slate-50 text-slate-500 text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100"
-                >
-                  View
-                </Link>
-                <Link 
-                  href={`/dashboard/settings/organization?id=${company.id}&edit=true`}
-                  className="px-4 py-2 rounded-xl bg-slate-50 text-blue-600 text-[11px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all border border-slate-100"
-                >
-                  Edit
-                </Link>
-                {!isActive && isEnabled && (
-                  <button 
-                    onClick={() => handleSwitchRequest(company)}
-                    disabled={loading === company.id}
-                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-200"
-                  >
-                    {loading === company.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRightLeft className="h-3.5 w-3.5" />}
-                    Switch
-                  </button>
+                {isEnabled ? (
+                  <>
+                    <Link 
+                      href={isActive ? `/dashboard/settings/organization` : `/dashboard/settings/organizations/new?id=${company.id}&mode=view`}
+                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
+                    >
+                      View
+                    </Link>
+                    <Link 
+                      href={isActive ? `/dashboard/settings/organization` : `/dashboard/settings/organizations/new?id=${company.id}&mode=edit`}
+                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-widest hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all border border-slate-100 dark:border-slate-700"
+                    >
+                      Edit
+                    </Link>
+                    {!isActive && (
+                      <button 
+                        onClick={() => handleSwitchRequest(company)}
+                        disabled={loading === company.id}
+                        className="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-200"
+                      >
+                        {loading === company.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRightLeft className="h-3.5 w-3.5" />}
+                        Switch
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-50/50 text-rose-400 text-[9px] font-black uppercase tracking-[0.2em] border border-rose-100/50 mr-2">
+                    Access Denied
+                  </div>
                 )}
+                
                 <button 
                   onClick={() => handleToggle(company.id, isEnabled)}
                   disabled={isActive}
                   className={cn(
                     "px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all",
                     isActive ? "opacity-30 cursor-not-allowed border-slate-200 text-slate-400" : 
-                    isEnabled ? "border-rose-100 text-rose-400 hover:bg-rose-50" : "border-emerald-100 text-emerald-500 hover:bg-emerald-50"
+                    isEnabled ? "border-rose-100 text-rose-400 hover:bg-rose-50" : "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100 hover:bg-emerald-700"
                   )}
                 >
-                  {isEnabled ? 'Disable' : 'Enable'}
+                  {isEnabled ? 'Disable' : 'Enable Organization'}
                 </button>
               </div>
             </div>
@@ -217,35 +233,6 @@ export function CompanyManager({ companies, currentCompanyId }: CompanyManagerPr
         title="Authorize Switch"
         description={`A security code has been sent to verify your request to switch to ${switchingTo?.name}.`}
       />
-
-      {/* Add Company Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsAddModalOpen(false)} />
-          <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between px-10 py-6 border-b border-slate-50">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">Establish Organization</h2>
-              </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
-                <X className="h-5 w-5 text-slate-300" />
-              </button>
-            </div>
-
-            <CompanySetupWizard 
-              onComplete={() => {
-                toast.success('Organization established successfully!');
-                setIsAddModalOpen(false);
-                window.location.reload();
-              }}
-              onClose={() => setIsAddModalOpen(false)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

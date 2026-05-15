@@ -67,6 +67,7 @@ export const NAV_ITEMS: NavGroup[] = [
         category: 'financials',
         subItems: [
           { id: 'accounting-dashboard', label: 'Intelligence Dashboard', icon: 'trending', path: '/dashboard/accounting', allowedRoles: ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'] },
+          { id: 'accounting-billing', label: 'Dealer Billing Hub', icon: 'receipt', path: '/dashboard/accounting/dealer-billing', allowedRoles: ['tenant_owner', 'accountant'] },
           { id: 'accounting-ar', label: 'Receivables (AR)', icon: 'inbox', path: '/dashboard/accounting/ar', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-ap', label: 'Payables (AP)', icon: 'outbox', path: '/dashboard/accounting/ap', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-invoices', label: 'Sales Invoices', icon: 'receipt', path: '/dashboard/accounting/invoices', allowedRoles: ['tenant_owner', 'accountant'] },
@@ -187,6 +188,7 @@ export const NAV_ITEMS: NavGroup[] = [
         allowedRoles: ['tenant_owner', 'fleet_owner', 'hr_manager'],
         category: 'admin',
         subItems: [
+          { id: 'settings-profile', label: 'My Profile', icon: 'users', path: '/dashboard/settings/profile', allowedRoles: ['super_admin', 'tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'dispatch_officer', 'maintenance_supervisor', 'auditor', 'driver', 'staff'], category: 'admin' },
           { id: 'settings-org', label: 'Organization', icon: 'building', path: '/dashboard/settings/organization', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },
           { id: 'settings-business', label: 'Business Config', icon: 'settings', path: '/dashboard/settings/business', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },
           { id: 'settings-branding', label: 'Branding', icon: 'palette', path: '/dashboard/settings/branding', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },

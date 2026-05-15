@@ -31,16 +31,19 @@ export async function requestCompanySwitchOtp(targetCompanyId: string) {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  // 3. Store OTP in database
-  const verification = await prisma.otpVerification.create({
-    data: {
-      userId: session.user.id,
-      type: 'company_switch',
-      otp,
-      targetId: targetCompanyId,
-      expiresAt,
-    },
-  });
+  // 3. Store OTP in database using raw SQL as a workaround for Prisma client sync issues
+  const verificationId = crypto.randomUUID();
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO otp_verifications (id, user_id, type, otp, target_id, expires_at, is_used, created_at)
+     VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, NOW())`,
+    verificationId,
+    session.user.id,
+    'company_switch',
+    otp,
+    targetCompanyId,
+    expiresAt,
+    false
+  );
 
   // 4. Send email
   if (session.user.email) {
@@ -51,7 +54,7 @@ export async function requestCompanySwitchOtp(targetCompanyId: string) {
     });
   }
 
-  return { success: true, verificationId: verification.id };
+  return { success: true, verificationId };
 }
 
 /**
@@ -63,28 +66,28 @@ export async function verifyCompanySwitchOtp(targetCompanyId: string, otp: strin
     throw new Error('Unauthorized');
   }
 
-  // 1. Find and validate OTP
-  const verification = await prisma.otpVerification.findFirst({
-    where: {
-      userId: session.user.id,
-      type: 'company_switch',
-      otp,
-      targetId: targetCompanyId,
-      isUsed: false,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  // 1. Find and validate OTP using raw SQL
+  const results = await prisma.$queryRawUnsafe<any[]>(
+    `SELECT id FROM otp_verifications 
+     WHERE user_id = $1::uuid AND type = $2 AND otp = $3 AND target_id = $4 AND is_used = false AND expires_at > NOW()
+     ORDER BY created_at DESC LIMIT 1`,
+    session.user.id,
+    'company_switch',
+    otp,
+    targetCompanyId
+  );
+  
+  const verification = results[0];
 
   if (!verification) {
     throw new Error('Invalid or expired verification code');
   }
 
   // 2. Mark OTP as used
-  await prisma.otpVerification.update({
-    where: { id: verification.id },
-    data: { isUsed: true },
-  });
+  await prisma.$executeRawUnsafe(
+    `UPDATE otp_verifications SET is_used = true WHERE id = $1::uuid`,
+    verification.id
+  );
 
   // 3. Perform the switch logic (reused from organizations.ts)
   const company = await prisma.company.findFirst({

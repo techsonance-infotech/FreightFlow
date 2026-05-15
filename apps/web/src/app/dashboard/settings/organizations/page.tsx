@@ -29,6 +29,7 @@ export default async function ManageOrganizationsPage() {
           }
         }))} 
         currentCompanyId={session.user.companyId || ''} 
+        userRole={session.user.role}
       />
     </div>
   );

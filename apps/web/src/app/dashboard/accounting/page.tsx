@@ -303,6 +303,13 @@ export default function AccountingHubPage() {
             color="#2E7D32" 
           />
           <ModuleCard 
+            title="Dealer Billing Hub" 
+            description="Generate consolidated invoices and dealer reports" 
+            icon={<Receipt className="h-6 w-6" />} 
+            path="/dashboard/accounting/dealer-billing" 
+            color="#0D47A1" 
+          />
+          <ModuleCard 
             title="Accounts Payable" 
             description="Manage vendor bills, payments and TDS" 
             icon={<ArrowUpFromLine className="h-6 w-6" />} 

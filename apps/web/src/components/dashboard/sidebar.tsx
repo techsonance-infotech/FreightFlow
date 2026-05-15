@@ -198,8 +198,8 @@ export function Sidebar({ user }: SidebarProps) {
 
   return (
     <aside
-      className="no-print fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-white/5 shadow-2xl"
-      style={{ background: 'linear-gradient(180deg, #0A1628 0%, #0F2B5B 100%)' }}
+      className="no-print fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-white/5 shadow-2xl transition-colors duration-300"
+      style={{ background: 'var(--color-sidebar)' }}
     >
       <div className="flex items-center gap-3 px-5 py-6 flex-shrink-0 border-b border-white/5">
         <div className="relative h-10 w-10 flex-shrink-0 rounded-xl overflow-hidden shadow-lg ring-1 ring-white/10">
