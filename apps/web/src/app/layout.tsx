@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   keywords: ['freight', 'transport', 'logistics', 'LR', 'lorry receipt', 'fleet management', 'India'],
 };
 
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,7 +33,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={`${inter.className} min-h-screen antialiased`}>
-        {children}
+          {children}
         <Toaster position="top-center" richColors />
       </body>
     </html>

@@ -61,14 +61,16 @@ export async function POST(request: Request) {
     const { tenantId, companyId } = session.user;
 
     const body = await request.json();
+    console.log('Creating freight invoice with body:', JSON.stringify(body, null, 2));
     const validatedData = FreightInvoiceSchema.parse(body);
 
     const invoice = await AccountingEngine.generateFreightInvoice(tenantId, companyId, validatedData);
     
     return NextResponse.json({ data: invoice }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating invoice:', error);
+    console.error('Error in POST /api/v1/accounting/invoices:', error);
     if (error.name === 'ZodError') {
+      console.error('Zod Validation Errors:', JSON.stringify(error.errors, null, 2));
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
     return NextResponse.json({ error: error.message || 'Failed to create invoice' }, { status: 500 });

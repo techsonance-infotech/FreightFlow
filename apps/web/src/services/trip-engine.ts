@@ -14,6 +14,9 @@ export class TripEngine {
         orders: {
           select: { totalAmount: true, subtotal: true },
         },
+        pallets: {
+          select: { totalAmount: true, subtotal: true },
+        },
         expenses: {
           select: { amount: true },
         },
@@ -22,7 +25,9 @@ export class TripEngine {
 
     if (!trip) throw new Error('Trip not found');
 
-    const totalRevenue = trip.orders.reduce((sum, o) => sum + o.subtotal, 0);
+    const totalRevenue = 
+      trip.orders.reduce((sum, o) => sum + o.subtotal, 0) +
+      trip.pallets.reduce((sum, p) => sum + p.subtotal, 0);
     const totalExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
     const netContribution = totalRevenue - totalExpenses;
     const marginPct = totalRevenue > 0 ? (netContribution / totalRevenue) * 100 : 0;
@@ -175,7 +180,40 @@ export class TripEngine {
       const updated = await tx.trip.update({
         where: { id: params.tripId },
         data: updateData,
+        include: { orders: { select: { id: true } }, pallets: { select: { id: true } } }
       });
+
+      // Sync cargo statuses
+      const cargoStatus = params.newStatus === 'in_transit' ? 'in_transit' : 
+                          params.newStatus === 'delivered' ? 'delivered' : 
+                          params.newStatus === 'loaded' ? 'loaded' : null;
+
+      if (cargoStatus) {
+        if (updated.orders.length > 0) {
+          await tx.order.updateMany({
+            where: { id: { in: updated.orders.map(o => o.id) } },
+            data: { status: cargoStatus }
+          });
+          // Also log status for LRs
+          for (const order of updated.orders) {
+            await tx.lrStatusLog.create({
+              data: {
+                companyId: params.companyId,
+                orderId: order.id,
+                status: cargoStatus,
+                notes: `Trip ${params.tripId} transitioned to ${params.newStatus}`,
+                updatedBy: params.userId,
+              }
+            });
+          }
+        }
+        if (updated.pallets.length > 0) {
+          await tx.orderPallet.updateMany({
+            where: { id: { in: updated.pallets.map(p => p.id) } },
+            data: { status: cargoStatus }
+          });
+        }
+      }
 
       return updated;
     });

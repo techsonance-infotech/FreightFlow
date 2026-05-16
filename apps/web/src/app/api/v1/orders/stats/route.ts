@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth-utils';
 import { prisma } from '@freightflow/db';
 import { startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getSession();
     if (!session || !session.user || !session.user.companyId) {
@@ -11,58 +11,65 @@ export async function GET() {
     }
 
     const { companyId } = session.user;
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search') || '';
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     const now = new Date();
     const todayStart = startOfDay(now);
     const todayEnd = endOfDay(now);
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+
+    const baseWhere: any = {
+      companyId,
+      deletedAt: null,
+    };
+
+    if (search) {
+      baseWhere.OR = [
+        { lrNo: { contains: search, mode: 'insensitive' } },
+        { dealer: { name: { contains: search, mode: 'insensitive' } } },
+        { consignee: { name: { contains: search, mode: 'insensitive' } } },
+        { vehicle: { regNo: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (startDate || endDate) {
+      baseWhere.date = {};
+      if (startDate) baseWhere.date.gte = new Date(startDate);
+      if (endDate) baseWhere.date.lte = new Date(endDate);
+    }
 
     const [todayCount, inTransitCount, deliveredCount, monthlyRevenue] = await Promise.all([
-      // Today's LRs
+      // Today's LRs (Always today)
       prisma.order.count({
         where: {
           companyId,
-          date: {
-            gte: todayStart,
-            lte: todayEnd,
-          },
+          date: { gte: todayStart, lte: todayEnd },
           deletedAt: null,
         },
       }),
-      // In Transit
+      // In Transit (Filtered)
       prisma.order.count({
         where: {
-          companyId,
-          status: {
-            in: ['loaded', 'in_transit'],
-          },
-          deletedAt: null,
+          ...baseWhere,
+          status: { in: ['loaded', 'in_transit'] },
         },
       }),
-      // Delivered (last 30 days or overall?) - let's do overall for now or monthly
+      // Delivered (Filtered)
       prisma.order.count({
         where: {
-          companyId,
+          ...baseWhere,
           status: 'delivered',
-          deletedAt: null,
         },
       }),
-      // Monthly Revenue
+      // Revenue (Filtered)
       prisma.order.aggregate({
         where: {
-          companyId,
-          date: {
-            gte: monthStart,
-            lte: monthEnd,
-          },
-          status: {
-            not: 'cancelled',
-          },
-          deletedAt: null,
+          ...baseWhere,
+          status: { not: 'cancelled' },
         },
-        _sum: {
-          totalAmount: true,
-        },
+        _sum: { totalAmount: true },
       }),
     ]);
 

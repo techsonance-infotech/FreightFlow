@@ -64,26 +64,34 @@ export async function getGlobalTicketRegistry() {
   });
 }
 
-export async function updateTicketStatus(ticketId: string, status: 'open' | 'in_progress' | 'resolved' | 'closed') {
+export async function updateTicketStatus(ticketId: string, data: {
+  status: 'open' | 'pending' | 'blocked' | 'solved' | 'closed';
+  adminResponse?: string;
+}) {
   const session = await getAdminSession();
   if (!session) throw new Error('Unauthorized');
 
   const ticket = await prisma.supportTicket.update({
     where: { id: ticketId },
-    data: { status }
+    data: { 
+      status: data.status,
+      adminResponse: data.adminResponse,
+      updatedAt: new Date()
+    }
   });
 
   // Log the action
   await prisma.auditLogPlatform.create({
     data: {
       adminId: session.id,
-      action: `SUPPORT_TICKET_${status.toUpperCase()}`,
+      action: `SUPPORT_TICKET_${data.status.toUpperCase()}`,
       targetTenantId: ticket.tenantId,
-      payload: { ticketId, status }
+      payload: { ticketId, status: data.status, response: !!data.adminResponse }
     }
   });
 
   revalidatePath('/admin/support');
+  revalidatePath('/dashboard/support');
   return ticket;
 }
 

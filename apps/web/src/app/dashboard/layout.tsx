@@ -49,10 +49,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen bg-slate-50 flex-col">
       <TrialBanner daysRemaining={licenseStatus.daysRemaining} plan={licenseStatus.plan} />
       
-      <div className="flex flex-1">
+      <div className="relative flex-1 overflow-hidden">
         <Sidebar user={user} />
 
-        <main className="ml-64 flex-1 flex flex-col min-h-screen relative">
+        <main className="ml-64 h-full flex flex-col relative overflow-hidden">
           <Topbar user={user} />
 
           <div className="flex-1 p-8 overflow-y-auto">

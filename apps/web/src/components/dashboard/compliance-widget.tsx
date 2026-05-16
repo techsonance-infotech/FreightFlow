@@ -2,64 +2,61 @@
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
-export function ComplianceCalendarWidget() {
-  const [deadlines, setDeadlines] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+interface ComplianceCalendarWidgetProps {
+  data?: any[];
+}
 
-  useEffect(() => {
-    // In a real app we fetch from /api/v1/compliance/deadlines
-    // Mocking for immediate UI feedback as per phase instructions
-    setLoading(true);
-    const nowTimestamp = Date.now();
-    setTimeout(() => {
-      setDeadlines([
-        { id: 1, type: 'GSTR-1', desc: 'Outward Supplies', date: new Date(nowTimestamp + 3 * 86400000), daysLeft: 3, status: 'urgent' },
-        { id: 2, type: 'TDS', desc: 'Payment (Form 26Q)', date: new Date(nowTimestamp + 6 * 86400000), daysLeft: 6, status: 'warning' },
-        { id: 3, type: 'GSTR-3B', desc: 'Monthly Return', date: new Date(nowTimestamp + 15 * 86400000), daysLeft: 15, status: 'normal' },
-      ]);
-      setLoading(false);
-    }, 500);
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-        <h3 className="text-sm font-black tracking-widest text-slate-700 uppercase mb-4">Compliance Calendar</h3>
-        <div className="animate-pulse space-y-3">
-          <div className="h-10 bg-slate-100 rounded-xl"></div>
-          <div className="h-10 bg-slate-100 rounded-xl"></div>
-        </div>
-      </div>
-    );
-  }
+export function ComplianceCalendarWidget({ data = [] }: ComplianceCalendarWidgetProps) {
+  const deadlines = data.map(d => ({
+    id: d.id,
+    type: d.type,
+    desc: d.vehicleNo,
+    date: new Date(d.expiryDate),
+    daysLeft: Math.ceil((new Date(d.expiryDate).getTime() - new Date().getTime()) / 86400000),
+    status: Math.ceil((new Date(d.expiryDate).getTime() - new Date().getTime()) / 86400000) < 7 ? 'urgent' : 'warning'
+  }));
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-      <h3 className="text-sm font-black tracking-widest text-slate-700 uppercase mb-4 flex justify-between items-center">
-        <span>Compliance Calendar</span>
-        <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full">Next 30 Days</span>
-      </h3>
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-xl shadow-slate-100/50">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h3 className="text-lg font-black text-slate-900 tracking-tight">Compliance</h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Regulatory Deadlines</p>
+        </div>
+        <div className="h-10 w-10 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
+           <Calendar className="h-5 w-5 text-slate-400" />
+        </div>
+      </div>
       
-      <div className="space-y-3">
+      <div className="space-y-4">
         {deadlines.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-4">No upcoming deadlines.</p>
+          <div className="py-8 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No upcoming deadlines</p>
+          </div>
         ) : (
           deadlines.map(d => (
-            <div key={d.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-50 hover:bg-slate-50 transition-colors">
-              <div>
-                <p className="text-xs font-black text-slate-800">{d.type}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{d.desc}</p>
+            <div key={d.id} className="group relative flex items-center justify-between p-4 rounded-3xl bg-slate-50/50 border border-transparent hover:border-blue-100 hover:bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+              <div className="flex items-center gap-4">
+                 <div className={`h-2 w-2 rounded-full ${
+                   d.status === 'urgent' ? 'bg-rose-500' :
+                   d.status === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
+                 }`} />
+                 <div>
+                    <p className="text-xs font-black text-slate-800 uppercase tracking-tighter">{d.type}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{d.desc}</p>
+                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs font-bold text-slate-700">
-                  {d.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                <p className="text-[10px] font-black text-slate-900">
+                  {format(d.date, 'dd MMM')}
                 </p>
-                <span className={`text-[9px] font-black uppercase tracking-widest ${
+                <span className={`text-[8px] font-black uppercase tracking-widest ${
                   d.status === 'urgent' ? 'text-rose-600' :
                   d.status === 'warning' ? 'text-amber-600' : 'text-emerald-600'
                 }`}>
-                  {d.daysLeft} Days Left
+                  {d.daysLeft} Days
                 </span>
               </div>
             </div>
@@ -69,3 +66,5 @@ export function ComplianceCalendarWidget() {
     </div>
   );
 }
+
+import { Calendar } from 'lucide-react';

@@ -72,6 +72,12 @@ export const PalletMasterForm: React.FC<PalletMasterFormProps> = ({ initialData,
           {...register('name')} 
         />
         <Input 
+          label="Code (Optional)" 
+          placeholder="e.g. BAR-1029" 
+          error={errors.code?.message} 
+          {...register('code')} 
+        />
+        <Input 
           label="Dimensions" 
           placeholder="e.g. 120x100x15 cm" 
           error={errors.dimensions?.message} 

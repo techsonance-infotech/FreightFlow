@@ -55,7 +55,7 @@ export async function PATCH(
       data: {
         lrNo: validatedData.lrNo,
         dealerId: validatedData.dealerId,
-        consigneeId: validatedData.consigneeId,
+        consigneeId: validatedData.consigneeId || null,
         vehicleId: validatedData.vehicleId,
         date: new Date(validatedData.date),
         companyName: validatedData.companyName,
@@ -82,25 +82,17 @@ export async function PATCH(
         gstPct: validatedData.gstPct,
         type: validatedData.type,
         status: validatedData.status,
-        palletDetails: validatedData.type === 'OUTWARD' ? {
+        palletDetails: {
           deleteMany: {},
           create: (validatedData.palletDetails || []).map((d) => ({
             companyId: user.companyId!,
             palletDisplayId: d.palletDisplayId,
+            code: d.code,
             consigneeName: d.consigneeName,
             qty: d.qty,
             rate: d.rate,
           })),
-        } : { deleteMany: {} },
-        consigneeDetails: validatedData.type === 'RETURN' ? {
-          deleteMany: {},
-          create: (validatedData.consigneeDetails || []).map((d) => ({
-            companyId: user.companyId!,
-            consigneeName: d.consigneeName,
-            qty: d.qty,
-            rate: d.rate,
-          })),
-        } : { deleteMany: {} },
+        },
       },
       include: {
         palletDetails: true,

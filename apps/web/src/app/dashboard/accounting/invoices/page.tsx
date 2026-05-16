@@ -16,6 +16,12 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { InvoicePreviewModal } from '@/components/accounting/invoice-preview-modal';
 import { InvoiceModal } from '@/components/accounting/invoice-modal';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface StatCardProps {
   title: string;
@@ -244,13 +250,36 @@ export default function InvoicesPage() {
             <RefreshCcw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
             Sync Invoices
           </Button>
-          <Button 
-            variant="outline"
-            className="h-11 px-6 rounded-xl border-neutral-200 font-bold text-xs uppercase tracking-widest transition-all bg-white"
-            onClick={() => window.location.href = '/dashboard/orders'}
-          >
-            <Plus className="h-4 w-4 mr-2" /> Generate from Orders
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline"
+                className="h-11 px-6 rounded-xl border-neutral-200 font-bold text-xs uppercase tracking-widest transition-all bg-white"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Generate from Orders
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-2xl border-slate-100 p-2 shadow-2xl">
+              <DropdownMenuItem 
+                onClick={() => window.location.href = '/dashboard/orders?action=generate_invoice'}
+                className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer"
+              >
+                Lorry Receipts
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => window.location.href = '/dashboard/pallets?action=generate_invoice'}
+                className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer"
+              >
+                Outward Load
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => window.location.href = '/dashboard/pallets/returns?action=generate_invoice'}
+                className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer"
+              >
+                Pallet Return
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button 
             className="bg-accent-600 hover:bg-accent-700 text-white font-black uppercase tracking-widest text-[10px] h-10 px-6 rounded-xl shadow-lg shadow-accent-600/20"
             onClick={() => setIsCreateModalOpen(true)}

@@ -54,3 +54,31 @@ export async function toggleReportSchedule(id: string, isActive: boolean) {
   revalidatePath('/dashboard/reports/scheduler');
   return { success: true };
 }
+
+export async function runReportNow(id: string) {
+  const session = await getSession();
+  if (!session || !session.user || !session.user.companyId) throw new Error('Unauthorized');
+
+  // Logic to trigger report generation and email
+  // In a real system, this might push to a background job queue
+  // For now, we update the lastRunAt
+  await prisma.scheduledReport.update({
+    where: { id, companyId: session.user.companyId },
+    data: { lastRunAt: new Date() }
+  });
+
+  revalidatePath('/dashboard/reports/scheduler');
+  return { success: true };
+}
+
+export async function deleteScheduledReport(id: string) {
+  const session = await getSession();
+  if (!session || !session.user || !session.user.companyId) throw new Error('Unauthorized');
+
+  await prisma.scheduledReport.delete({
+    where: { id, companyId: session.user.companyId }
+  });
+
+  revalidatePath('/dashboard/reports/scheduler');
+  return { success: true };
+}

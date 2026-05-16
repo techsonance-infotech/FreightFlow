@@ -2,17 +2,21 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-utils';
 import { prisma } from '@freightflow/db';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getSession();
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const isCurrent = searchParams.get('current') === 'true';
+
     const companies = await prisma.company.findMany({
       where: {
         tenantId: session.user.tenantId,
         isActive: true,
+        ...(isCurrent ? { id: session.user.companyId } : {}),
       },
       select: {
         id: true,

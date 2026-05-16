@@ -1,7 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
-import { numberToWords } from '../utils/number-to-words';
 
 // Helper to convert Image URL to Base64
 async function getBase64Image(imgUrl: string): Promise<string | null> {
@@ -136,7 +135,7 @@ export async function generateLRPrintPDF(order: any, company: any) {
   // 5. Main Goods Table
   autoTable(doc, {
     startY: currentY,
-    head: [['Sr.', 'Description Of Goods', 'HSN/SAC', 'DCPI #', 'Packing', 'Qty.', 'Weight', 'Rate', 'Total (Rs.)']],
+    head: [['Sr.', 'Description Of Goods', 'HSN/SAC', 'DCPI #', 'Packing', 'Qty.', 'Weight']],
     body: (order.details || []).map((item: any, idx: number) => [
       idx + 1,
       item.productName || 'GOODS',
@@ -144,67 +143,32 @@ export async function generateLRPrintPDF(order: any, company: any) {
       item.dcpiNo || '-',
       item.packingType || '-',
       item.boxCount || 0,
-      item.weight || 0,
-      (order.rate / 100).toFixed(2),
-      ((item.boxCount * order.rate) / 100).toFixed(2)
+      item.weight || 0
     ]),
     theme: 'grid',
     headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },
     bodyStyles: { fontSize: 7 },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 45 },
+      1: { cellWidth: 90 },
       2: { cellWidth: 20, halign: 'center' },
       3: { cellWidth: 20, halign: 'center' },
       4: { cellWidth: 22, halign: 'center' },
       5: { cellWidth: 12, halign: 'center' },
       6: { cellWidth: 18, halign: 'center' },
-      7: { cellWidth: 20, halign: 'right' },
-      8: { cellWidth: 25, halign: 'right' },
     },
     margin: { left: margin, right: margin }
   });
 
   currentY = (doc as any).lastAutoTable.finalY + 5;
 
-  // 6. Box 4: Totals & Summary
-  doc.rect(margin, currentY, boxWidth, 25);
-  const goodsTotal = (order.details || []).reduce((acc: number, item: any) => acc + (item.boxCount * order.rate), 0) / 100;
-  const hamali = order.hamali / 100;
-  const subtotal = order.subtotal / 100;
-  const totalAmount = order.totalAmount / 100;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text(`Goods Total: ${goodsTotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
-  doc.text(`Hamali: ${hamali.toFixed(2)}`, pageWidth - margin - 2, currentY + 9, { align: 'right' });
-  doc.text(`Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 13, { align: 'right' });
-  
-  let taxY = currentY + 17;
-  if (order.cgstAmount > 0) {
-    doc.text(`CGST (${order.cgstPct}%): ${(order.cgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
-  if (order.sgstAmount > 0) {
-    doc.text(`SGST (${order.sgstPct}%): ${(order.sgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
-  if (order.igstAmount > 0) {
-    doc.text(`IGST (${order.igstPct}%): ${(order.igstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
-
-  // Adjust summary box height if taxes are present
-  const summaryBoxHeight = Math.max(25, taxY - currentY + 8);
+  // 6. Box 4: Additional Details
+  const summaryBoxHeight = 15;
   doc.rect(margin, currentY, boxWidth, summaryBoxHeight);
 
-  doc.setFontSize(9);
-  doc.text(`Total Amount In Figures :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + summaryBoxHeight - 3, { align: 'right' });
-  
   doc.setFontSize(8);
-  doc.text(`Total Amount in Words : ${numberToWords(Math.floor(totalAmount))} only`, margin + 2, currentY + 5);
   doc.setFont('helvetica', 'normal');
-  doc.text(`GST Bill No: ${order.gstBillNo || '-'}`, margin + 2, currentY + 10);
+  doc.text(`GST Bill No: ${order.gstBillNo || '-'}`, margin + 2, currentY + 8);
 
   currentY += summaryBoxHeight + 5;
 

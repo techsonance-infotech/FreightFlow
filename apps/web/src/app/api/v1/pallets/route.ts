@@ -19,6 +19,9 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
     const type = searchParams.get('type');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const unassigned = searchParams.get('unassigned') === 'true';
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -27,7 +30,10 @@ export async function GET(request: Request) {
       deletedAt: null,
     };
 
-    if (status) {
+    if (unassigned) {
+      where.tripId = null;
+      where.status = { in: ['created', 'active'] };
+    } else if (status) {
       where.status = status;
     }
 
@@ -35,13 +41,22 @@ export async function GET(request: Request) {
       where.type = type;
     }
 
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate + 'T23:59:59.999Z');
+    }
+
     if (search) {
       where.OR = [
-        { lrNo: isNaN(parseInt(search)) ? undefined : parseInt(search) },
+        { lrNo: { contains: search, mode: 'insensitive' } },
         { companyName: { contains: search, mode: 'insensitive' } },
         { partyCode: { contains: search, mode: 'insensitive' } },
         { dealer: { name: { contains: search, mode: 'insensitive' } } },
-      ].filter(Boolean);
+        { vehicle: { regNo: { contains: search, mode: 'insensitive' } } },
+        { palletDetails: { some: { consigneeName: { contains: search, mode: 'insensitive' } } } },
+        { consigneeDetails: { some: { consigneeName: { contains: search, mode: 'insensitive' } } } },
+      ];
     }
 
     const [pallets, total] = await Promise.all([
@@ -51,6 +66,7 @@ export async function GET(request: Request) {
         take: limit,
         include: {
           dealer: { select: { name: true } },
+          consignee: { select: { name: true } },
           vehicle: { select: { regNo: true } },
           palletDetails: true,
           consigneeDetails: true,
@@ -95,7 +111,7 @@ export async function POST(request: Request) {
         companyId: user.companyId!,
         lrNo: validatedData.lrNo,
         dealerId: validatedData.dealerId,
-        consigneeId: validatedData.consigneeId,
+        consigneeId: validatedData.consigneeId || null,
         vehicleId: validatedData.vehicleId,
         date: new Date(validatedData.date),
         companyName: validatedData.companyName,
@@ -122,23 +138,16 @@ export async function POST(request: Request) {
         gstPct: validatedData.gstPct,
         type: validatedData.type,
         status: validatedData.status,
-        palletDetails: validatedData.type === 'OUTWARD' ? {
+        palletDetails: {
           create: (validatedData.palletDetails || []).map((d) => ({
             companyId: user.companyId!,
             palletDisplayId: d.palletDisplayId,
+            code: d.code,
             consigneeName: d.consigneeName,
             qty: d.qty,
             rate: d.rate,
           })),
-        } : undefined,
-        consigneeDetails: validatedData.type === 'RETURN' ? {
-          create: (validatedData.consigneeDetails || []).map((d) => ({
-            companyId: user.companyId!,
-            consigneeName: d.consigneeName,
-            qty: d.qty,
-            rate: d.rate,
-          })),
-        } : undefined,
+        },
       },
       include: {
         palletDetails: true,

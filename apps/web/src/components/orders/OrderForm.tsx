@@ -10,7 +10,7 @@ import {
   FileText, Plus, Trash2, Save, ArrowLeft, 
   Search, Calculator, Truck, User, MapPin, 
   ChevronRight, ChevronDown, Box, CreditCard, ShieldCheck, AlertCircle, Hash, Building2, Calendar, Package,
-  TrendingUp, TrendingDown, Zap, Navigation
+  TrendingUp, TrendingDown, Zap, Navigation, CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   const [isConsigneeModalOpen, setIsConsigneeModalOpen] = useState(false);
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
 
+  const [dealerSearch, setDealerSearch] = useState('');
+  const [consigneeSearch, setConsigneeSearch] = useState('');
+  const [vehicleSearch, setVehicleSearch] = useState('');
+
   const {
     register,
     control,
@@ -70,6 +74,18 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
       rateOn: 'weight',
       rate: 0,
       status: 'created',
+      dealerId: '',
+      consigneeId: '',
+      vehicleId: '',
+      fromLocation: '',
+      fromAddress: '',
+      toLocation: '',
+      toAddress: '',
+      lrNo: '',
+      gstBillNo: '',
+      ewayBillNo: '',
+      partyCode: '',
+      companyName: '',
       ...initialData,
     },
   });
@@ -91,6 +107,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   const watchedRateOn = watch('rateOn');
   const watchedGstType = watch('gstType');
   const watchedIgstPct = watch('igstPct');
+  const watchedIsGstRequired = watch('isGstRequired');
 
   const [totals, setTotals] = useState({
     totalWeight: 0,
@@ -205,10 +222,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     let igstAmount = 0;
     
     if (watchedGstType === 'intra') {
-      cgstAmount = (calculatedSubtotal * Number(watchedCgstPct || 0)) / 100;
-      sgstAmount = (calculatedSubtotal * Number(watchedSgstPct || 0)) / 100;
+      cgstAmount = watchedIsGstRequired ? (calculatedSubtotal * Number(watchedCgstPct || 0)) / 100 : 0;
+      sgstAmount = watchedIsGstRequired ? (calculatedSubtotal * Number(watchedSgstPct || 0)) / 100 : 0;
     } else {
-      igstAmount = (calculatedSubtotal * Number(watchedIgstPct || 0)) / 100;
+      igstAmount = watchedIsGstRequired ? (calculatedSubtotal * Number(watchedIgstPct || 0)) / 100 : 0;
     }
     
     const totalAmount = calculatedSubtotal + cgstAmount + sgstAmount + igstAmount;
@@ -224,7 +241,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
       totalAmount, 
       margin 
     });
-  }, [watchedDetails, watchedFreight, watchedHamali, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedRate, watchedRateOn, watchedGstType]);
+  }, [watchedDetails, watchedFreight, watchedHamali, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedRate, watchedRateOn, watchedGstType, watchedIsGstRequired]);
 
   const onSubmit = async (data: Order) => {
     try {
@@ -280,10 +297,23 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   };
 
   const onInvalid = (errors: any) => {
-    console.error('Validation Errors:', errors);
-    const firstError = Object.values(errors)[0] as any;
-    const message = firstError?.message || 'Please check the form for errors';
-    toast.error(`Validation Failed: ${message}`);
+    console.error('Validation Failed:', errors);
+    
+    // Find the first error message
+    const findFirstErrorMessage = (errs: any): string | null => {
+      for (const key in errs) {
+        const error = errs[key];
+        if (error.message) return error.message;
+        if (typeof error === 'object') {
+          const nested = findFirstErrorMessage(error);
+          if (nested) return nested;
+        }
+      }
+      return null;
+    };
+
+    const message = findFirstErrorMessage(errors) || 'Please complete all required fields';
+    toast.error(`Entry Blocked: ${message}`);
   };
 
   const formatPaise = (paise: number) => (paise / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
@@ -306,25 +336,25 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-12 pb-24 px-4 max-w-[1800px] mx-auto">
-      {/* Premium Sticky Header */}
-      <div className="sticky top-0 z-40 -mx-4 px-8 py-6 bg-white/80 backdrop-blur-xl border-b border-slate-100 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-6">
-          <button type="button" onClick={() => router.back()} className="h-10 w-10 rounded-xl bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{isEditing ? 'Modify LR Entry' : 'New LR Generation'}</h1>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Order Provisioning Hub</p>
-          </div>
+      {/* Premium Gradient Header */}
+      <div className="bg-blue-600 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-blue-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
+          <Package className="h-48 w-48" />
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" type="button" icon={<FileText className="h-4 w-4" />} className="hidden md:flex">
-            PDF Preview
-          </Button>
-          <Button type="submit" loading={loading} icon={<Save className="h-4 w-4" />}>
-            {isEditing ? 'Update LR' : 'Establish LR'}
-          </Button>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center">
+              <Zap className="h-4 w-4" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Advanced Fleet Ops</span>
+          </div>
+          <h1 className="text-4xl font-black tracking-tighter uppercase">{isEditing ? 'Modify LR Entry' : 'Establish Lorry Receipt'}</h1>
+          <p className="text-blue-100 font-bold mt-2 opacity-80 uppercase tracking-widest text-[10px]">Configure multi-tenant freight logistics & routing</p>
+        </div>
+        <div className="relative z-10 flex items-center gap-3">
+          {/* Action buttons moved to bottom */}
         </div>
       </div>
 
@@ -339,16 +369,48 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <FormInputWrapper label="Dealer / Consignor *" error={errors.dealerId?.message}>
                 <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watch('dealerId')} onValueChange={(val) => setValue('dealerId', val, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Dealer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {masters.dealers.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Dealer..."
+                        autoComplete="off"
+                        value={masters.dealers.find(d => d.id === watch('dealerId'))?.name || dealerSearch}
+                        onChange={(e) => {
+                          setDealerSearch(e.target.value);
+                          if (!e.target.value) setValue('dealerId', '');
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {masters.dealers
+                          .filter(d => !dealerSearch || d.name.toLowerCase().includes(dealerSearch.toLowerCase()))
+                          .map(d => (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onMouseDown={() => {
+                                setValue('dealerId', d.id, { shouldValidate: true });
+                                setDealerSearch(d.name);
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{d.name}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d.location || 'Active Dealer'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                  <input type="hidden" {...register('dealerId')} />
                   <button type="button" onClick={() => setIsDealerModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
@@ -357,16 +419,48 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
 
               <FormInputWrapper label="Consignee *" error={errors.consigneeId?.message}>
                 <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watch('consigneeId')} onValueChange={(val) => setValue('consigneeId', val, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Consignee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {masters.consignees.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Consignee..."
+                        autoComplete="off"
+                        value={masters.consignees.find(c => c.id === watch('consigneeId'))?.name || consigneeSearch}
+                        onChange={(e) => {
+                          setConsigneeSearch(e.target.value);
+                          if (!e.target.value) setValue('consigneeId', '');
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {masters.consignees
+                          .filter(c => !consigneeSearch || c.name.toLowerCase().includes(consigneeSearch.toLowerCase()))
+                          .map(c => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onMouseDown={() => {
+                                setValue('consigneeId', c.id, { shouldValidate: true });
+                                setConsigneeSearch(c.name);
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{c.name}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{c.location || 'Active Consignee'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                  <input type="hidden" {...register('consigneeId')} />
                   <button type="button" onClick={() => setIsConsigneeModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
@@ -375,16 +469,48 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
 
               <FormInputWrapper label="Vehicle Assignment *" error={errors.vehicleId?.message}>
                 <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watch('vehicleId')} onValueChange={(val) => setValue('vehicleId', val, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Vehicle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {masters.vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.regNo}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <Truck className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Vehicle..."
+                        autoComplete="off"
+                        value={masters.vehicles.find(v => v.id === watch('vehicleId'))?.regNo || vehicleSearch}
+                        onChange={(e) => {
+                          setVehicleSearch(e.target.value);
+                          if (!e.target.value) setValue('vehicleId', '');
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {masters.vehicles
+                          .filter(v => !vehicleSearch || v.regNo.toLowerCase().includes(vehicleSearch.toLowerCase()))
+                          .map(v => (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onMouseDown={() => {
+                                setValue('vehicleId', v.id, { shouldValidate: true });
+                                setVehicleSearch(v.regNo);
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{v.regNo}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{v.type || 'Standard Fleet'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                  <input type="hidden" {...register('vehicleId')} />
                   <button type="button" onClick={() => setIsVehicleModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
@@ -431,6 +557,17 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                     maxLength={12}
                     placeholder="Enter 12-digit E-Way Bill..." 
                     className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-black text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all tracking-[0.2em] outline-none placeholder:text-[10px] placeholder:tracking-normal placeholder:text-slate-300" 
+                  />
+                </div>
+              </FormInputWrapper>
+
+              <FormInputWrapper label="Party Reference">
+                <div className="relative group/field">
+                  <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                  <input 
+                    {...register('partyCode')} 
+                    placeholder="External Code"
+                    className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none"
                   />
                 </div>
               </FormInputWrapper>
@@ -488,209 +625,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
             </div>
           </div>
 
-          {/* Inventory Payload */}
-          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <div className="p-8 bg-white border-b border-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <Box className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-black text-slate-900 uppercase tracking-[0.2em] text-[10px]">Inventory Payload</h3>
-                </div>
-              </div>
-              <Button 
-                type="button" 
-                onClick={() => append({ productName: '', boxCount: 0, weight: 0, sortOrder: fields.length })}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 py-2 h-auto text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-200 flex items-center gap-2"
-              >
-                <Plus className="h-3 w-3" /> Add Item
-              </Button>
-            </div>
-            
-            <div className="p-0 overflow-x-auto">
-              <table className="w-full text-left min-w-[800px]">
-                <thead className="bg-slate-50/30 text-slate-400">
-                  <tr>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Product Description *</th>
-                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest w-28 text-center">Boxes *</th>
-                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest w-32 text-center text-blue-600">Packing *</th>
-                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest w-32 text-center">Weight (KG) *</th>
-                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest w-40 text-right">DCPI #</th>
-                    <th className="px-6 py-4 w-16 text-center"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {fields.map((field, index) => (
-                    <tr key={field.id} className="group hover:bg-blue-50/20 transition-all duration-300">
-                      <td className="px-6 py-6 align-top">
-                        <div className="relative">
-                          <div className="relative group/field">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
-                              <Search className="h-4 w-4" />
-                            </div>
-                            <input 
-                              {...register(`details.${index}.productName`)} 
-                              autoComplete="off"
-                              placeholder="Search product..." 
-                              className="w-full h-12 pl-14 pr-4 bg-slate-50/30 border border-slate-100 rounded-2xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none" 
-                            />
-                          </div>
-                          
-                          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden opacity-0 invisible group-focus-within:opacity-100 group-focus-within:visible transition-all max-h-[300px] overflow-y-auto">
-                            <div className="p-2 space-y-1">
-                              {masters.products.length > 0 ? (
-                                masters.products
-                                  .filter(p => !getValues(`details.${index}.productName`) || p.name.toLowerCase().includes(getValues(`details.${index}.productName`).toLowerCase()))
-                                  .map(p => (
-                                    <button
-                                      key={p.id}
-                                      type="button"
-                                      onMouseDown={() => {
-                                        setValue(`details.${index}.productName`, p.name);
-                                        if (p.unit?.name) setValue(`details.${index}.packingType`, p.unit.name);
-                                      }}
-                                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
-                                    >
-                                      <div>
-                                        <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{p.name}</p>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.hsnCode || 'NO HSN'}</p>
-                                      </div>
-                                      {p.unit?.name && (
-                                        <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-500">{p.unit.name}</span>
-                                      )}
-                                    </button>
-                                  ))
-                              ) : (
-                                <div className="p-4 text-center">
-                                  <p className="text-xs font-bold text-slate-400">No products found</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {errors.details?.[index]?.productName && (
-                            <p className="text-[10px] font-bold text-rose-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                              {errors.details[index]?.productName?.message}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-6 align-top">
-                        <div className="bg-slate-50/50 rounded-2xl p-1 border border-slate-100 focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-100/50 transition-all shadow-inner">
-                          <input 
-                            type="number" 
-                            min="0"
-                            {...register(`details.${index}.boxCount`, { valueAsNumber: true })} 
-                            onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                            className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-sm h-10" 
-                          />
-                        </div>
-                        {errors.details?.[index]?.boxCount && (
-                          <p className="text-[10px] font-bold text-rose-500 mt-1 text-center animate-in fade-in slide-in-from-top-1 duration-200">
-                            Required
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-6 align-top">
-                        <div className="space-y-2">
-                          <Select 
-                            value={watchedDetails[index]?.packingType} 
-                            onValueChange={(val) => setValue(`details.${index}.packingType`, val)}
-                          >
-                            <SelectTrigger className="w-full h-12 bg-slate-50/50 border border-slate-100 rounded-2xl px-4 text-sm font-black text-blue-600 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {masters.productUnits.map(u => (
-                                <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
-                              ))}
-                              <SelectItem value="CUSTOM_ENTRY">Manual Entry...</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          
-                          {/* Conditional Manual Entry Input */}
-                          {watchedDetails[index]?.packingType === 'CUSTOM_ENTRY' && (
-                            <div className="animate-in fade-in slide-in-from-top-1 duration-300">
-                              <input 
-                                type="text"
-                                autoFocus
-                                placeholder="Specify packing..."
-                                className="w-full h-10 px-4 bg-white border-2 border-blue-100 rounded-xl text-xs font-black text-blue-600 focus:border-blue-400 focus:ring-0 transition-all outline-none shadow-sm"
-                                onBlur={(e) => { 
-                                  if (e.target.value && e.target.value !== 'CUSTOM_ENTRY') {
-                                    setValue(`details.${index}.packingType`, e.target.value); 
-                                  } else {
-                                    setValue(`details.${index}.packingType`, '');
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    (e.target as HTMLInputElement).blur();
-                                  }
-                                }}
-                              />
-                              <p className="text-[9px] font-bold text-slate-400 mt-1 ml-1 uppercase tracking-tighter">Press Enter to Confirm</p>
-                            </div>
-                          )}
-                        </div>
-                        {errors.details?.[index]?.packingType && (
-                          <p className="text-[10px] font-bold text-rose-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                            Required
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-6 align-top">
-                        <div className="bg-slate-50/50 rounded-2xl p-1 border border-slate-100 focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-100/50 transition-all shadow-inner">
-                          <input 
-                            type="number" 
-                            step="0.01" 
-                            min="0"
-                            {...register(`details.${index}.weight`, { valueAsNumber: true })} 
-                            onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                            className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-sm h-10" 
-                          />
-                        </div>
-                        {errors.details?.[index]?.weight && (
-                          <p className="text-[10px] font-bold text-rose-500 mt-1 text-center animate-in fade-in slide-in-from-top-1 duration-200">
-                            Required
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-6 align-top text-right">
-                        <div className="relative group/field inline-block w-full">
-                          <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300" />
-                          <input 
-                            {...register(`details.${index}.dcpiNo`)} 
-                            placeholder="Optional"
-                            className="w-full h-10 pl-8 pr-3 bg-slate-50/30 border border-slate-100 rounded-xl font-bold text-slate-500 text-right focus:bg-white focus:border-blue-100 focus:ring-0 transition-all text-xs placeholder:text-slate-300 outline-none" 
-                          />
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-center align-top">
-                        <button type="button" onClick={() => remove(index)} disabled={fields.length === 1} className="p-3 rounded-xl text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all disabled:opacity-0"><Trash2 className="h-4 w-4" /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="p-8 bg-white border-t border-slate-50 flex justify-between items-center">
-                <div className="flex gap-16">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tonnage</p>
-                    {renderWeightTotal(totals.totalWeight)}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Boxes</p>
-                    <p className="text-3xl font-black text-slate-900 tracking-tighter">
-                      {totals.totalBoxes} <span className="text-xs text-slate-400 font-bold ml-1 uppercase">Units</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
-        </div>
 
         {/* Right Column - Financials */}
         <div className="lg:col-span-5 xl:col-span-4 space-y-8">
@@ -761,30 +696,42 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                 </FormInputWrapper>
               </div>
 
-              <div className="p-6 bg-slate-800/30 rounded-3xl border border-slate-700/50 space-y-4">
+              <div className="p-6 bg-slate-800/30 rounded-3xl border border-slate-700/50 space-y-6">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">GST Setup</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">GST Requirement</span>
                   <div className="flex bg-slate-800 rounded-full p-1 border border-slate-700">
-                    <button type="button" onClick={() => setValue('gstType', 'intra')} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", watchedGstType === 'intra' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-500 hover:text-slate-300')}>Intra</button>
-                    <button type="button" onClick={() => setValue('gstType', 'inter')} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", watchedGstType === 'inter' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-500 hover:text-slate-300')}>Inter</button>
+                    <button type="button" onClick={() => setValue('isGstRequired', true)} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", watchedIsGstRequired ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-500 hover:text-slate-300')}>With GST</button>
+                    <button type="button" onClick={() => setValue('isGstRequired', false)} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", !watchedIsGstRequired ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/50' : 'text-slate-500 hover:text-slate-300')}>Without GST</button>
                   </div>
                 </div>
 
-                {watchedGstType === 'intra' ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">CGST %</p>
-                      <input type="number" step="0.1" {...register('cgstPct', { valueAsNumber: true })} className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
+                {watchedIsGstRequired && (
+                  <div className="space-y-4 pt-4 border-t border-slate-700/50 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">GST Setup</span>
+                      <div className="flex bg-slate-800 rounded-full p-1 border border-slate-700">
+                        <button type="button" onClick={() => setValue('gstType', 'intra')} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", watchedGstType === 'intra' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-500 hover:text-slate-300')}>Intra</button>
+                        <button type="button" onClick={() => setValue('gstType', 'inter')} className={cn("px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all", watchedGstType === 'inter' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-500 hover:text-slate-300')}>Inter</button>
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">SGST %</p>
-                      <input type="number" step="0.1" {...register('sgstPct', { valueAsNumber: true })} className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">IGST %</p>
-                    <input type="number" step="0.1" {...register('igstPct', { valueAsNumber: true })} className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none" />
+
+                    {watchedGstType === 'intra' ? (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">CGST %</p>
+                          <input type="number" step="0.1" {...register('cgstPct', { valueAsNumber: true })} className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">SGST %</p>
+                          <input type="number" step="0.1" {...register('sgstPct', { valueAsNumber: true })} className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">IGST %</p>
+                        <input type="number" step="0.1" {...register('igstPct', { valueAsNumber: true })} className="w-full h-10 px-4 bg-slate-800/50 border border-slate-700 rounded-xl text-xs font-bold text-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none" />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -795,22 +742,26 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                   <span className="text-sm font-black text-white">₹{totals.subtotal.toFixed(2)}</span>
                 </div>
                 
-                {watchedGstType === 'intra' ? (
+                {watchedIsGstRequired && (
                   <>
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span className="text-[10px] font-black uppercase tracking-widest">CGST ({watchedCgstPct}%)</span>
-                      <span className="text-xs font-bold text-blue-400">+ ₹{totals.cgstAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span className="text-[10px] font-black uppercase tracking-widest">SGST ({watchedSgstPct}%)</span>
-                      <span className="text-xs font-bold text-blue-400">+ ₹{totals.sgstAmount.toFixed(2)}</span>
-                    </div>
+                    {watchedGstType === 'intra' ? (
+                      <>
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span className="text-[10px] font-black uppercase tracking-widest">CGST ({watchedCgstPct}%)</span>
+                          <span className="text-xs font-bold text-blue-400">+ ₹{totals.cgstAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span className="text-[10px] font-black uppercase tracking-widest">SGST ({watchedSgstPct}%)</span>
+                          <span className="text-xs font-bold text-blue-400">+ ₹{totals.sgstAmount.toFixed(2)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between items-center text-slate-500">
+                        <span className="text-[10px] font-black uppercase tracking-widest">IGST ({watchedIgstPct}%)</span>
+                        <span className="text-xs font-bold text-indigo-400">+ ₹{totals.igstAmount.toFixed(2)}</span>
+                      </div>
+                    )}
                   </>
-                ) : (
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span className="text-[10px] font-black uppercase tracking-widest">IGST ({watchedIgstPct}%)</span>
-                    <span className="text-xs font-bold text-indigo-400">+ ₹{totals.igstAmount.toFixed(2)}</span>
-                  </div>
                 )}
 
                 <div className="pt-6 flex justify-between items-center">
@@ -837,21 +788,242 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
               </p>
             </div>
           </div>
+
+          {/* Submission Checklist */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Submission Checklist</h4>
+              <div className="h-5 w-5 rounded-full bg-slate-50 flex items-center justify-center">
+                <ShieldCheck className="h-3 w-3 text-slate-300" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              {[
+                { label: 'Vehicle Allocation Verified', status: !!watch('vehicleId') },
+                { label: 'Dealer Identity Confirmed', status: !!watch('dealerId') },
+                { label: 'Financials Synchronized', status: totals.totalAmount > 0 },
+                { 
+                  label: 'Inventory Rows Validated', 
+                  status: fields.length > 0 && fields.every((f: any, idx: number) => watch(`details.${idx}.productName`)?.trim() !== '') 
+                }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className={cn(
+                    "h-5 w-5 rounded-full flex items-center justify-center transition-all duration-500",
+                    item.status ? "bg-emerald-100 text-emerald-600 shadow-sm scale-110" : "bg-slate-50 text-slate-200"
+                  )}>
+                    <CheckCircle2 className={cn("h-3 w-3", item.status ? "animate-in zoom-in" : "")} />
+                  </div>
+                  <span className={cn("text-[11px] font-bold transition-all duration-500", item.status ? "text-slate-700" : "text-slate-300")}>
+                    {item.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Full Width Inventory Payload */}
+      <div className="lg:col-span-12 space-y-8 ml-0">
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-200/50">
+          <div className="p-10 bg-white border-b border-slate-50 flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <Box className="h-7 w-7 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Inventory Payload</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Multi-tenant pallet inventory distribution</p>
+              </div>
+            </div>
+            <Button 
+              type="button" 
+              onClick={() => append({ productName: '', boxCount: 0, weight: 0, sortOrder: fields.length })}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-8 py-4 h-auto text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 flex items-center gap-3 transition-all hover:-translate-y-0.5"
+            >
+              <Plus className="h-4 w-4" /> Add Item
+            </Button>
+          </div>
+          
+          <div className="p-0 overflow-x-auto">
+            <table className="w-full text-left min-w-[1000px]">
+              <thead className="bg-slate-50/50 text-slate-400">
+                <tr>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest w-20">Sr.</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest">Product Description *</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-32 text-center">Boxes *</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-center text-blue-600">Packing *</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-center">Weight (KG) *</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-right">DCPI #</th>
+                  <th className="px-8 py-6 w-20"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {fields.map((field, index) => (
+                  <tr key={field.id} className="group hover:bg-blue-50/10 transition-all duration-300">
+                    <td className="px-8 py-8 align-top">
+                      <span className="text-sm font-black text-slate-200 group-hover:text-blue-500 transition-colors">#{index + 1}</span>
+                    </td>
+                    <td className="px-4 py-8 align-top">
+                      <div className="relative group/field">
+                        <div className="relative">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                            <Search className="h-4 w-4" />
+                          </div>
+                          <input 
+                            {...register(`details.${index}.productName`)} 
+                            autoComplete="off"
+                            placeholder="Search product..." 
+                            onFocus={(e) => {
+                              if (e.target.value === '0') e.target.value = '';
+                              // Trigger dropdown by focusing
+                            }}
+                            className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none" 
+                          />
+                        </div>
+                        
+                        <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                          <div className="p-2 space-y-1">
+                            {masters.products.length > 0 ? (
+                              masters.products
+                                .filter(p => !getValues(`details.${index}.productName`) || p.name.toLowerCase().includes(getValues(`details.${index}.productName`).toLowerCase()))
+                                .map(p => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onMouseDown={() => {
+                                      setValue(`details.${index}.productName`, p.name);
+                                      if (p.unit?.name) setValue(`details.${index}.packingType`, p.unit.name);
+                                    }}
+                                    className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                                  >
+                                    <div>
+                                      <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{p.name}</p>
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.hsnCode || 'NO HSN'}</p>
+                                    </div>
+                                    {p.unit?.name && (
+                                      <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-500">{p.unit.name}</span>
+                                    )}
+                                  </button>
+                                ))
+                            ) : (
+                              <div className="p-4 text-center">
+                                <p className="text-xs font-bold text-slate-400">No products found</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-8 align-top">
+                      <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-2">
+                        <input 
+                          type="number" 
+                          min="0"
+                          {...register(`details.${index}.boxCount`, { valueAsNumber: true })} 
+                          onFocus={(e) => e.target.value === '0' && (e.target.value = '')}
+                          onKeyDown={(e) => { if(e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                          className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-8 align-top">
+                      <Select 
+                        value={watchedDetails[index]?.packingType} 
+                        onValueChange={(val) => setValue(`details.${index}.packingType`, val)}
+                      >
+                        <SelectTrigger className="w-full h-12 bg-slate-50/50 border border-slate-100 rounded-2xl px-4 text-sm font-black text-blue-600 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 transition-all outline-none">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {masters.productUnits.map(u => (
+                            <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-4 py-8 align-top">
+                      <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-2">
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          min="0"
+                          {...register(`details.${index}.weight`, { valueAsNumber: true })} 
+                          onFocus={(e) => e.target.value === '0' && (e.target.value = '')}
+                          onKeyDown={(e) => { if(e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                          className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-8 align-top text-right">
+                      <div className="relative group/field inline-block w-full">
+                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300" />
+                        <input 
+                          {...register(`details.${index}.dcpiNo`)} 
+                          className="w-full h-10 pl-8 pr-3 bg-slate-50/30 border border-slate-100 rounded-xl font-bold text-slate-500 text-right focus:bg-white focus:border-blue-100 focus:ring-0 transition-all text-xs outline-none" 
+                        />
+                      </div>
+                    </td>
+                    <td className="px-8 py-8 text-center align-top">
+                      <button type="button" onClick={() => remove(index)} disabled={fields.length === 1} className="p-3 rounded-xl text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all disabled:opacity-0"><Trash2 className="h-5 w-5" /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="p-10 bg-slate-50/30 flex justify-between items-center rounded-b-[2.5rem]">
+              <div className="flex gap-20">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tonnage</p>
+                  {renderWeightTotal(totals.totalWeight)}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Boxes</p>
+                  <p className="text-4xl font-black text-slate-900 tracking-tighter">
+                    {totals.totalBoxes} <span className="text-sm text-slate-400 font-bold ml-1 uppercase">Units</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <Modal isOpen={isDealerModalOpen} onClose={() => setIsDealerModalOpen(false)} title="Quick Add Dealer" size="lg">
-        <DealerForm onSuccess={(d) => { setMasters(m => ({ ...m, dealers: [d, ...m.dealers] })); setValue('dealerId', d.id!); setIsDealerModalOpen(false); }} onCancel={() => setIsDealerModalOpen(false)} />
-      </Modal>
+    {/* Actions */}
+    <div className="flex justify-end items-center gap-4 pt-8">
+      <Button 
+        type="button" 
+        variant="ghost" 
+        onClick={() => router.push('/dashboard/orders')}
+        className="h-16 px-10 rounded-3xl font-black uppercase tracking-widest text-[10px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+      >
+        Discard Changes
+      </Button>
+      <Button 
+        type="submit" 
+        disabled={loading} 
+        className="h-16 px-12 bg-blue-600 text-white rounded-3xl font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-blue-600/20 hover:bg-blue-700 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 min-w-[240px]"
+      >
+        {loading ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-5 w-5" />}
+        {loading ? 'SYNCING...' : isEditing ? 'UPDATE LORRY RECEIPT' : 'ESTABLISH LORRY RECEIPT'}
+      </Button>
+    </div>
 
-      <Modal isOpen={isConsigneeModalOpen} onClose={() => setIsConsigneeModalOpen(false)} title="Quick Add Consignee" size="lg">
-        <ConsigneeForm onSuccess={(c) => { setMasters(m => ({ ...m, consignees: [c, ...m.consignees] })); setValue('consigneeId', c.id!); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
-      </Modal>
+  </form>
 
-      <Modal isOpen={isVehicleModalOpen} onClose={() => setIsVehicleModalOpen(false)} title="Quick Add Vehicle" size="lg">
-        <VehicleForm onSuccess={(v) => { setMasters(m => ({ ...m, vehicles: [v, ...m.vehicles] })); setValue('vehicleId', v.id!); setIsVehicleModalOpen(false); }} onCancel={() => setIsVehicleModalOpen(false)} />
-      </Modal>
-    </form>
+    <Modal isOpen={isDealerModalOpen} onClose={() => setIsDealerModalOpen(false)} title="Quick Add Dealer" size="lg">
+      <DealerForm onSuccess={(d) => { setMasters(m => ({ ...m, dealers: [d, ...m.dealers] })); setValue('dealerId', d.id!); setIsDealerModalOpen(false); }} onCancel={() => setIsDealerModalOpen(false)} />
+    </Modal>
+
+    <Modal isOpen={isConsigneeModalOpen} onClose={() => setIsConsigneeModalOpen(false)} title="Quick Add Consignee" size="lg">
+      <ConsigneeForm onSuccess={(c) => { setMasters(m => ({ ...m, consignees: [c, ...m.consignees] })); setValue('consigneeId', c.id!); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
+    </Modal>
+
+    <Modal isOpen={isVehicleModalOpen} onClose={() => setIsVehicleModalOpen(false)} title="Quick Add Vehicle" size="lg">
+      <VehicleForm onSuccess={(v) => { setMasters(m => ({ ...m, vehicles: [v, ...m.vehicles] })); setValue('vehicleId', v.id!); setIsVehicleModalOpen(false); }} onCancel={() => setIsVehicleModalOpen(false)} />
+    </Modal>
+    </>
   );
 };
 

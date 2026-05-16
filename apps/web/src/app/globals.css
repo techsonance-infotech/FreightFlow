@@ -77,6 +77,8 @@
   --radius-xl: 20px;
 }
 
+
+
 /* ============================================
    Base Styles
    ============================================ */
@@ -87,6 +89,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* --- Scrollbar --- */
@@ -140,6 +143,30 @@ body {
 
 /* --- Print styles --- */
 @media print {
-  body { background: white; }
-  .no-print { display: none !important; }
+  body { background: white !important; }
+  aside, nav, header, footer, .no-print, [role="navigation"] { display: none !important; }
+  main { 
+    margin: 0 !important; 
+    padding: 0 !important; 
+    width: 100% !important;
+    position: static !important;
+  }
+  .ml-64 { margin-left: 0 !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .card, .bg-white { border: 1px solid #eee !important; box-shadow: none !important; }
+}
+
+/* --- Marquee Animation --- */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  display: flex;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
 }

@@ -12,6 +12,7 @@ import {
   Calculator, Wallet, Search, X, CheckSquare, Square,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export const TripForm = () => {
   const router = useRouter();
@@ -48,8 +49,8 @@ export const TripForm = () => {
         const [vehicles, drivers, orders, pallets] = await Promise.all([
           fetch('/api/v1/masters/vehicles?limit=100').then(r => r.json()),
           fetch('/api/v1/masters/drivers?limit=100').then(r => r.json()),
-          fetch('/api/v1/orders?limit=100&status=created').then(r => r.json()), 
-          fetch('/api/v1/pallets?limit=100&status=created').then(r => r.json()),
+          fetch('/api/v1/orders?limit=100&unassigned=true').then(r => r.json()), 
+          fetch('/api/v1/pallets?limit=100&unassigned=true&type=OUTWARD').then(r => r.json()),
         ]);
         
         setMasters({
@@ -108,7 +109,7 @@ export const TripForm = () => {
   const [cargoSearch, setCargoSearch] = useState('');
   const [cargoTypeFilter, setCargoTypeFilter] = useState<'ALL' | 'LR' | 'PL'>('ALL');
   const [cargoPage, setCargoPage] = useState(1);
-  const CARGO_PAGE_SIZE = 10;
+  const CARGO_PAGE_SIZE = 15;
 
   const unifiedCargo = useMemo(() => {
     const lrs = masters.unassignedOrders.map((o: any) => ({
@@ -290,6 +291,7 @@ export const TripForm = () => {
                   <div>
                     <h2 className="font-black text-slate-900 uppercase tracking-tight">Cargo Assignment</h2>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Assign Lorry Receipts & Pallets to this Trip</p>
+                    {errors.orderIds && <p className="text-[10px] text-red-500 font-bold uppercase mt-1">{(errors.orderIds as any).message}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -350,7 +352,7 @@ export const TripForm = () => {
               </div>
             </div>
             
-            <div className="max-h-[400px] overflow-y-auto">
+            <div className="max-h-[500px] overflow-y-auto border border-slate-100 rounded-xl bg-white shadow-inner">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-slate-400 sticky top-0 z-10 shadow-sm">
                   <tr>
@@ -412,31 +414,51 @@ export const TripForm = () => {
               </table>
             </div>
 
-            {/* Pagination Controls */}
             {cargoTotalPages > 1 && (
-              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">
-                  Showing {(cargoPage - 1) * CARGO_PAGE_SIZE + 1} to {Math.min(cargoPage * CARGO_PAGE_SIZE, unifiedCargo.length)} of {unifiedCargo.length} items
-                </span>
-                <div className="flex gap-2">
+              <div className="p-4 border-t border-slate-100 bg-slate-50/80 backdrop-blur-sm flex items-center justify-between rounded-b-3xl">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Showing {(cargoPage - 1) * CARGO_PAGE_SIZE + 1} - {Math.min(cargoPage * CARGO_PAGE_SIZE, unifiedCargo.length)} of {unifiedCargo.length} Manifests
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setCargoPage(p => Math.max(1, p - 1))}
                     disabled={cargoPage === 1}
-                    className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all"
+                    className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 group"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Prev</span>
                   </button>
-                  <span className="px-4 py-2 text-xs font-black text-slate-700 flex items-center">
-                    Page {cargoPage} of {cargoTotalPages}
-                  </span>
+                  
+                  <div className="flex gap-1">
+                    {[...Array(cargoTotalPages)].map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setCargoPage(i + 1)}
+                        className={cn(
+                          "h-10 w-10 rounded-xl text-[10px] font-black transition-all",
+                          cargoPage === i + 1 
+                            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
+                            : "bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                        )}
+                      >
+                        {i + 1}
+                      </button>
+                    )).slice(Math.max(0, cargoPage - 3), Math.min(cargoTotalPages, cargoPage + 2))}
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => setCargoPage(p => Math.min(cargoTotalPages, p + 1))}
                     disabled={cargoPage === cargoTotalPages}
-                    className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all"
+                    className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-2 group"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Next</span>
+                    <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </div>
               </div>

@@ -13,7 +13,7 @@ export function BranchListSection({ branches }: BranchListSectionProps) {
   const [selectedBranch, setSelectedBranch] = useState<any>(null);
 
   return (
-    <aside className="p-8 lg:p-12 space-y-12 bg-slate-50/30 min-h-screen">
+    <aside className="p-6 md:p-8 lg:p-12 space-y-12 bg-slate-50/30">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>

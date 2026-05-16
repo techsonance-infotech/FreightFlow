@@ -27,17 +27,21 @@ export default function GSTR1Page() {
 
   const checkComplianceStatus = async () => {
     try {
-      const response = await fetch('/api/v1/companies');
+      const response = await fetch('/api/v1/companies?current=true');
       const result = await response.json();
-      if (response.ok && result.data) {
-        // In a real app, we'd have a specific endpoint for the current company, 
-        // but here we can find it or assume the first one if only one exists for the session
+      console.log('[Compliance Debug]:', result);
+      if (response.ok && result.data && result.data.length > 0) {
         const company = result.data[0]; 
         setCompanyName(company?.name || 'Your Company');
-        setIsGstRegistered(!!company?.gstin);
+        // Allow access if either GSTIN or PAN is present
+        setIsGstRegistered(!!(company?.gstin || company?.pan));
+      } else {
+        setCompanyName('Your Company');
+        setIsGstRegistered(false);
       }
     } catch (error) {
       console.error('Failed to check compliance status');
+      setIsGstRegistered(false);
     }
   };
 

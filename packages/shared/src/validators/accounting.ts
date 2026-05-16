@@ -51,13 +51,15 @@ export const FreightInvoiceSchema = z.object({
   invoiceNo: z.string().optional(),
   date: z.string(),
   customerId: z.string().uuid(),
-  orderIds: z.array(z.string().uuid()).min(1, 'At least one LR is required'),
+  orderIds: z.array(z.string().uuid()).default([]),
   subtotal: z.number().int().nonnegative(),
   cgst: z.number().int().nonnegative().default(0),
   sgst: z.number().int().nonnegative().default(0),
   igst: z.number().int().nonnegative().default(0),
   totalAmount: z.number().int().nonnegative(),
   notes: z.string().optional(),
+  arAccountId: z.string().uuid().optional(),
+  revenueAccountId: z.string().uuid().optional(),
 });
 
 export type FreightInvoice = z.infer<typeof FreightInvoiceSchema>;

@@ -44,13 +44,34 @@ export async function getFinancialReports() {
   const totalRevenue = pnl.revenue.reduce((sum, r) => sum + Math.abs(r.balance), 0);
   const totalExpenses = pnl.expenses.reduce((sum, e) => sum + Math.abs(e.balance), 0);
 
+  // 3. Calculate Balance Sheet
+  const netProfit = totalRevenue - totalExpenses;
+  
+  const balanceSheet = {
+    assets: trialBalance.filter(a => a.type === 'asset'),
+    liabilities: trialBalance.filter(a => a.type === 'liability'),
+    equity: trialBalance.filter(a => a.type === 'equity'),
+  };
+
+  const totalAssets = balanceSheet.assets.reduce((sum, a) => sum + a.balance, 0);
+  const totalLiabilities = balanceSheet.liabilities.reduce((sum, l) => sum + Math.abs(l.balance), 0);
+  const totalEquity = balanceSheet.equity.reduce((sum, q) => sum + Math.abs(q.balance), 0);
+
   return {
     trialBalance,
     pnl: {
       items: pnl,
       totalRevenue,
       totalExpenses,
-      netProfit: totalRevenue - totalExpenses
+      netProfit
+    },
+    balanceSheet: {
+      items: balanceSheet,
+      totalAssets,
+      totalLiabilities,
+      totalEquity,
+      netProfit,
+      totalLiabilitiesEquity: totalLiabilities + totalEquity + netProfit
     }
   };
 }
