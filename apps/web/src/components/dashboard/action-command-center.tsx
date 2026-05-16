@@ -10,6 +10,24 @@ import { cn } from '@/lib/utils';
 
 const ACTIONS = [
   {
+    title: 'Fleet Map',
+    desc: 'Live Mission Control',
+    icon: <Truck className="h-5 w-5" />,
+    href: '/dashboard/fleet/map',
+    color: 'text-indigo-600',
+    bg: 'bg-indigo-50',
+    border: 'border-indigo-100 hover:border-indigo-200',
+  },
+  {
+    title: 'Pallet Audit',
+    desc: 'Inventory Reconciliation',
+    icon: <ClipboardList className="h-5 w-5" />,
+    href: '/dashboard/pallets/reconciliation',
+    color: 'text-rose-600',
+    bg: 'bg-rose-50',
+    border: 'border-rose-100 hover:border-rose-200',
+  },
+  {
     title: 'Create LR',
     desc: 'New Lorry Receipt',
     icon: <FileText className="h-5 w-5" />,
@@ -26,24 +44,6 @@ const ACTIONS = [
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
     border: 'border-emerald-100 hover:border-emerald-200',
-  },
-  {
-    title: 'Add Fuel',
-    desc: 'Record fuel expense',
-    icon: <IndianRupee className="h-5 w-5" />,
-    href: '/dashboard/fuel',
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
-    border: 'border-amber-100 hover:border-amber-200',
-  },
-  {
-    title: 'New Master',
-    desc: 'Vehicle, Driver, Dealer',
-    icon: <Plus className="h-5 w-5" />,
-    href: '/dashboard/masters',
-    color: 'text-purple-600',
-    bg: 'bg-purple-50',
-    border: 'border-purple-100 hover:border-purple-200',
   },
 ];
 

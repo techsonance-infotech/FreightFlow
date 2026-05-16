@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const companyId = session.user.companyId;
 
     // Perform parallel searches for performance
-    const [orders, vehicles, drivers, dealers] = await Promise.all([
+    const [orders, vehicles, drivers, dealers, consignors, consignees] = await Promise.all([
       // Search LRs (Orders)
       prisma.order.findMany({
         where: {
@@ -29,20 +29,24 @@ export async function GET(request: Request) {
           OR: [
             { lrNo: { contains: query, mode: 'insensitive' } },
             { gstBillNo: { contains: query, mode: 'insensitive' } },
+            { ewayBillNo: { contains: query, mode: 'insensitive' } },
           ],
         },
         take: 5,
-        select: { id: true, lrNo: true, date: true },
+        select: { id: true, lrNo: true },
       }),
       // Search Vehicles
       prisma.vehicle.findMany({
         where: {
           tenantId,
           companyId,
-          regNo: { contains: query, mode: 'insensitive' },
+          OR: [
+            { regNo: { contains: query, mode: 'insensitive' } },
+            { chassisNo: { contains: query, mode: 'insensitive' } },
+          ],
         },
         take: 5,
-        select: { id: true, regNo: true, type: true },
+        select: { id: true, regNo: true },
       }),
       // Search Drivers
       prisma.driver.findMany({
@@ -50,7 +54,10 @@ export async function GET(request: Request) {
           tenantId,
           companyId,
           employee: {
-            name: { contains: query, mode: 'insensitive' },
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { phone: { contains: query, mode: 'insensitive' } },
+            ],
           },
         },
         take: 5,
@@ -60,12 +67,44 @@ export async function GET(request: Request) {
           },
         },
       }),
-      // Search Dealers/Customers
+      // Search Dealers
       prisma.dealer.findMany({
         where: {
           tenantId,
           companyId,
-          name: { contains: query, mode: 'insensitive' },
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { gstin: { contains: query, mode: 'insensitive' } },
+            { shortName: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        take: 5,
+        select: { id: true, name: true },
+      }),
+      // Search Consignors
+      prisma.consignor.findMany({
+        where: {
+          tenantId,
+          companyId,
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { gstin: { contains: query, mode: 'insensitive' } },
+            { phone: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        take: 5,
+        select: { id: true, name: true },
+      }),
+      // Search Consignees
+      prisma.consignee.findMany({
+        where: {
+          tenantId,
+          companyId,
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { gstin: { contains: query, mode: 'insensitive' } },
+            { phone: { contains: query, mode: 'insensitive' } },
+          ],
         },
         take: 5,
         select: { id: true, name: true },
@@ -74,9 +113,11 @@ export async function GET(request: Request) {
 
     const results = [
       ...orders.map(o => ({ id: o.id, title: `LR #${o.lrNo}`, type: 'Order', href: `/dashboard/orders/${o.id}` })),
-      ...vehicles.map(v => ({ id: v.id, title: v.regNo, type: 'Vehicle', href: `/dashboard/masters/vehicles/${v.id}` })),
-      ...drivers.map(d => ({ id: d.id, title: d.employee.name, type: 'Driver', href: `/dashboard/masters/drivers/${d.id}` })),
-      ...dealers.map(de => ({ id: de.id, title: de.name, type: 'Customer', href: `/dashboard/masters/dealers/${de.id}` })),
+      ...vehicles.map(v => ({ id: v.id, title: v.regNo, type: 'Vehicle', href: `/dashboard/masters/vehicles?id=${v.id}` })),
+      ...drivers.map(d => ({ id: d.id, title: d.employee.name, type: 'Driver', href: `/dashboard/masters/employees?id=${d.id}` })),
+      ...dealers.map(de => ({ id: de.id, title: de.name, type: 'Dealer', href: `/dashboard/masters/dealers?id=${de.id}` })),
+      ...consignors.map(c => ({ id: c.id, title: c.name, type: 'Consignor', href: `/dashboard/masters/consignors?id=${c.id}` })),
+      ...consignees.map(c => ({ id: c.id, title: c.name, type: 'Consignee', href: `/dashboard/masters/consignees?id=${c.id}` })),
     ];
 
     return NextResponse.json({ data: results });

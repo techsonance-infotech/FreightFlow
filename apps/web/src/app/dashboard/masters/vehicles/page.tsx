@@ -13,7 +13,12 @@ import { format, isPast, isWithinInterval, addDays, parseISO } from 'date-fns';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
 import { Truck, User, Eye, Pencil, Trash2, Home, Settings, ParkingCircle, Search, Plus } from 'lucide-react';
 
+import { useSearchParams } from 'next/navigation';
+
 export default function VehiclesPage() {
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get('id');
+  
   const [data, setData] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -33,6 +38,15 @@ export default function VehiclesPage() {
       if (response.ok) {
         setData(result.data);
         setTotal(result.meta.total);
+        
+        // Handle deep linking from search
+        if (highlightId && result.data.length > 0) {
+          const target = result.data.find((v: any) => v.id === highlightId);
+          if (target) {
+            setEditingItem(target);
+            setIsModalOpen(true);
+          }
+        }
       }
     } catch (error) {
       toast.error('Failed to fetch records');
@@ -44,7 +58,7 @@ export default function VehiclesPage() {
   useEffect(() => {
     const timer = setTimeout(fetchData, 300);
     return () => clearTimeout(timer);
-  }, [page, limit, search]);
+  }, [page, limit, search, highlightId]);
 
   const handleDelete = async (item: Vehicle) => {
     if (!confirm(`Are you sure you want to delete vehicle ${item.regNo}? This action is irreversible.`)) return;

@@ -11,7 +11,7 @@ import {
   BarChart4, TrendingUp, ArrowUpFromLine, Receipt, Landmark, Scroll,
   FolderKanban, Scale, Building2, Calculator, Scissors, Users,
   Calendar, Umbrella, ShieldAlert, Fuel, Circle, Wrench, Bot,
-  Construction, Settings, Palette, Shield, CreditCard, LogOut
+  Construction, Settings, Palette, Shield, CreditCard, LogOut, ClipboardList
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -48,6 +48,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   shield: <Shield className="h-4 w-4" />,
   'credit-card': <CreditCard className="h-4 w-4" />,
   hardhat: <Construction className="h-4 w-4" />,
+  clipboard: <ClipboardList className="h-4 w-4" />,
 };
 
 interface SidebarProps {

@@ -14,6 +14,8 @@ import dynamic from 'next/dynamic';
 
 const SearchCommand = dynamic(() => import('./search-command').then(mod => mod.SearchCommand), { ssr: false });
 
+import { NotificationCenter } from './notification-center';
+
 interface TopbarProps {
   title?: string;
   user: {
@@ -27,7 +29,6 @@ interface TopbarProps {
 
 export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -37,7 +38,7 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
   };
 
   return (
-    <header className="no-print sticky top-0 z-30 flex h-20 items-center justify-between border-b border-neutral-200 bg-white/70 px-8 backdrop-blur-xl">
+    <header className="no-print sticky top-0 z-30 flex h-20 items-center justify-between border-b border-neutral-200 bg-white/70 pl-8 pr-2 backdrop-blur-xl">
       <div className="flex items-center gap-4 min-w-0">
         <div className="hidden xl:flex flex-col shrink-0 min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400 leading-none mb-1.5">
@@ -58,21 +59,17 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
         <CompanySwitcher currentCompanyId={user.companyId} />
       </div>
 
-      <div className="flex items-center gap-3 lg:gap-6 flex-1 justify-end ml-4">
+      <div className="flex items-center gap-2 lg:gap-4 flex-1 justify-end ml-4">
         {/* Global Search Component */}
         <SearchCommand />
 
         <div className="flex items-center gap-3">
-          {/* Notifications Trigger */}
-          <button 
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all hover:bg-neutral-50 hover:text-accent-600 shadow-sm active:scale-95"
-            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-error-500 ring-4 ring-white" />
-          </button>
+          {/* Notifications Center */}
+          <NotificationCenter />
           
-          <button className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all hover:bg-neutral-50 hover:text-accent-600 shadow-sm active:scale-95">
+          <button 
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all hover:bg-neutral-50 hover:text-accent-600 shadow-sm active:scale-95"
+          >
             <Moon className="h-5 w-5" />
           </button>
         </div>

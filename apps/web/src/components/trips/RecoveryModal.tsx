@@ -3,6 +3,9 @@
 import React, { useState } from 'react';
 import { X, Loader2, ArrowDown, Wallet, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AdvanceRecoverySchema, type AdvanceRecovery } from '@freightflow/shared';
 
 interface RecoveryModalProps {
   isOpen: boolean;
@@ -18,17 +21,27 @@ interface RecoveryModalProps {
 
 export function RecoveryModal({ isOpen, onClose, onSuccess, advance }: RecoveryModalProps) {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ recoveryAmount: '', mode: 'cash' as 'cash' | 'bank', notes: '' });
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<any>({
+    resolver: zodResolver(AdvanceRecoverySchema),
+    defaultValues: {
+      mode: 'cash',
+      recoveryAmount: 0,
+    },
+  });
 
   if (!isOpen || !advance) return null;
 
   const outstanding = advance.amount - advance.recoveredAmount;
   const formatCurrency = (paise: number) => (paise / 100).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const amountPaise = Math.round(parseFloat(form.recoveryAmount) * 100);
-    if (amountPaise > outstanding) {
+  const onSubmit = async (data: any) => {
+    if (data.recoveryAmount > outstanding / 100) {
       toast.error('Recovery amount exceeds outstanding balance');
       return;
     }
@@ -37,13 +50,16 @@ export function RecoveryModal({ isOpen, onClose, onSuccess, advance }: RecoveryM
       const res = await fetch(`/api/v1/trips/advances/${advance.id}/recover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recoveryAmount: amountPaise, mode: form.mode, notes: form.notes }),
+        body: JSON.stringify(data),
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+      if (!res.ok) { 
+        const err = await res.json(); 
+        throw new Error(err.error || 'Failed to record recovery'); 
+      }
       toast.success('Recovery recorded successfully');
       onSuccess();
       onClose();
-      setForm({ recoveryAmount: '', mode: 'cash', notes: '' });
+      reset();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -84,33 +100,30 @@ export function RecoveryModal({ isOpen, onClose, onSuccess, advance }: RecoveryM
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recovery Amount (₹) *</label>
               <div className="relative">
                 <Wallet className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                <input type="number" step="0.01" min="1" max={outstanding / 100} value={form.recoveryAmount}
-                  onChange={(e) => setForm({ ...form, recoveryAmount: e.target.value })} required placeholder="0.00"
+                <input type="number" step="0.01" {...register('recoveryAmount', { valueAsNumber: true })} required placeholder="0.00"
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-black text-slate-900 focus:ring-2 focus:ring-green-600/10" />
               </div>
+              {errors.recoveryAmount && <p className="text-[10px] text-red-500 font-bold uppercase">{(errors.recoveryAmount as any).message}</p>}
               <p className="text-[9px] text-slate-400 font-bold">Max: {formatCurrency(outstanding)}</p>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mode</label>
-              <div className="flex bg-slate-50 p-1 rounded-xl h-[46px]">
-                {(['cash', 'bank'] as const).map((m) => (
-                  <button key={m} type="button" onClick={() => setForm({ ...form, mode: m })}
-                    className={`flex-1 text-[10px] font-black uppercase rounded-lg transition-all ${form.mode === m ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>
-                    {m}
-                  </button>
-                ))}
-              </div>
+              <select {...register('mode')}
+                className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-[10px] font-black uppercase text-slate-700 focus:ring-2 focus:ring-green-600/10">
+                <option value="cash">Cash</option>
+                <option value="bank">Bank</option>
+              </select>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notes</label>
-              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Recovery notes..."
+              <textarea {...register('notes')} rows={2} placeholder="Recovery notes..."
                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-green-600/10 resize-none" />
             </div>
 

@@ -303,6 +303,13 @@ export default function AccountingHubPage() {
             color="#2E7D32" 
           />
           <ModuleCard 
+            title="Dealer Billing Hub" 
+            description="Generate consolidated invoices and dealer reports" 
+            icon={<Receipt className="h-6 w-6" />} 
+            path="/dashboard/accounting/dealer-billing" 
+            color="#0D47A1" 
+          />
+          <ModuleCard 
             title="Accounts Payable" 
             description="Manage vendor bills, payments and TDS" 
             icon={<ArrowUpFromLine className="h-6 w-6" />} 
@@ -315,6 +322,20 @@ export default function AccountingHubPage() {
             icon={<Banknote className="h-6 w-6" />} 
             path="/dashboard/accounting/bank" 
             color="#0277BD" 
+          />
+          <ModuleCard 
+            title="Cheque Inventory" 
+            description="Track physical cheque books and leaf status" 
+            icon={<CreditCard className="h-6 w-6" />} 
+            path="/dashboard/accounting/bank/cheques" 
+            color="#0D47A1" 
+          />
+          <ModuleCard 
+            title="Audit Trail" 
+            description="Immutable history of all financial activities" 
+            icon={<ShieldCheck className="h-6 w-6" />} 
+            path="/dashboard/accounting/audit-logs" 
+            color="#374151" 
           />
           <ModuleCard 
             title="Tax & Compliance" 

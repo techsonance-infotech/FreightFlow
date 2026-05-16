@@ -235,3 +235,45 @@ export function getEmployeeWelcomeEmailTemplate({ name, email, password, role }:
     </div>
   `;
 }
+
+export function getCompanySwitchOtpTemplate(otp: string, companyName: string) {
+  return `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;">
+      <div style="background-color: #0f172a; padding: 48px 32px; text-align: center;">
+        <div style="display: inline-block; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 16px; margin-bottom: 24px;">
+          <span style="color: #3b82f6; font-size: 24px; font-weight: 800; letter-spacing: -0.05em;">FF</span>
+        </div>
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Verify Switch Request</h1>
+        <p style="color: #94a3b8; margin: 8px 0 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">Security Verification</p>
+      </div>
+      
+      <div style="padding: 40px; background-color: #ffffff;">
+        <p style="color: #1e293b; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+          A request has been made to switch your active workspace to <strong>${companyName}</strong>. To ensure the security of your organization, please use the following One-Time Password (OTP) to authorize this change:
+        </p>
+        
+        <div style="background: linear-gradient(to bottom, #f8fafc, #f1f5f9); border: 1px solid #e2e8f0; border-radius: 20px; padding: 40px 20px; text-align: center; margin-bottom: 32px;">
+          <p style="color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; margin: 0 0 16px 0;">Your Verification Code</p>
+          <div style="display: inline-block;">
+            <span style="font-size: 48px; font-weight: 900; color: #0f172a; letter-spacing: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">${otp}</span>
+          </div>
+        </div>
+        
+        <div style="background-color: #fff7ed; border-left: 4px solid #f97316; padding: 16px 20px; border-radius: 8px; margin-bottom: 32px;">
+          <p style="color: #9a3412; font-size: 13px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+            ⏱️ This code will expire in 10 minutes for your protection.
+          </p>
+        </div>
+        
+        <p style="color: #64748b; font-size: 14px; line-height: 1.6;">
+          If you did not initiate this request, please ignore this email and ensure your account credentials are secure.
+        </p>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+        <p style="color: #94a3b8; font-size: 11px; font-weight: 600; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.05em;">FreightFlow Intelligence Platform</p>
+        <p style="color: #cbd5e1; font-size: 10px; margin: 0;">&copy; 2026 FreightFlow. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+}

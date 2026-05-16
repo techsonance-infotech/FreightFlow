@@ -19,7 +19,7 @@ export function ReceiptModal({ isOpen, onClose, invoice, onSuccess }: ReceiptMod
   const [accounts, setAccounts] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    amount: invoice?.totalAmount || 0,
+    amount: (invoice?.totalAmount || 0) / 100,
     bankAccountId: '',
     referenceNo: '',
     notes: ''
@@ -27,7 +27,7 @@ export function ReceiptModal({ isOpen, onClose, invoice, onSuccess }: ReceiptMod
 
   useEffect(() => {
     if (invoice) {
-      setFormData(prev => ({ ...prev, amount: invoice.totalAmount }));
+      setFormData(prev => ({ ...prev, amount: invoice.totalAmount / 100 }));
     }
   }, [invoice]);
 
@@ -180,8 +180,8 @@ export function ReceiptModal({ isOpen, onClose, invoice, onSuccess }: ReceiptMod
                 required
                 step="0.01"
                 placeholder="0.00"
-                value={formData.amount / 100 || ''}
-                onChange={e => setFormData({...formData, amount: parseFloat(e.target.value) * 100})}
+                value={formData.amount || ''}
+                onChange={e => setFormData({...formData, amount: parseFloat(e.target.value)})}
                 className="w-full h-12 pl-11 pr-4 bg-neutral-50 border border-neutral-100 rounded-xl text-sm font-bold text-neutral-700 outline-none focus:ring-2 focus:ring-accent-600/10 focus:border-accent-600 transition-all"
               />
             </div>

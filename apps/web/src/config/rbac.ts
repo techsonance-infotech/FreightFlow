@@ -27,23 +27,24 @@ export const NAV_ITEMS: NavGroup[] = [
     group: 'Operations',
     items: [
       { id: 'orders', label: 'Lorry Receipts (LR)', icon: 'box', path: '/dashboard/orders', allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'], category: 'operations' },
-      { 
-        id: 'pallets', 
-        label: 'Pallet Tracking', 
-        icon: 'inbox', 
-        path: '/dashboard/pallets', 
-        allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'], 
+      {
+        id: 'pallets',
+        label: 'Pallet Tracking',
+        icon: 'inbox',
+        path: '/dashboard/pallets',
+        allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'],
         category: 'operations',
         subItems: [
           { id: 'pallets-outward', label: 'Outward Load', icon: 'outbox', path: '/dashboard/pallets', allowedRoles: ['tenant_owner', 'ops_manager', 'dispatch_officer'] },
           { id: 'pallets-return', label: 'Pallet Returns', icon: 'trending', path: '/dashboard/pallets/returns', allowedRoles: ['tenant_owner', 'ops_manager', 'dispatch_officer'] },
+          { id: 'pallets-reconciliation', label: 'Reconciliation Report', icon: 'chart', path: '/dashboard/pallets/reconciliation', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'] },
         ]
       },
-      { 
-        id: 'trips', 
-        label: 'Trip Management', 
-        icon: 'route', 
-        path: '/dashboard/trips', 
+      {
+        id: 'trips',
+        label: 'Trip Management',
+        icon: 'route',
+        path: '/dashboard/trips',
         allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'dispatch_officer'],
         category: 'operations',
         subItems: [
@@ -57,15 +58,16 @@ export const NAV_ITEMS: NavGroup[] = [
   {
     group: 'Financials',
     items: [
-      { 
-        id: 'accounting', 
-        label: 'Core Accounting', 
-        icon: 'chart', 
-        path: '/dashboard/accounting', 
+      {
+        id: 'accounting',
+        label: 'Core Accounting',
+        icon: 'chart',
+        path: '/dashboard/accounting',
         allowedRoles: ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'],
         category: 'financials',
         subItems: [
           { id: 'accounting-dashboard', label: 'Intelligence Dashboard', icon: 'trending', path: '/dashboard/accounting', allowedRoles: ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'] },
+          { id: 'accounting-billing', label: 'Dealer Billing Hub', icon: 'receipt', path: '/dashboard/accounting/dealer-billing', allowedRoles: ['tenant_owner', 'accountant'] },
           { id: 'accounting-ar', label: 'Receivables (AR)', icon: 'inbox', path: '/dashboard/accounting/ar', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-ap', label: 'Payables (AP)', icon: 'outbox', path: '/dashboard/accounting/ap', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
           { id: 'accounting-invoices', label: 'Sales Invoices', icon: 'receipt', path: '/dashboard/accounting/invoices', allowedRoles: ['tenant_owner', 'accountant'] },
@@ -75,11 +77,11 @@ export const NAV_ITEMS: NavGroup[] = [
           { id: 'accounting-coa', label: 'Chart of Accounts', icon: 'folder', path: '/dashboard/accounting/coa', allowedRoles: ['tenant_owner', 'accountant', 'auditor'] },
         ]
       },
-      { 
-        id: 'compliance', 
-        label: 'GST & Compliance', 
-        icon: 'scale', 
-        path: '/dashboard/compliance', 
+      {
+        id: 'compliance',
+        label: 'GST & Compliance',
+        icon: 'scale',
+        path: '/dashboard/compliance',
         allowedRoles: ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'],
         category: 'compliance',
         subItems: [
@@ -96,11 +98,11 @@ export const NAV_ITEMS: NavGroup[] = [
   {
     group: 'Assets & HR',
     items: [
-      { 
-        id: 'hr', 
-        label: 'HR & Payroll', 
-        icon: 'users', 
-        path: '/dashboard/hr', 
+      {
+        id: 'hr',
+        label: 'HR & Payroll',
+        icon: 'users',
+        path: '/dashboard/hr',
         allowedRoles: ['tenant_owner', 'fleet_owner', 'hr_manager'],
         category: 'hr',
         subItems: [
@@ -110,14 +112,15 @@ export const NAV_ITEMS: NavGroup[] = [
           { id: 'hr-payroll', label: 'Payroll Processing', icon: 'rupee', path: '/dashboard/hr/payroll', allowedRoles: ['tenant_owner', 'hr_manager'], category: 'hr' },
         ]
       },
-      { 
-        id: 'fleet-mgmt', 
-        label: 'Fleet Management', 
-        icon: 'truck', 
-        path: '/dashboard/fleet', 
+      {
+        id: 'fleet-mgmt',
+        label: 'Fleet Management',
+        icon: 'truck',
+        path: '/dashboard/fleet',
         allowedRoles: ['tenant_owner', 'fleet_owner', 'ops_manager', 'maintenance_supervisor'],
         category: 'fleet',
         subItems: [
+          { id: 'fleet-map', label: 'Global Fleet Map', icon: 'route', path: '/dashboard/fleet/map', allowedRoles: ['super_admin', 'tenant_owner', 'ops_manager'], category: 'operations' },
           { id: 'fleet-registry', label: 'Vehicle Registry', icon: 'truck', path: '/dashboard/masters/vehicles', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'], category: 'fleet' },
           { id: 'fleet-compliance', label: 'Compliance Engine', icon: 'alert', path: '/dashboard/fleet/compliance', allowedRoles: ['tenant_owner', 'ops_manager', 'maintenance_supervisor'], category: 'fleet' },
           { id: 'fleet-docs', label: 'Manual Docs (Archive)', icon: 'scale', path: '/dashboard/fleet/documents', allowedRoles: ['tenant_owner', 'maintenance_supervisor'], category: 'fleet' },
@@ -133,17 +136,19 @@ export const NAV_ITEMS: NavGroup[] = [
   {
     group: 'Intelligence',
     items: [
-      { 
-        id: 'reports', 
-        label: 'Reports & BI', 
-        icon: 'trending', 
-        path: '/dashboard/reports', 
+      {
+        id: 'reports',
+        label: 'Reports & BI',
+        icon: 'trending',
+        path: '/dashboard/reports',
         allowedRoles: ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'],
         category: 'intelligence',
         subItems: [
           { id: 'reports-transport', label: 'Transport Analytics', icon: 'truck', path: '/dashboard/reports/transport', allowedRoles: ['tenant_owner', 'ops_manager'], category: 'intelligence' },
+          { id: 'reports-pallets', label: 'Pallet Audit BI', icon: 'chart', path: '/dashboard/pallets/reconciliation', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
           { id: 'reports-routes', label: 'Route Profitability', icon: 'route', path: '/dashboard/reports/routes', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
           { id: 'reports-financial', label: 'Financial Reports', icon: 'rupee', path: '/dashboard/reports/financial', allowedRoles: ['tenant_owner', 'accountant', 'auditor'], category: 'intelligence' },
+          { id: 'reports-dealer-entry', label: 'Dealer Entry Report', icon: 'clipboard', path: '/dashboard/reports/transport/dealer-wise', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
           { id: 'reports-automation', label: 'Report Automation', icon: 'bot', path: '/dashboard/reports/scheduler', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
         ]
       },
@@ -168,7 +173,7 @@ export const NAV_ITEMS: NavGroup[] = [
   {
     group: 'Admin',
     items: [
-      { 
+      {
         id: 'settings',
         label: 'Settings',
         icon: 'settings',
@@ -176,6 +181,7 @@ export const NAV_ITEMS: NavGroup[] = [
         allowedRoles: ['tenant_owner', 'fleet_owner', 'hr_manager'],
         category: 'admin',
         subItems: [
+          { id: 'settings-profile', label: 'My Profile', icon: 'users', path: '/dashboard/settings/profile', allowedRoles: ['super_admin', 'tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'dispatch_officer', 'maintenance_supervisor', 'auditor', 'driver', 'staff'], category: 'admin' },
           { id: 'settings-org', label: 'Organization', icon: 'building', path: '/dashboard/settings/organization', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },
           { id: 'settings-business', label: 'Business Config', icon: 'settings', path: '/dashboard/settings/business', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },
           { id: 'settings-branding', label: 'Branding', icon: 'palette', path: '/dashboard/settings/branding', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },
@@ -201,7 +207,7 @@ export const NAV_CATEGORIES = [
 
 export function hasPermission(userRole: string, item: NavItem, permissions?: any): boolean {
   if (userRole === 'super_admin' || userRole === 'tenant_owner' || userRole === 'fleet_owner') return true;
-  
+
   // 1. Check Role-based permission
   const hasRoleAccess = item.allowedRoles.includes(userRole as UserRole);
   if (!hasRoleAccess) return false;

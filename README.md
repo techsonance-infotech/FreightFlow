@@ -9,7 +9,7 @@
 
 ---
 
-## What is FreightFlow?
+## 📌 What is FreightFlow?
 
 FreightFlow is a **full-stack SaaS platform built exclusively for Indian road transport and logistics businesses**. It replaces disconnected spreadsheets, paper registers, and generic accounting tools with a single, purpose-built system that manages everything — from the moment a lorry receipt is created to the moment the freight invoice is paid and the GST return is filed.
 
@@ -17,21 +17,32 @@ Whether you run 5 trucks or 500, FreightFlow gives you real-time visibility into
 
 ---
 
-## The Problem It Solves
+## 🎯 Challenges & Solutions
 
-Transport businesses in India are drowning in paperwork and manual cesses:
+The transport industry faces unique hurdles that generic software cannot address. FreightFlow bridges these gaps:
 
-- LRs are written by hand, invoices are made in Excel, and accounts are maintained in Tally with no link between them
-- Driver advances, toll expenses, and trip settlements are tracked on paper and frequently disputed
-- GST filing for transport (RCM, e-Way Bills, SAC codes) is complex and done manually every month
-- Vehicle documents (insurance, fitness, permits, PUC) expire without warning
-- There is no single number that tells the owner: *"This truck made ₹X fit last month"*
-
-FreightFlow  solves all of this in one platform.
+| **Industry Challenge** | **The FreightFlow Solution** |
+|-----------------------|-----------------------------|
+| **Manual Paperwork & Disconnected Systems** | Replaces paper LRs, Excel invoices, and disjointed Tally accounts with a unified digital ecosystem. |
+| **Financial Leakage & Dispute** | Digitally tracks driver advances, toll expenses, and trip settlements, ensuring clear, indisputable records. |
+| **Complex GST & Compliance** | Automates CGST/SGST/IGST calculations, RCM for GTA, e-Way Bills, and SAC code tracking for seamless monthly filing. |
+| **Vehicle Document Expiry** | Provides automated alerts for expiring insurance, fitness certificates, permits, and PUCs. |
+| **Lack of Profitability Visibility** | Generates real-time, per-trip P&L statements so owners know exactly how much each truck earns. |
 
 ---
 
-## Key Features
+## 🚀 Key Advantages
+
+- **100% Digital Operations:** Go completely paperless with digital LRs, e-Way bills, and online invoices.
+- **Enhanced Financial Control:** Stop financial leakages with tight tracking of every expense, from fuel drops to driver advances.
+- **Automated Compliance:** Never miss a GST filing, TDS deduction, or document renewal with automated tracking and alerts.
+- **Real-Time Visibility:** Monitor your entire fleet, view route-wise profitability, and access executive KPI dashboards instantly.
+- **Scalability:** Built on a robust multi-tenant architecture, FreightFlow grows with your business, supporting 5 to 500+ trucks seamlessly.
+- **Driver Empowerment:** Dedicated mobile app reduces friction in expense reporting, POD uploads, and trip management.
+
+---
+
+## ⚙️ Features & Modules
 
 ### 📦 Lorry Receipt & Order Management
 Create, print, and track LRs with full consignee, dealer, duct, and weight details. Supports multi-duct per LR, custom LR numbering, e-Way Bill integration, and three print formats (Consignee Copy, Driver Copy, HSN Copy). Dashboard shows today's LRs at a glance.
@@ -49,28 +60,28 @@ Double-entry General Ledger with transport-specific chart of accounts pre-loaded
 Automated CGST/SGST/IGST calculation, RCM handling for GTA payments, e-Invoice IRN generation, e-Way Bill API integration, GSTR-1 and GSTR-3B preparation, TDS deduction register, and a compliance calendar with deadline alerts.
 
 ### 👥 HR & Payroll
-Employee and driver master, monthly attendance, payroll cessing with PF/ESI/PT deductions, per-trip incentive calculation, salary slips, bank transfer files, and Form 16 generation. Includes a separate Labour management module for loading staff.
+Employee and driver master, monthly attendance, payroll processing with PF/ESI/PT deductions, per-trip incentive calculation, salary slips, bank transfer files, and Form 16 generation. Includes a separate Labour management module for loading staff.
 
 ### 🔧 Fleet & Maintenance
 Vehicle document expiry tracking (insurance, fitness, permit, PUC), maintenance job cards, breakdown management, tyre and battery tracking, and fuel fill-up register with KMPL monitoring and theft detection.
 
 ### 📊 Reports & Dashboard
-Executive dashboard with live KPIs, vehicle-wise P&L, route-wise fitability, customer-wise revenue, debtors/creditors ageing, trial balance, fit & loss statement, balance sheet, and fully exportable MIS reports.
+Executive dashboard with live KPIs, vehicle-wise P&L, route-wise profitability, customer-wise revenue, debtors/creditors ageing, trial balance, profit & loss statement, balance sheet, and fully exportable MIS reports.
 
 ### 🤖 AI & Automation
 OCR-powered vendor invoice data extraction, anomaly detection on trip expenses and fuel consumption, natural language report queries ("What was my best route last month?"), cash flow forecasting, and smart compliance reminders.
 
 ### 📱 Driver Mobile App
-React Native app for drivers to view assigned trips, record expenses with receipt photos, capture of of delivery with GPS-tagged photos and digital signatures, and track their advance balance and earnings.
+React Native app for drivers to view assigned trips, record expenses with receipt photos, capture proof of delivery with GPS-tagged photos and digital signatures, and track their advance balance and earnings.
 
 ### 🌐 Customer Portal
 Self-service portal for your freight customers to track shipments by LR number, download invoices, make online payments via Razorpay, and view their statement of account — without calling your office.
 
 ---
 
-## Platform Architecture
+## 🏗️ Platform Architecture
 
-FreightFlow  is built as a **multi-tenant, multi-company SaaS** with enterprise-grade isolation:
+FreightFlow is built as a **multi-tenant, multi-company SaaS** with enterprise-grade isolation:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -96,32 +107,30 @@ FreightFlow  is built as a **multi-tenant, multi-company SaaS** with enterprise-
 
 ---
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 | Layer | Technology | Why |
 |---|---|---|
-| Frontend | Next.js 14 (App Router) + TypeScript | SSR, file routing, API routes |
-| UI | shadcn/ui + Tailwind CSS | Beautiful, accessible, fast to build |
-| State | Zustand + TanStack Query | Lightweight, server-state friendly |
-| Mobile | React Native + Expo | Single codebase for iOS and Android |
-| API | Node.js + Fastify + Prisma | Type-safe, fast, Supabase-native |
-| Database | Supabase (PostgreSQL) | Auth, RLS, Storage, Realtime in one |
-| Auth | Supabase Auth (JWT + MFA) | Built-in OTP, TOTP, RBAC |
-| Queue | BullMQ + Upstash Redis | Payroll runs, report generation, emails |
-| Email | Resend | Transactional emails with React templates |
-| SMS | Twilio / MSG91 | OTP and freight notifications |
-| AI | OpenAI GPT-4o-mini + custom ML | OCR, anomaly detection, NLP queries |
-| Storage | Supabase Storage | POD photos, invoices, documents |
-| Maps | Google Maps Platform | Route display, geocoding, distance |
-| Payments | Razorpay | Customer invoice payment |
-| Monitoring | Sentry + PostHog | Error tracking, duct analytics |
-| CI/CD | GitHub Actions + Vercel + Railway | Automated test and deploy pipeline |
+| **Frontend Framework** | Next.js 16 (App Router) + React 19 | SSR, fast routing, advanced React features |
+| **Language** | TypeScript | Strong typing, safer code, better DX |
+| **UI Components** | shadcn/ui + Tailwind CSS 4 | Beautiful, accessible, customizable components |
+| **State & Data Fetching** | Zustand + TanStack Query | Lightweight client state, powerful server state |
+| **Forms & Validation** | React Hook Form + Zod | Performant, type-safe form validation |
+| **Tables & Charts** | TanStack Table + Recharts | Powerful data grids and interactive charting |
+| **Database ORM** | Prisma | Type-safe database client and migrations |
+| **Database** | Supabase (PostgreSQL) | Scalable relational DB, Auth, and Storage |
+| **Authentication** | Supabase Auth | Robust JWT auth, role-based access control |
+| **Caching/Queue** | Upstash Redis | Fast caching, potential for job queues |
+| **Email Services** | Nodemailer | Reliable transactional email delivery |
+| **Reporting & Exports** | jsPDF + XLSX | Generating PDF receipts and Excel data reports |
+| **Monorepo Tooling** | Turborepo | High-performance build system for monorepos |
+| **Documentation** | Swagger / OpenAPI | Auto-generated interactive API docs |
 
 ---
 
-## Licensing Model
+## 💼 Licensing Model & Module Control
 
-FreightFlow  is a **commercial SaaS duct** sold on annual or monthly subscription licenses.
+FreightFlow is a **commercial SaaS product** sold on annual or monthly subscription licenses.
 
 | Plan | Companies | Users | Vehicles | Monthly LRs |
 |---|---|---|---|---|
@@ -131,30 +140,11 @@ FreightFlow  is a **commercial SaaS duct** sold on annual or monthly subscriptio
 
 Licenses are cryptographically signed and validated on every API request. Expired accounts enter a 7-day read-only grace period before access is suspended.
 
----
-
-## Module Control
-
 The Super Admin can toggle any module per tenant. Disabled modules are completely hidden from the UI and return `403 Forbidden` from the API.
 
-| Module | Default |
-|---|---|
-| LR / Order Management | ✅ On |
-| Pallet Management | ✅ On |
-| Trip Management | ✅ On |
-| Core Accounting | ✅ On |
-| GST & e-Way Bill | ✅ On |
-| Fleet & Maintenance | ✅ On |
-| HR & Payroll | ✅ On |
-| Driver Mobile App | ✅ On |
-| AI & Analytics | ⬜ Off (Growth+) |
-| Customer Portal | ⬜ Off (Growth+) |
-| Multi-Company | ⬜ Off (Growth+) |
-| WhatsApp Notifications | ⬜ Off (Add-on) |
-
 ---
 
-## Getting Started
+## 💻 Getting Started
 
 ### Prerequisites
 - Node.js 20+
@@ -166,8 +156,8 @@ The Super Admin can toggle any module per tenant. Disabled modules are completel
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/freightflow-.git
-cd freightflow-
+git clone https://github.com/freightflow/freightflow.git
+cd freightflow
 
 # Install dependencies
 pnpm install
@@ -198,10 +188,10 @@ After seeding, use these to explore:
 
 ---
 
-## ject Structure
+## 📂 Project Structure
 
 ```
-freightflow-/
+freightflow/
 ├── apps/
 │   ├── web/                    # Next.js 14 frontend
 │   │   ├── app/(auth)/         # Login, register pages
@@ -233,76 +223,48 @@ freightflow-/
 
 ---
 
-## Implementation Phases
+## 🛡️ Security & Compliance
 
-The platform is being built in 14 phases by AI agents following the implementation blueprint:
+FreightFlow is built securely and tailored specifically for Indian regulatory requirements:
 
-| Phase | Status | Description |
-|---|---|---|
-| 0 — Foundation | 🔄 In gress | Supabase setup, CI/CD, scaffold |
-| 1 — Auth & Licensing | ⏳ Planned | Login, license engine, super admin |
-| 2 — Master Data | ⏳ Planned | Dealers, consignees, vehicles, labour |
-| 3 — LR & Pallet | ⏳ Planned | Core order management, print formats |
-| 4 — Trip Management | ⏳ Planned | Trip lifecycle, advances, POD |
-| 5 — Accounting | ⏳ Planned | GL, AR, AP, bank reconciliation |
-| 6 — GST & Compliance | ⏳ Planned | GST engine, e-Invoice, GSTR |
-| 7 — HR & Payroll | ⏳ Planned | Employees, attendance, payroll |
-| 8 — Fleet & Fuel | ⏳ Planned | Vehicle docs, maintenance, fuel |
-| 9 — Reports | ⏳ Planned | Dashboard, MIS, financial reports |
-| 10 — Mobile App | ⏳ Planned | React Native driver app |
-| 11 — AI Features | ⏳ Planned | OCR, anomaly detection, NLP |
-| 12 — Customer Portal | ⏳ Planned | Shipment tracking, online payment |
-| 13 — Testing | ⏳ Planned | Full test suite, security audit |
-| 14 — duction | ⏳ Planned | Deploy, monitoring, go-live |
-
----
-
-## Security
-
+### **Security**
 - **JWT Authentication** via Supabase Auth with 1-hour token expiry
 - **Row-Level Security** enforced at the database level — tenants are fully isolated
-- **MFA** (TOTP + SMS OTP) mandatory for financial apval actions
+- **MFA** (TOTP + SMS OTP) mandatory for financial approval actions
 - **AES-256 encryption** for sensitive fields (Aadhaar, PAN, bank account numbers)
 - **TLS 1.3** for all API communication
-- **License tamper detection** via HMAC-signed keys validated server-side on every request
-- **OWASP Top-10** compliance verified at each release
-- **Append-only audit log** for all financial mutations — immutable and tamper-of
-- Annual third-party penetration testing
+- **License tamper detection** via HMAC-signed keys validated server-side
+- **Append-only audit log** for all financial mutations
+
+### **Compliance**
+- ✅ **GST** (CGST, SGST, IGST, RCM) with SAC codes for transport services
+- ✅ **e-Invoice** (IRN generation via IRP portal API)
+- ✅ **e-Way Bill** (NIC API — generate, extend, cancel)
+- ✅ **TDS** under Sec 194C, 194I, 194J with Form 26Q and Form 16A
+- ✅ **PF & ESI** challan support and Professional Tax handling
+- ✅ **Motor Vehicle Act** — permit, fitness, road tax tracking
+- ✅ **MSME** 45-day payment compliance alerts
 
 ---
 
-## Compliance
+## 🤝 Contributing
 
-FreightFlow  is built specifically for Indian regulatory requirements:
+This is a commercial product. Contributions from the core team follow the implementation blueprint located at `/docs/FreightFlow_Implementation_Blueprint.docx`.
 
-- ✅ GST (CGST, SGST, IGST, RCM) with SAC codes for transport services
-- ✅ e-Invoice (IRN generation via IRP portal API)
-- ✅ e-Way Bill (NIC API — generate, extend, cancel)
-- ✅ TDS under Sec 194C, 194I, 194J with Form 26Q and Form 16A
-- ✅ PF (ECR challan), ESI (challan), fessional Tax
-- ✅ Motor Vehicle Act — permit, fitness, road tax tracking
-- ✅ MSME 45-day payment compliance alerts
+For bug reports or feature requests, please open an issue with the appropriate template.
 
 ---
 
-## Contributing
-
-This is a commercial duct. Contributions from the core team follow the implementation blueprint located at `/docs/FreightFlow_Implementation_Blueprint.docx`.
-
-For bug reports or feature requests, please open an issue with the appriate template.
-
----
-
-## Support
+## 📞 Support
 
 - 📧 Email: support@freightflow.com
 - 💬 WhatsApp: +91-XXXXXXXXXX
 - 📖 Documentation: https://docs.freightflow.com
-- 🐛 Issues: https://github.com/your-org/freightflow-/issues
+- 🐛 Issues: https://github.com/freightflow/issues
 
 ---
 
-## License
+## 📄 License
 
 FreightFlow is a **commercially licensed** SaaS product. All rights reserved.
 See [LICENSE](LICENSE) for the full commercial license terms.

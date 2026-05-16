@@ -82,3 +82,26 @@ export async function verifyPod(orderId: string, status: 'verified' | 'rejected'
   revalidatePath('/dashboard/trips/pod');
   return { success: true };
 }
+
+export async function bulkExportPods(orderIds: string[]) {
+  const session = await getSession();
+  if (!session || !session.user || !session.user.companyId) throw new Error('Unauthorized');
+
+  // In a real production environment, this would generate a ZIP of photos/signatures
+  // For now, we return the data structure ready for the frontend to process or a success message
+  const pods = await prisma.podRecord.findMany({
+    where: {
+      orderId: { in: orderIds },
+      companyId: session.user.companyId!
+    },
+    include: {
+      order: { select: { lrNo: true } }
+    }
+  });
+
+  return { 
+    success: true, 
+    count: pods.length,
+    message: `Ready to bundle ${pods.length} evidence records for export.`
+  };
+}

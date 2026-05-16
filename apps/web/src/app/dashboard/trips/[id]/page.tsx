@@ -7,11 +7,12 @@ import {
   Package, Receipt, Calculator, TrendingUp,
   Plus, CheckCircle2, AlertCircle, ArrowLeft,
   DollarSign, FileText, Download,
-  ChevronRight, ArrowRight, Loader2, XCircle,
+  ChevronRight, ArrowRight, Loader2, XCircle, Info, ChevronDown,
   ArrowUpRight, Ban, Fuel, Milestone, Wrench, IndianRupee, ShieldAlert, FileEdit
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import { FreightInvoiceModal } from '@/components/accounting/freight-invoice-modal';
 import { VALID_STATUS_TRANSITIONS } from '@freightflow/shared';
 import { generateTripPDF } from '@/lib/pdf/trip-pdf';
@@ -29,6 +30,7 @@ export default function TripDetailPage() {
   const [settleData, setSettleData] = useState({ demurrage: 0, extraCharges: 0, notes: '' });
   
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [expandedOrderIds, setExpandedOrderIds] = useState<string[]>([]);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [confirmStatus, setConfirmStatus] = useState<string | null>(null);
@@ -210,10 +212,12 @@ export default function TripDetailPage() {
                 </button>
               ))}
               {trip.status === 'delivered' && (
-                <button onClick={() => setShowSettleModal(true)} disabled={transitioning}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-black shadow-lg shadow-green-600/20 text-[10px] uppercase tracking-widest disabled:opacity-50">
-                  <CheckCircle2 className="h-4 w-4" /> Settle Trip
-                </button>
+                <Link href={`/dashboard/trips/${id}/settle`}>
+                  <button disabled={transitioning}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-black shadow-lg shadow-green-600/20 text-[10px] uppercase tracking-widest disabled:opacity-50">
+                    <CheckCircle2 className="h-4 w-4" /> Settle Trip
+                  </button>
+                </Link>
               )}
               <button onClick={() => setConfirmStatus('cancelled')}
                 className="flex items-center gap-2 px-4 py-2.5 border-2 border-red-100 text-red-600 rounded-xl hover:bg-red-50 transition-all font-black text-[10px] uppercase tracking-widest">
@@ -225,10 +229,11 @@ export default function TripDetailPage() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit overflow-x-auto max-w-full">
         {[
           { id: 'summary', label: 'Summary', icon: <TrendingUp className="h-4 w-4" /> },
-          { id: 'orders', label: 'Assigned LRs', icon: <Package className="h-4 w-4" /> },
+          { id: 'route', label: 'Route Intelligence', icon: <MapPin className="h-4 w-4" /> },
+          { id: 'orders', label: 'Assigned Cargo', icon: <Package className="h-4 w-4" /> },
           { id: 'expenses', label: 'Expenses', icon: <Receipt className="h-4 w-4" /> },
           { id: 'settlement', label: 'Settlement', icon: <Calculator className="h-4 w-4" /> },
           { id: 'pnl', label: 'Trip P&L', icon: <DollarSign className="h-4 w-4" /> },
@@ -236,7 +241,7 @@ export default function TripDetailPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
               activeTab === tab.id 
                 ? 'bg-white text-blue-600 shadow-sm' 
                 : 'text-slate-400 hover:text-slate-600'
@@ -334,12 +339,86 @@ export default function TripDetailPage() {
               </div>
             </div>
           )}
+          
+          {activeTab === 'route' && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+               <div className="bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm">
+                  <div className="flex items-center justify-between mb-10">
+                     <div>
+                        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Mission Map Visualization</h2>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Simulation based on terminal checkpoints</p>
+                     </div>
+                     <div className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4" /> GPS Signal Verified
+                     </div>
+                  </div>
+
+                  {/* Simulated Map SVG */}
+                  <div className="relative aspect-[16/9] bg-slate-50 rounded-[2rem] border border-slate-100 overflow-hidden flex items-center justify-center group">
+                     <svg viewBox="0 0 800 450" className="w-full h-full opacity-40 group-hover:opacity-100 transition-opacity duration-1000">
+                        {/* Grid Lines */}
+                        <defs>
+                          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" strokeWidth="0.5"/>
+                          </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                        
+                        {/* Route Path */}
+                        <path 
+                           d="M 150,300 C 250,300 350,150 450,150 S 650,300 750,300" 
+                           fill="none" 
+                           stroke="#2563eb" 
+                           strokeWidth="4" 
+                           strokeDasharray="8,8"
+                           className="animate-pulse"
+                        />
+                        
+                        {/* Markers */}
+                        <circle cx="150" cy="300" r="12" fill="#ef4444" className="animate-bounce" />
+                        <circle cx="450" cy="150" r="8" fill="#3b82f6" />
+                        <circle cx="750" cy="300" r="12" fill="#10b981" />
+                        
+                        <text x="130" y="340" className="text-[12px] font-black fill-slate-400 uppercase tracking-widest">{trip.fromLocation}</text>
+                        <text x="730" y="340" className="text-[12px] font-black fill-slate-400 uppercase tracking-widest">{trip.toLocation}</text>
+                     </svg>
+                     
+                     {/* Floating Stats */}
+                     <div className="absolute top-6 left-6 p-4 bg-white/80 backdrop-blur-md rounded-2xl border border-white shadow-xl space-y-3">
+                        <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Progress</p>
+                           <p className="text-sm font-black text-slate-900">100% Completed</p>
+                        </div>
+                        <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Dist.</p>
+                           <p className="text-sm font-black text-slate-900">482 KM</p>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                     <div className="p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Primary Route</p>
+                        <p className="text-xs font-bold text-slate-700">NH-48 via Mumbai-Bangalore Highway</p>
+                     </div>
+                     <div className="p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Checkpoints Passed</p>
+                        <p className="text-xs font-bold text-slate-700">12 Terminals Verified</p>
+                     </div>
+                     <div className="p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Signal Strength</p>
+                        <p className="text-xs font-bold text-green-600 font-black">EXCELLENT (4G-VoLTE)</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          )}
 
           {activeTab === 'orders' && (
             <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden animate-in fade-in duration-500">
               <div className="p-8 border-b border-slate-50 flex justify-between items-center">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                  <Package className="h-4 w-4 text-blue-600" /> Assigned Lorry Receipts ({trip.orders?.length})
+                  <Package className="h-4 w-4 text-blue-600" /> Assigned Cargo ({ (trip.orders?.length || 0) + (trip.pallets?.length || 0) })
                 </h3>
                 {selectedOrderIds.length > 0 && (
                   <button
@@ -376,32 +455,275 @@ export default function TripDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {trip.orders?.map((order: any) => (
-                      <tr key={order.id} className={cn("hover:bg-slate-50/50 transition-colors", selectedOrderIds.includes(order.id) && "bg-accent-50/30")}>
-                        <td className="px-8 py-5">
-                          <input 
-                            type="checkbox"
-                            checked={selectedOrderIds.includes(order.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedOrderIds(prev => [...prev, order.id]);
-                              } else {
-                                setSelectedOrderIds(prev => prev.filter(id => id !== order.id));
-                              }
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-600/20"
-                          />
-                        </td>
-                        <td className="px-8 py-5">
-                          <div className="font-black text-slate-900">LR #{order.lrNo}</div>
-                          <div className="text-[10px] text-slate-400 font-bold uppercase">{format(new Date(order.date), 'dd MMM yyyy')}</div>
-                        </td>
-                        <td className="px-8 py-5">
-                          <div className="text-xs font-bold text-slate-700">{order.dealer?.name}</div>
-                          <div className="text-[10px] text-slate-400 font-medium italic">to {order.consignee?.name}</div>
-                        </td>
-                        <td className="px-8 py-5 text-right font-black text-slate-900">{order.totalWeight} KG</td>
-                        <td className="px-8 py-5 text-right font-black text-blue-600">{formatCurrency(order.totalAmount)}</td>
-                      </tr>
+                      <React.Fragment key={order.id}>
+                        <tr 
+                          className={cn(
+                            "hover:bg-slate-50/50 transition-all group cursor-pointer",
+                            expandedOrderIds.includes(order.id) && "bg-blue-50/30",
+                            selectedOrderIds.includes(order.id) && "bg-blue-50"
+                          )}
+                          onClick={() => {
+                            setExpandedOrderIds(prev => 
+                              prev.includes(order.id) 
+                                ? prev.filter(id => id !== order.id) 
+                                : [...prev, order.id]
+                            );
+                          }}
+                        >
+                          <td className="px-8 py-5" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                              type="checkbox"
+                              checked={selectedOrderIds.includes(order.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedOrderIds(prev => [...prev, order.id]);
+                                else setSelectedOrderIds(prev => prev.filter(id => id !== order.id));
+                              }}
+                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600/20"
+                            />
+                          </td>
+                          <td className="px-8 py-5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm text-slate-400">
+                                  <FileText className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <div className="font-black text-slate-900 tracking-tighter uppercase text-xs">LR #{order.lrNo}</div>
+                                  <div className="text-[10px] text-slate-400 font-bold uppercase">{format(new Date(order.date), 'dd MMM yyyy')}</div>
+                                </div>
+                              </div>
+                              <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform duration-300", expandedOrderIds.includes(order.id) && "rotate-180 text-blue-500")} />
+                            </div>
+                          </td>
+                          <td className="px-8 py-5">
+                            <div className="text-xs font-bold text-slate-700 uppercase">{order.dealer?.name}</div>
+                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">to {order.consignee?.name}</div>
+                          </td>
+                          <td className="px-8 py-5 text-right font-black text-slate-900">{order.totalWeight} <span className="text-[9px] text-slate-400 uppercase">KG</span></td>
+                          <td className="px-8 py-5 text-right font-black text-blue-600">{formatCurrency(order.totalAmount)}</td>
+                          <td className="px-8 py-5 text-center">
+                            <span className={cn(
+                              "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest",
+                              order.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : 
+                              order.status === 'in_transit' ? 'bg-blue-100 text-blue-700' : 
+                              'bg-amber-100 text-amber-700'
+                            )}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="px-8 py-5 text-right" onClick={(e) => e.stopPropagation()}>
+                            {order.status !== 'delivered' && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/v1/orders/${order.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ ...order, status: 'delivered' }),
+                                    });
+                                    if (!res.ok) throw new Error('Failed to update cargo status');
+                                    toast.success('LR marked as Delivered');
+                                    fetchTrip();
+                                  } catch (err: any) {
+                                    toast.error(err.message);
+                                  }
+                                }}
+                                className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center"
+                                title="Mark Delivered"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                        {expandedOrderIds.includes(order.id) && (
+                          <tr className="bg-blue-50/10">
+                            <td colSpan={5} className="px-12 py-8 border-l-4 border-blue-500">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <div className="lg:col-span-2">
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <Package className="h-4 w-4 text-blue-600" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inventory Payload</h4>
+                                  </div>
+                                  <div className="bg-white rounded-3xl border border-blue-100 overflow-hidden shadow-sm">
+                                    <table className="w-full text-left">
+                                      <thead className="bg-slate-50/50">
+                                        <tr>
+                                          <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Description</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Boxes</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Weight</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Unit Price</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Amount</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {(order.details || []).map((detail: any, dIdx: number) => {
+                                          const unitPrice = (order.rate || 0) / 100;
+                                          const rowAmount = order.rateOn === 'weight' 
+                                            ? (detail.weight || 0) * unitPrice 
+                                            : (detail.boxCount || 0) * unitPrice;
+                                          return (
+                                            <tr key={dIdx}>
+                                              <td className="px-6 py-4 text-xs font-bold text-slate-700">{detail.productName}</td>
+                                              <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.boxCount}</td>
+                                              <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.weight}</td>
+                                              <td className="px-4 py-4 text-xs font-black text-slate-600 text-right">₹{unitPrice.toLocaleString()}</td>
+                                              <td className="px-4 py-4 text-xs font-black text-blue-600 text-right">₹{rowAmount.toLocaleString()}</td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm space-y-4">
+                                  <div className="flex items-center gap-2">
+                                    <Info className="h-4 w-4 text-blue-600" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Logistics Context</h4>
+                                  </div>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Origin Address</p>
+                                      <p className="text-[11px] font-bold text-slate-600 mt-1.5 leading-relaxed">{order.fromAddress || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Destination Address</p>
+                                      <p className="text-[11px] font-bold text-slate-600 mt-1.5 leading-relaxed">{order.toAddress || 'N/A'}</p>
+                                    </div>
+                                    <div className="pt-4 border-t border-slate-50 grid grid-cols-2 gap-4">
+                                      <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tonnage</p>
+                                        <p className="text-lg font-black text-slate-900 tracking-tighter mt-1">{Number(order.totalWeight || 0).toFixed(2)} <span className="text-[9px] text-slate-400 uppercase ml-1">KG</span></p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Units</p>
+                                        <p className="text-lg font-black text-slate-900 tracking-tighter mt-1">{order.totalBoxes || 0} <span className="text-[9px] text-slate-400 uppercase ml-1">Boxes</span></p>
+                                      </div>
+                                    </div>
+                                    <button 
+                                      onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+                                      className="w-full h-12 rounded-xl bg-blue-600 text-white font-black uppercase tracking-widest text-[9px] shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                                    >
+                                      <FileText className="h-3.5 w-3.5" /> Full Manifest Details
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                    {trip.pallets?.map((pallet: any) => (
+                      <React.Fragment key={pallet.id}>
+                        <tr 
+                          className={cn(
+                            "hover:bg-slate-50/50 transition-all group cursor-pointer",
+                            expandedOrderIds.includes(pallet.id) && "bg-blue-50/30"
+                          )}
+                          onClick={() => {
+                            setExpandedOrderIds(prev => 
+                              prev.includes(pallet.id) 
+                                ? prev.filter(id => id !== pallet.id) 
+                                : [...prev, pallet.id]
+                            );
+                          }}
+                        >
+                          <td className="px-8 py-5">
+                             {/* Pallets not selectable for invoice yet */}
+                          </td>
+                          <td className="px-8 py-5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm text-slate-400">
+                                  <Package className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <div className="font-black text-slate-900 tracking-tighter uppercase text-xs">PL #{pallet.lrNo || pallet.id.slice(0, 8).toUpperCase()}</div>
+                                  <div className="text-[10px] text-slate-400 font-bold uppercase">{format(new Date(pallet.date), 'dd MMM yyyy')}</div>
+                                </div>
+                              </div>
+                              <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform duration-300", expandedOrderIds.includes(pallet.id) && "rotate-180 text-blue-500")} />
+                            </div>
+                          </td>
+                          <td className="px-8 py-5">
+                            <div className="text-xs font-bold text-slate-700 uppercase">{pallet.companyName}</div>
+                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">to {pallet.consignee?.name || 'Multiple'}</div>
+                          </td>
+                          <td className="px-8 py-5 text-right font-black text-slate-900">{pallet.totalWeight} <span className="text-[9px] text-slate-400 uppercase">KG</span></td>
+                          <td className="px-8 py-5 text-right font-black text-blue-600">{formatCurrency(pallet.totalAmount)}</td>
+                          <td className="px-8 py-5 text-center">
+                            <span className={cn(
+                              "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest",
+                              pallet.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : 
+                              pallet.status === 'in_transit' ? 'bg-blue-100 text-blue-700' : 
+                              'bg-amber-100 text-amber-700'
+                            )}>
+                              {pallet.status}
+                            </span>
+                          </td>
+                          <td className="px-8 py-5 text-right" onClick={(e) => e.stopPropagation()}>
+                            {pallet.status !== 'delivered' && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/v1/pallets/${pallet.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ ...pallet, status: 'delivered' }),
+                                    });
+                                    if (!res.ok) throw new Error('Failed to update pallet status');
+                                    toast.success('Pallet marked as Delivered');
+                                    fetchTrip();
+                                  } catch (err: any) {
+                                    toast.error(err.message);
+                                  }
+                                }}
+                                className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center"
+                                title="Mark Delivered"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                        {expandedOrderIds.includes(pallet.id) && (
+                          <tr className="bg-blue-50/10">
+                            <td colSpan={5} className="px-12 py-8 border-l-4 border-blue-500">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <div className="lg:col-span-2">
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <Package className="h-4 w-4 text-blue-600" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pallet Inventory</h4>
+                                  </div>
+                                  <div className="bg-white rounded-3xl border border-blue-100 overflow-hidden shadow-sm">
+                                    <table className="w-full text-left">
+                                      <thead className="bg-slate-50/50">
+                                        <tr>
+                                          <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Consignee</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Qty</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Rate</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Amount</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {(pallet.palletDetails || []).map((detail: any, dIdx: number) => (
+                                          <tr key={dIdx}>
+                                            <td className="px-6 py-4 text-xs font-bold text-slate-700">{detail.consigneeName}</td>
+                                            <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.qty}</td>
+                                            <td className="px-4 py-4 text-xs font-black text-slate-600 text-right">₹{(detail.rate / 100).toLocaleString()}</td>
+                                            <td className="px-4 py-4 text-xs font-black text-blue-600 text-right">₹{( (detail.qty * detail.rate) / 100).toLocaleString()}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

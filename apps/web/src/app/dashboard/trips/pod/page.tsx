@@ -12,7 +12,7 @@ export default async function PodDashboardPage() {
     where: {
       companyId: session.user.companyId,
       status: {
-        in: ['dispatched', 'delivered', 'completed', 'pod_rejected']
+        in: ['loaded', 'in_transit', 'delivered', 'completed', 'pod_rejected']
       }
     },
     include: {

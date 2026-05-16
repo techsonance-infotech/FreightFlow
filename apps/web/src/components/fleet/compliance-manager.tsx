@@ -59,10 +59,10 @@ export function ComplianceManager({ stats, vehicles }: { stats: ComplianceStats,
 
     if (filter === 'all') return true;
     
-    return v.documents.some(doc => {
+    return v.documents?.some(doc => {
       const status = getDocStatus(doc.expiryDate);
       return status === filter;
-    });
+    }) || false;
   });
 
   return (
@@ -133,7 +133,7 @@ export function ComplianceManager({ stats, vehicles }: { stats: ComplianceStats,
             </div>
 
             <div className="space-y-4">
-              {vehicle.documents.map((doc) => {
+              {vehicle.documents?.map((doc) => {
                 const status = getDocStatus(doc.expiryDate);
                 return (
                   <div key={doc.id} className="flex items-center justify-between p-5 rounded-[1.5rem] bg-slate-50/50 border border-transparent hover:border-slate-100 hover:bg-white transition-all">
@@ -163,7 +163,7 @@ export function ComplianceManager({ stats, vehicles }: { stats: ComplianceStats,
                   </div>
                 );
               })}
-              {vehicle.documents.length === 0 && (
+              {(!vehicle.documents || vehicle.documents.length === 0) && (
                 <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-3xl">
                    <AlertTriangle className="h-8 w-8 text-slate-200 mx-auto mb-3" />
                    <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">No Documents Found</p>

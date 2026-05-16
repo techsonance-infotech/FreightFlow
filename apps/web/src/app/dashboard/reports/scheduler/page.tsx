@@ -11,8 +11,6 @@ export default async function ReportSchedulerPage() {
   const reports = await getScheduledReports();
 
   return (
-    <div className="bg-white min-h-screen">
-      <ReportSchedulerManager reports={reports} />
-    </div>
+    <ReportSchedulerManager reports={reports} />
   );
 }

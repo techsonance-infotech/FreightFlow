@@ -48,7 +48,7 @@ export function OrganizationSettingsForm({ initialData }: OrganizationSettingsFo
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-8 lg:p-12 space-y-12">
+    <form onSubmit={handleSubmit} className="p-4 md:p-8 lg:p-12 space-y-12">
       {/* Header with quick stats */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
         <div className="flex items-center gap-6">
@@ -255,7 +255,7 @@ function FormSection({ title, description, icon, children }: any) {
           <p className="text-sm font-medium text-slate-400 mt-1">{description}</p>
         </div>
       </div>
-      <div className="p-10 rounded-[2.5rem] border border-slate-100 bg-white shadow-sm">
+      <div className="p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] border border-slate-100 bg-white shadow-sm">
         {children}
       </div>
     </section>

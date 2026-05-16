@@ -74,7 +74,7 @@ export async function POST(request: Request) {
         companyId: user.companyId!,
         driverId: validatedData.driverId,
         tripId: validatedData.tripId || null,
-        amount: validatedData.amount,
+        amount: Math.round(Number(validatedData.amount || 0) * 100),
         mode: validatedData.mode,
         date: new Date(validatedData.date),
         purpose: validatedData.purpose,

@@ -12,7 +12,12 @@ import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
 import { Building2, Flag, FileText, Pencil, Trash2, ArrowDownToLine, MapPin, CreditCard, Clock, Plus, Paperclip } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
+import { useSearchParams } from 'next/navigation';
+
 export default function ConsigneesPage() {
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get('id');
+  
   const [data, setData] = useState<Consignee[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -31,6 +36,15 @@ export default function ConsigneesPage() {
       if (response.ok) { 
         setData(result.data); 
         setTotal(result.meta.total); 
+        
+        // Handle deep linking from search
+        if (highlightId && result.data.length > 0) {
+          const target = result.data.find((c: any) => c.id === highlightId);
+          if (target) {
+            setEditingItem(target);
+            setIsModalOpen(true);
+          }
+        }
       }
     } catch { 
       toast.error('Failed to fetch data'); 
@@ -42,7 +56,7 @@ export default function ConsigneesPage() {
   useEffect(() => {
     const timer = setTimeout(fetchData, 300);
     return () => clearTimeout(timer);
-  }, [page, limit, search]);
+  }, [page, limit, search, highlightId]);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

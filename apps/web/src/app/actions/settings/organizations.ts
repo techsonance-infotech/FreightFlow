@@ -93,3 +93,61 @@ export async function toggleCompanyStatus(companyId: string, isActive: boolean) 
 
   revalidatePath('/dashboard/settings/organizations');
 }
+
+export async function updateCompany(companyId: string, formData: FormData) {
+  const session = await getSession();
+  if (!session || !session.user) throw new Error('Unauthorized');
+
+  const name = formData.get('name') as string;
+  const address = formData.get('address') as string;
+  const city = formData.get('city') as string;
+  const state = formData.get('state') as string;
+  const pincode = formData.get('pincode') as string;
+  const phone = formData.get('phone') as string;
+  const email = formData.get('email') as string;
+  const gstin = formData.get('gstin') as string;
+  const pan = formData.get('pan') as string;
+
+  if (!name) throw new Error('Company name is required');
+
+  await prisma.company.update({
+    where: { 
+      id: companyId,
+      tenantId: session.user.tenantId 
+    },
+    data: {
+      name,
+      address,
+      city,
+      state,
+      pincode,
+      phone,
+      email,
+      gstin,
+      pan,
+    },
+  });
+
+  // Audit Log
+  const changes: Record<string, string> = {};
+  formData.forEach((value, key) => {
+    if (typeof value === 'string') {
+      changes[key] = value;
+    }
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      tenantId: session.user.tenantId,
+      companyId: companyId,
+      userId: session.user.id,
+      action: 'update_company',
+      entityType: 'Company',
+      entityId: companyId,
+      changes: changes as any,
+    },
+  });
+
+  revalidatePath('/dashboard/settings/organizations');
+  return { success: true };
+}

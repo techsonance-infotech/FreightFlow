@@ -5,18 +5,30 @@ import Link from 'next/link';
 import { 
   Plus, Search, Filter, FileText, Edit, Trash2, 
   Download, Calendar, MapPin, Truck, ChevronDown, ChevronUp, Package, Hash, Info,
-  ClipboardList, CheckCircle2, IndianRupee
+  ClipboardList, CheckCircle2, IndianRupee, ChevronLeft, ChevronRight, Receipt, ArrowRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { InvoiceModal } from '@/components/accounting/invoice-modal';
 
 import { LorryReceiptTemplate } from '@/components/orders/LorryReceiptTemplate';
 import { LRInvoiceDownloader } from '@/components/orders/LRInvoiceDownloader';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function OrderListPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -36,10 +48,16 @@ export default function OrderListPage() {
     deliveredCount: 0,
     monthlyRevenue: 0
   });
+  const searchParams = useSearchParams();
+  const isInvoiceFlow = searchParams.get('action') === 'generate_invoice';
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/v1/orders/stats');
+      let url = `/api/v1/orders/stats?search=${search}`;
+      if (filters.startDate) url += `&startDate=${filters.startDate}`;
+      if (filters.endDate) url += `&endDate=${filters.endDate}`;
+      const res = await fetch(url);
       const data = await res.json();
       setStats(data);
     } catch (error) {
@@ -50,7 +68,7 @@ export default function OrderListPage() {
   const fetchOrders = async (page = 1) => {
     try {
       setLoading(true);
-      let url = `/api/v1/orders?page=${page}&limit=10&search=${search}`;
+      let url = `/api/v1/orders?page=${page}&limit=${meta.limit}&search=${search}`;
       if (filters.startDate) url += `&startDate=${filters.startDate}`;
       if (filters.endDate) url += `&endDate=${filters.endDate}`;
       if (filters.status) url += `&status=${filters.status}`;
@@ -66,12 +84,118 @@ export default function OrderListPage() {
     }
   };
 
+  const handleExport = async (exportFormat: 'csv' | 'excel' | 'pdf') => {
+    try {
+      // Prepare data for export
+      const exportData = orders.map(order => ({
+        'LR No': `#${order.lrNo}`,
+        'Date': format(new Date(order.date), 'dd MMM yyyy'),
+        'Dealer': order.dealer?.name || 'Retail Client',
+        'Consignee': order.consignee?.name || 'N/A',
+        'Vehicle': order.vehicle?.plateNumber || order.vehicle?.regNo || 'Self Service',
+        'From': order.fromLocation || 'N/A',
+        'To': order.toLocation || 'N/A',
+        'Weight': `${Number(order.totalWeight || 0).toFixed(2)} KG`,
+        'Boxes': order.totalBoxes || 0,
+        'Amount': (order.totalAmount || 0) / 100,
+        'Status': order.status.toUpperCase().replace('_', ' ')
+      }));
+
+      if (exportFormat === 'csv' || exportFormat === 'excel') {
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "LorryReceipts");
+        XLSX.writeFile(wb, `Lorry_Receipts_Export_${new Date().getTime()}.${exportFormat === 'excel' ? 'xlsx' : 'csv'}`);
+        toast.success(`Data exported as ${exportFormat.toUpperCase()}`);
+      } else if (exportFormat === 'pdf') {
+        const doc = new jsPDF('l', 'mm', 'a4');
+        
+        // Fetch company details for header
+        let businessDetails = { name: "FREIGHTFLOW LOGISTICS", address: "", gstin: "" };
+        try {
+          const res = await fetch('/api/v1/companies/branding');
+          const companyRes = await res.json();
+          if (companyRes.data) businessDetails = companyRes.data;
+        } catch (e) { console.error("Could not fetch business details", e); }
+
+        // Header
+        doc.setFontSize(20);
+        doc.setTextColor(30, 41, 59); // Slate 800
+        doc.text(businessDetails.name.toUpperCase(), 14, 20);
+        
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139); // Slate 400
+        if (businessDetails.address) {
+          doc.text(businessDetails.address, 14, 26, { maxWidth: 100 });
+        }
+        if (businessDetails.gstin) {
+          doc.text(`GSTIN: ${businessDetails.gstin}`, 14, businessDetails.address ? 32 : 26);
+        }
+
+        doc.setFontSize(14);
+        doc.setTextColor(37, 99, 235); // Blue 600
+        doc.text("LORRY RECEIPT MANIFEST REPORT", 280, 20, { align: 'right' });
+        
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy HH:mm')}`, 280, 26, { align: 'right' });
+        
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 38, 280, 38);
+
+        autoTable(doc, {
+          startY: 45,
+          head: [['LR No', 'Date', 'Dealer', 'Consignee', 'Vehicle', 'From → To', 'Weight', 'Qty', 'Amount', 'Status']],
+          body: exportData.map(d => [
+            d['LR No'], 
+            d['Date'], 
+            d['Dealer'], 
+            d['Consignee'], 
+            d['Vehicle'], 
+            `${d['From']} → ${d['To']}`, 
+            d['Weight'], 
+            d['Boxes'], 
+            `Rs. ${d['Amount'].toLocaleString()}`,
+            d['Status']
+          ]),
+          headStyles: { 
+            fillColor: [37, 99, 235], 
+            textColor: 255, 
+            fontStyle: 'bold',
+            halign: 'left',
+            fontSize: 8
+          },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 22 },
+            6: { halign: 'right' },
+            7: { halign: 'center' },
+            8: { halign: 'right' },
+            9: { halign: 'center' }
+          },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          margin: { top: 45 }
+        });
+        
+        doc.save(`Lorry_Receipt_Report_${new Date().getTime()}.pdf`);
+        toast.success("Manifest exported as PDF");
+      }
+    } catch (error) {
+      console.error("Export failed", error);
+      toast.error("Export failed. Please try again.");
+    }
+  };
+
   useEffect(() => {
     fetchStats();
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(fetchOrders, 300);
+    const timer = setTimeout(() => {
+      fetchOrders();
+      fetchStats();
+    }, 300);
     return () => clearTimeout(timer);
   }, [search, filters]);
 
@@ -100,9 +224,18 @@ export default function OrderListPage() {
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest ml-12">Fleet Operations & Order Management</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase">
-            <Download className="h-4 w-4 mr-2" /> Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase h-14 px-6">
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 p-2 shadow-2xl">
+              <DropdownMenuItem onClick={() => handleExport('csv')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer">Export CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('excel')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer">Export Excel</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('pdf')} className="rounded-xl font-bold text-[10px] uppercase tracking-widest p-3 cursor-pointer text-rose-500">Export PDF Report</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link href="/dashboard/orders/new">
             <Button className="rounded-2xl h-14 px-8 bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/10 font-black uppercase tracking-widest text-[11px] flex items-center gap-3">
               <Plus className="h-4 w-4" /> Create New LR
@@ -111,13 +244,12 @@ export default function OrderListPage() {
         </div>
       </div>
 
-      {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Today LRs', value: stats.todayCount.toString(), icon: <ClipboardList className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
-          { label: 'In Transit', value: stats.inTransitCount.toString(), icon: <Truck className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
-          { label: 'Delivered', value: stats.deliveredCount.toString(), icon: <CheckCircle2 className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
-          { label: 'Monthly Rev', value: `₹${(stats.monthlyRevenue / 1000).toFixed(1)}k`, icon: <IndianRupee className="h-6 w-6 text-purple-600" />, color: 'bg-purple-50' },
+          { label: 'Today LRs', value: (stats?.todayCount || 0).toString(), icon: <ClipboardList className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
+          { label: 'In Transit', value: (stats?.inTransitCount || 0).toString(), icon: <Truck className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
+          { label: 'Delivered', value: (stats?.deliveredCount || 0).toString(), icon: <CheckCircle2 className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
+          { label: 'Monthly Rev', value: `₹${((stats?.monthlyRevenue || 0) / 1000).toFixed(1)}k`, icon: <IndianRupee className="h-6 w-6 text-purple-600" />, color: 'bg-purple-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md group">
             <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", stat.color)}>{stat.icon}</div>
@@ -208,11 +340,10 @@ export default function OrderListPage() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 z-20 bg-white shadow-sm">
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-6 py-5 w-16">
                   <input 
@@ -284,6 +415,7 @@ export default function OrderListPage() {
                               {format(new Date(order.date), 'dd MMM yyyy')}
                             </div>
                           </div>
+                          <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform duration-300 ml-auto", expandedOrderId === order.id && "rotate-180 text-blue-500")} />
                         </div>
                       </td>
                       <td className="px-6 py-6">
@@ -344,24 +476,34 @@ export default function OrderListPage() {
                               </div>
                               <div className="bg-white rounded-3xl border border-blue-100 overflow-hidden shadow-sm">
                                 <table className="w-full text-left">
-                                  <thead className="bg-slate-50/50">
-                                    <tr>
-                                      <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Description</th>
-                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Boxes</th>
-                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Weight</th>
-                                      <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">DCPI #</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-50">
-                                    {(order.details || []).map((detail: any, dIdx: number) => (
-                                      <tr key={dIdx}>
-                                        <td className="px-6 py-4 text-xs font-bold text-slate-700">{detail.productName}</td>
-                                        <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.boxCount} <span className="text-[9px] text-slate-400">Pcs</span></td>
-                                        <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.weight} <span className="text-[9px] text-slate-400">KG</span></td>
-                                        <td className="px-6 py-4 text-xs font-bold text-slate-400 text-right">{detail.dcpiNo || '-'}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
+                                      <thead className="bg-slate-50/50">
+                                        <tr>
+                                          <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Description</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Boxes</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Weight</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Unit Price</th>
+                                          <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Amount</th>
+                                          <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">DCPI #</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {(order.details || []).map((detail: any, dIdx: number) => {
+                                          const unitPrice = (order.rate || 0) / 100;
+                                          const rowAmount = order.rateOn === 'weight' 
+                                            ? (detail.weight || 0) * unitPrice 
+                                            : (detail.boxCount || 0) * unitPrice;
+                                          return (
+                                            <tr key={dIdx}>
+                                              <td className="px-6 py-4 text-xs font-bold text-slate-700">{detail.productName}</td>
+                                              <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.boxCount} <span className="text-[9px] text-slate-400">Pcs</span></td>
+                                              <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.weight} <span className="text-[9px] text-slate-400">KG</span></td>
+                                              <td className="px-4 py-4 text-xs font-black text-slate-600 text-right">₹{unitPrice.toLocaleString()}</td>
+                                              <td className="px-4 py-4 text-xs font-black text-blue-600 text-right">₹{rowAmount.toLocaleString()}</td>
+                                              <td className="px-6 py-4 text-xs font-bold text-slate-400 text-right">{detail.dcpiNo || '-'}</td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
                                 </table>
                               </div>
                             </div>
@@ -375,28 +517,35 @@ export default function OrderListPage() {
                                 </div>
                                 <div className="space-y-3">
                                   <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Origin Address</p>
-                                    <p className="text-xs font-medium text-slate-600 mt-1">{order.fromAddress || 'N/A'}</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Origin Address</p>
+                                    <p className="text-[11px] font-bold text-slate-600 mt-1.5 leading-relaxed">{order.fromAddress || 'N/A'}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Destination Address</p>
-                                    <p className="text-xs font-medium text-slate-600 mt-1">{order.toAddress || 'N/A'}</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Destination Address</p>
+                                    <p className="text-[11px] font-bold text-slate-600 mt-1.5 leading-relaxed">{order.toAddress || 'N/A'}</p>
                                   </div>
-                                  <div className="pt-3 border-t border-slate-50 flex justify-between items-end">
+                                  <div className="pt-5 border-t border-slate-50 flex justify-between items-end">
                                     <div>
-                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Tonnage</p>
-                                      <p className="text-xl font-black text-slate-900 tracking-tighter">{(order.details || []).reduce((acc: number, d: any) => acc + (d.weight || 0), 0).toFixed(2)} KG</p>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tonnage</p>
+                                      <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
+                                        {Number(order.totalWeight || 0).toFixed(2)} <span className="text-[10px] text-slate-400 uppercase ml-1">KG</span>
+                                      </p>
                                     </div>
                                     <div className="text-right">
-                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Units</p>
-                                      <p className="text-xl font-black text-slate-900 tracking-tighter">{(order.details || []).reduce((acc: number, d: any) => acc + (d.boxCount || 0), 0)} Boxes</p>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Units</p>
+                                      <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
+                                        {order.totalBoxes || 0} <span className="text-[10px] text-slate-400 uppercase ml-1">Boxes</span>
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                               
-                              <Button className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-200">
-                                <FileText className="h-4 w-4 mr-2" /> Full Manifest Details
+                              <Button 
+                                onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+                                className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"
+                              >
+                                <FileText className="h-4 w-4" /> Full Manifest Details
                               </Button>
                             </div>
                           </div>
@@ -409,7 +558,140 @@ export default function OrderListPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        <div className="px-8 py-6 bg-slate-50/30 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Showing <span className="text-slate-900">{((meta.page - 1) * meta.limit) + 1}</span> to <span className="text-slate-900">{Math.min(meta.page * meta.limit, meta.total)}</span> of <span className="text-slate-900">{meta.total}</span> LRs
+            </p>
+            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+            <select 
+              className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-blue-600 outline-none cursor-pointer"
+              value={meta.limit}
+              onChange={(e) => {
+                const newLimit = parseInt(e.target.value);
+                setMeta(m => ({ ...m, limit: newLimit, page: 1 }));
+                fetchOrders(1);
+              }}
+            >
+              <option value="10">10 Per Page</option>
+              <option value="25">25 Per Page</option>
+              <option value="50">50 Per Page</option>
+              <option value="100">100 Per Page</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              disabled={meta.page === 1}
+              onClick={() => fetchOrders(meta.page - 1)}
+              className="h-10 w-10 p-0 rounded-xl hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, meta.totalPages) }).map((_, i) => {
+                // Logic to show pages around current page
+                let pageNum = meta.page;
+                if (meta.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (meta.page <= 3) {
+                  pageNum = i + 1;
+                } else if (meta.page >= meta.totalPages - 2) {
+                  pageNum = meta.totalPages - 4 + i;
+                } else {
+                  pageNum = meta.page - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={i}
+                    variant={meta.page === pageNum ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => fetchOrders(pageNum)}
+                    className={cn(
+                      "h-10 min-w-[40px] rounded-xl font-black text-[10px] uppercase transition-all",
+                      meta.page === pageNum ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "hover:bg-white hover:shadow-sm text-slate-400 hover:text-slate-900"
+                    )}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button 
+              variant="ghost" 
+              size="sm"
+              disabled={meta.page === meta.totalPages}
+              onClick={() => fetchOrders(meta.page + 1)}
+              className="h-10 w-10 p-0 rounded-xl hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
+
+      {/* Sticky Action Bar for Invoice Generation */}
+      {isInvoiceFlow && selectedOrders.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4 animate-in slide-in-from-bottom-10 duration-500">
+          <div className="bg-slate-900 text-white rounded-[2.5rem] shadow-2xl p-6 flex items-center justify-between border border-white/10 backdrop-blur-xl">
+            <div className="flex items-center gap-6">
+              <div className="h-12 w-12 rounded-2xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Receipt className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Selected for Billing</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-black">{selectedOrders.length}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Lorry Receipts</span>
+                </div>
+              </div>
+              <div className="h-10 w-px bg-white/10 hidden md:block" />
+              <div className="hidden md:block">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Est. Total Base</p>
+                <p className="text-xl font-black text-emerald-400">
+                  ₹{(orders.filter(o => selectedOrders.includes(o.id)).reduce((acc, curr) => acc + (curr.totalAmount || 0), 0) / 100).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                className="text-slate-400 hover:text-white font-black uppercase tracking-widest text-[10px]"
+                onClick={() => setSelectedOrders([])}
+              >
+                Clear
+              </Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 text-white h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-600/20 gap-3"
+                onClick={() => setIsInvoiceModalOpen(true)}
+              >
+                Process Invoice
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <InvoiceModal 
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        onSuccess={() => {
+          fetchOrders();
+          setSelectedOrders([]);
+          router.push('/dashboard/accounting/invoices');
+        }}
+        initialSelectedIds={selectedOrders}
+        sourceType="LR"
+      />
 
       {printOrder && (
         <LorryReceiptTemplate order={printOrder} onClose={() => setPrintOrder(null)} />
