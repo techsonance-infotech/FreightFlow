@@ -240,7 +240,26 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-10 animate-in fade-in duration-700">
       
-      {/* Header */}
+      {/* Premium Sticky Header */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100 -mx-8 px-8 py-4 mb-8 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
+            <Zap className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none uppercase">{initialData?.id ? 'Edit Pallet Return' : 'Register Pallet Return'}</h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Reverse Logistics Hub</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 h-12 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 flex items-center gap-2">
+            {isSubmitting ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-4 w-4" />}
+            {isSubmitting ? 'Syncing...' : 'Publish Return'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Hero Banner (Non-sticky) */}
       <div className="bg-blue-600 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-blue-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
           <Package className="h-48 w-48" />
@@ -585,7 +604,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
 
         </div>
 
-        {/* Full Width Return Payload */}
+        {/* Move Inventory Payload INSIDE the grid */}
         <div className="lg:col-span-12 space-y-8">
           <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-200/50">
             <div className="p-10 bg-white border-b border-slate-50 flex items-center justify-between">

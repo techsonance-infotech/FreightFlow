@@ -12,7 +12,7 @@ export const TripSchema = z.object({
   departureAt: z.string().optional().nullable(),
   expectedDeliveryAt: z.string().optional().nullable(),
   actualDeliveryAt: z.string().optional().nullable(),
-  advanceAmount: z.number().int().nonnegative().default(0), // in paise
+  advanceAmount: z.number().nonnegative().default(0), // in paise (converted on backend)
   status: TripStatusSchema.default('created'),
   orderIds: z.array(z.string().uuid()).optional().default([]),
   palletIds: z.array(z.string().uuid()).optional().default([]),
@@ -31,7 +31,7 @@ export const TripExpenseSchema = z.object({
   id: z.string().uuid().optional(),
   tripId: z.string().uuid(),
   type: TripExpenseTypeSchema,
-  amount: z.number().int().positive('Amount must be positive'), // in paise
+  amount: z.number().positive('Amount must be positive'), // in paise (converted on backend)
   description: z.string().optional(),
   receiptUrl: z.string().url().optional().nullable(),
   location: z.string().optional(),
@@ -46,11 +46,11 @@ export const DriverAdvanceSchema = z.object({
   id: z.string().uuid().optional(),
   driverId: z.string().uuid(),
   tripId: z.string().uuid().optional().nullable(),
-  amount: z.number().int().positive('Amount must be positive'), // in paise
+  amount: z.number().positive('Amount must be positive'), // in paise (converted on backend)
   mode: z.enum(['cash', 'bank']),
   date: z.string(),
   purpose: z.string().optional(),
-  recoveryAmount: z.number().int().nonnegative().default(0),
+  recoveryAmount: z.number().nonnegative().default(0),
   status: z.enum(['pending', 'partially_recovered', 'recovered']).default('pending'),
 });
 
@@ -58,9 +58,9 @@ export type DriverAdvance = z.infer<typeof DriverAdvanceSchema>;
 
 export const TripSettlementSchema = z.object({
   tripId: z.string().uuid(),
-  advanceAmount: z.number().int().nonnegative(),
-  totalExpenses: z.number().int().nonnegative(),
-  balance: z.number().int(),
+  advanceAmount: z.number().nonnegative(),
+  totalExpenses: z.number().nonnegative(),
+  balance: z.number(),
   settlementType: z.enum(['refund', 'additional_payment']),
   notes: z.string().optional(),
 });
@@ -82,7 +82,7 @@ export const TripUpdateSchema = z.object({
 export type TripUpdate = z.infer<typeof TripUpdateSchema>;
 
 export const AdvanceRecoverySchema = z.object({
-  recoveryAmount: z.number().int().positive('Recovery amount must be positive'),
+  recoveryAmount: z.number().positive('Recovery amount must be positive'),
   mode: z.enum(['cash', 'bank']),
   notes: z.string().optional(),
 });

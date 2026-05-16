@@ -24,12 +24,12 @@ export function SOAModal({ isOpen, onClose, dealers, defaultPartyId }: SOAModalP
   const [report, setReport] = useState<any>(null);
   const [formData, setFormData] = useState({
     partyId: defaultPartyId || '',
-    from: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
-    to: format(new Date(), 'yyyy-MM-dd')
+    startDate: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
+    endDate: format(new Date(), 'yyyy-MM-dd')
   });
 
   const handleGenerate = async () => {
-    if (!formData.partyId || !formData.from || !formData.to) {
+    if (!formData.partyId || !formData.startDate || !formData.endDate) {
       toast.error('Please fill all fields');
       return;
     }
@@ -62,9 +62,9 @@ export function SOAModal({ isOpen, onClose, dealers, defaultPartyId }: SOAModalP
       const doc = await generateSOAPDF(
         dealer, 
         report.transactions || [], 
-        { from: new Date(formData.from), to: new Date(formData.to) }
+        { from: new Date(formData.startDate), to: new Date(formData.endDate) }
       );
-      doc.save(`SOA_${dealer.name}_${formData.from}_to_${formData.to}.pdf`);
+      doc.save(`SOA_${dealer.name}_${formData.startDate}_to_${formData.endDate}.pdf`);
       toast.success('Statement Downloaded Successfully');
     } catch (err) {
       console.error(err);
@@ -117,8 +117,8 @@ export function SOAModal({ isOpen, onClose, dealers, defaultPartyId }: SOAModalP
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
                     <input 
                       type="date"
-                      value={formData.from}
-                      onChange={(e) => setFormData(prev => ({ ...prev, from: e.target.value }))}
+                      value={formData.startDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
                       className="w-full bg-transparent border-none text-xs font-bold outline-none text-neutral-700 h-10 pl-9 pr-2"
                     />
                   </div>
@@ -127,8 +127,8 @@ export function SOAModal({ isOpen, onClose, dealers, defaultPartyId }: SOAModalP
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
                     <input 
                       type="date"
-                      value={formData.to}
-                      onChange={(e) => setFormData(prev => ({ ...prev, to: e.target.value }))}
+                      value={formData.endDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                       className="w-full bg-transparent border-none text-xs font-bold outline-none text-neutral-700 h-10 pl-9 pr-2"
                     />
                   </div>

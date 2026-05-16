@@ -21,6 +21,7 @@ export async function GET(request: Request) {
     const type = searchParams.get('type');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const unassigned = searchParams.get('unassigned') === 'true';
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -29,7 +30,10 @@ export async function GET(request: Request) {
       deletedAt: null,
     };
 
-    if (status) {
+    if (unassigned) {
+      where.tripId = null;
+      where.status = { in: ['created', 'active'] };
+    } else if (status) {
       where.status = status;
     }
 
@@ -44,18 +48,15 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      const searchConditions: any[] = [
+      where.OR = [
+        { lrNo: { contains: search, mode: 'insensitive' } },
         { companyName: { contains: search, mode: 'insensitive' } },
         { partyCode: { contains: search, mode: 'insensitive' } },
         { dealer: { name: { contains: search, mode: 'insensitive' } } },
+        { vehicle: { regNo: { contains: search, mode: 'insensitive' } } },
         { palletDetails: { some: { consigneeName: { contains: search, mode: 'insensitive' } } } },
         { consigneeDetails: { some: { consigneeName: { contains: search, mode: 'insensitive' } } } },
       ];
-      // Support numeric LR No search
-      if (!isNaN(parseInt(search))) {
-        searchConditions.push({ lrNo: parseInt(search) });
-      }
-      where.OR = searchConditions;
     }
 
     const [pallets, total] = await Promise.all([

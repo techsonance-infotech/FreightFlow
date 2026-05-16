@@ -119,6 +119,7 @@ export async function PATCH(
           sgstAmount: totals.sgstAmount,
           igstAmount: totals.igstAmount,
           totalAmount: totals.totalAmount,
+          status: validatedData.status,
           details: {
             create: validatedData.details.map((d: any, idx: number) => ({
               companyId: user.companyId!,

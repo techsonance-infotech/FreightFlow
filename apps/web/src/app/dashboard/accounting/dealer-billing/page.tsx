@@ -52,6 +52,7 @@ interface OrderRecord {
   id: string;
   date: Date;
   lrNo: string;
+  loadType: string;
   totalWeight: any;
   totalBoxes: number;
   details: any[];
@@ -286,6 +287,7 @@ export default function DealerBillingPage() {
     currentY += 45;
 
     if (reportType === 'detailed') {
+      const tableData = records.map((record, index) => {
         const prodName = record.details[0]?.productName || (record.loadType === 'PALLET' ? 'Pallet' : 'Yarn');
         const packType = record.loadType === 'PALLET' ? 'Pallet' : (record.details[0]?.packingType || 'Box');
         const itemKey = `${prodName}-${packType}`;

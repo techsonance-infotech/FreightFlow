@@ -31,11 +31,11 @@ export default async function ExecutiveDashboard() {
     redirect('/auth/login');
   }
 
-  const kpis = await ReportEngine.getDashboardKPIs();
+  const kpis = await ReportEngine.getDashboardKPIs(session.user.tenantId, session.user.companyId);
   const trend = kpis.revenueTrend;
 
   return (
-    <div className="p-10 space-y-10 bg-[#f8fafc] min-h-screen">
+    <div className="p-10 space-y-10 bg-[#f8fafc]">
       {/* Dynamic Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>

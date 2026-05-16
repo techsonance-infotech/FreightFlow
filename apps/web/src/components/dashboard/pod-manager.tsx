@@ -12,8 +12,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { verifyPod, submitPod, bulkExportPods } from '@/app/actions/logistics/pod';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface Order {
   id: string;
@@ -37,13 +38,15 @@ export function PodManager({ orders }: PodManagerProps) {
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
+  const [podData, setPodData] = useState({ receiverName: '', deliveredAt: new Date().toISOString().slice(0, 16), photoUrl: '' });
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Filter logic
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.lrNo.toLowerCase().includes(search.toLowerCase()) || 
                          order.consignee?.name?.toLowerCase().includes(search.toLowerCase());
     
-    if (filter === 'pending') return matchesSearch && (order.status === 'dispatched' || order.status === 'delivered') && !order.podRecord;
+    if (filter === 'pending') return matchesSearch && ['loaded', 'in_transit', 'delivered'].includes(order.status) && !order.podRecord;
     if (filter === 'delivered') return matchesSearch && order.status === 'delivered' && order.podRecord;
     if (filter === 'completed') return matchesSearch && order.status === 'completed';
     return matchesSearch;
@@ -55,8 +58,46 @@ export function PodManager({ orders }: PodManagerProps) {
       await verifyPod(orderId, status);
       toast.success(`POD ${status} successfully`);
       setSelectedOrder(null);
+      // Refresh the page to show updated status
+      window.location.reload();
     } catch (err: any) {
       toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPodData(prev => ({ ...prev, photoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePodSubmit = async () => {
+    if (!selectedOrder) return;
+    if (!podData.receiverName) {
+      toast.error('Receiver name is required');
+      return;
+    }
+    setLoading(true);
+    try {
+      await submitPod({
+        orderId: selectedOrder.id,
+        receiverName: podData.receiverName,
+        deliveredAt: new Date(podData.deliveredAt),
+        photoUrl: podData.photoUrl || undefined
+      });
+      toast.success('POD submitted successfully');
+      setSelectedOrder(null);
+      setPodData({ receiverName: '', deliveredAt: new Date().toISOString().slice(0, 16), photoUrl: '' });
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit POD');
     } finally {
       setLoading(false);
     }
@@ -152,7 +193,7 @@ export function PodManager({ orders }: PodManagerProps) {
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard 
             label="Pending Upload" 
-            value={orders.filter(o => o.status === 'dispatched' && !o.podRecord).length} 
+            value={orders.filter(o => ['loaded', 'in_transit'].includes(o.status) && !o.podRecord).length} 
             color="amber" 
             icon={<Clock />} 
           />
@@ -234,9 +275,11 @@ export function PodManager({ orders }: PodManagerProps) {
               </div>
               <div className={cn(
                 "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
-                order.status === 'delivered' ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
+                order.status === 'delivered' ? "bg-blue-50 text-blue-600" : 
+                order.status === 'in_transit' ? "bg-amber-50 text-amber-600" :
+                order.status === 'loaded' ? "bg-slate-100 text-slate-600" : "bg-slate-50 text-slate-400"
               )}>
-                {order.status}
+                {order.status.replace('_', ' ')}
               </div>
             </div>
 
@@ -322,15 +365,27 @@ export function PodManager({ orders }: PodManagerProps) {
                 <div className="space-y-10">
                   <div className="space-y-4">
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Delivery Evidence</h3>
-                    <div className="aspect-[4/3] rounded-[2rem] bg-slate-100 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center overflow-hidden group">
-                      {selectedOrder.podRecord?.photoUrl ? (
-                         <img src={selectedOrder.podRecord.photoUrl} className="w-full h-full object-cover" alt="POD Evidence" />
+                    <div 
+                      className="aspect-[4/3] rounded-[2rem] bg-slate-100 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center overflow-hidden group cursor-pointer relative"
+                      onClick={() => !selectedOrder.podRecord && fileInputRef.current?.click()}
+                    >
+                      {selectedOrder.podRecord?.photoUrl || podData.photoUrl ? (
+                         <img src={selectedOrder.podRecord?.photoUrl || podData.photoUrl} className="w-full h-full object-cover" alt="POD Evidence" />
                       ) : (
                         <div className="p-10">
                           <Camera className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                           <p className="text-sm font-bold text-slate-400">Cargo Handover Photo</p>
-                          <p className="text-[10px] font-medium text-slate-300 mt-2">Required for verification</p>
+                          <p className="text-[10px] font-medium text-slate-300 mt-2">Click to select file</p>
                         </div>
+                      )}
+                      {!selectedOrder.podRecord && (
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          className="hidden" 
+                          accept="image/*" 
+                          onChange={handleFileChange} 
+                        />
                       )}
                     </div>
                   </div>
@@ -367,6 +422,20 @@ export function PodManager({ orders }: PodManagerProps) {
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Destination</p>
                             <p className="text-sm font-bold truncate">{selectedOrder.toLocation}</p>
                          </div>
+                         {selectedOrder.podRecord && (
+                           <div className="pt-4 mt-4 border-t border-white/5 grid grid-cols-2 gap-4">
+                              <div>
+                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Receiver</p>
+                                 <p className="text-xs font-bold text-blue-400">{selectedOrder.podRecord.receiverName}</p>
+                              </div>
+                              <div>
+                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Handover Time</p>
+                                 <p className="text-xs font-bold text-blue-400">
+                                   {new Date(selectedOrder.podRecord.deliveredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                 </p>
+                              </div>
+                           </div>
+                         )}
                       </div>
                     </div>
                   </div>
@@ -394,11 +463,45 @@ export function PodManager({ orders }: PodManagerProps) {
                         </Button>
                       </div>
                     </div>
+                  ) : filter === 'pending' ? (
+                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                       <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Manual Upload Details</h3>
+                       <div className="grid grid-cols-1 gap-6">
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Receiver Name</label>
+                             <Input 
+                                placeholder="Enter who received the goods" 
+                                value={podData.receiverName}
+                                onChange={(e) => setPodData(p => ({ ...p, receiverName: e.target.value }))}
+                                className="h-14 rounded-2xl bg-slate-50 border-none font-bold shadow-inner"
+                             />
+                          </div>
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Delivery Time</label>
+                             <Input 
+                                type="datetime-local"
+                                value={podData.deliveredAt}
+                                onChange={(e) => setPodData(p => ({ ...p, deliveredAt: e.target.value }))}
+                                className="h-14 rounded-2xl bg-slate-50 border-none font-bold shadow-inner"
+                             />
+                          </div>
+                       </div>
+                       <Button 
+                          onClick={handlePodSubmit}
+                          disabled={loading || !podData.receiverName}
+                          className="w-full h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-xs gap-3 shadow-xl shadow-blue-100"
+                        >
+                          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+                          Complete Manual Dispatch
+                        </Button>
+                    </div>
                   ) : (
-                    <div className="p-8 rounded-[2rem] border-2 border-dashed border-slate-100 text-center space-y-4">
-                       <Upload className="h-10 w-10 text-slate-200 mx-auto" />
-                       <p className="text-xs font-bold text-slate-400">The mobile dispatch app is used for driver-side POD uploads. You can manually upload a scanned copy here.</p>
-                       <Button variant="outline" className="rounded-xl font-black text-[10px] uppercase tracking-widest">Choose Scanned PDF/JPG</Button>
+                    <div className="p-8 rounded-[2rem] border border-slate-100 text-center space-y-4 bg-slate-50/30">
+                       <ShieldCheck className="h-10 w-10 text-emerald-500 mx-auto" />
+                       <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Verification Complete</p>
+                       <p className="text-xs font-bold text-slate-400 leading-relaxed px-4">
+                         This delivery evidence has been audited and approved by the compliance team. The record is now finalized for billing.
+                       </p>
                     </div>
                   )}
                 </div>

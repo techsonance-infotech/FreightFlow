@@ -34,6 +34,13 @@ export async function GET(
             details: true,
           },
         },
+        pallets: {
+          include: {
+            dealer: { select: { id: true, name: true } },
+            consignee: { select: { name: true } },
+            palletDetails: true,
+          },
+        },
         expenses: {
           orderBy: { recordedAt: 'desc' },
         },

@@ -324,6 +324,20 @@ export default function AccountingHubPage() {
             color="#0277BD" 
           />
           <ModuleCard 
+            title="Cheque Inventory" 
+            description="Track physical cheque books and leaf status" 
+            icon={<CreditCard className="h-6 w-6" />} 
+            path="/dashboard/accounting/bank/cheques" 
+            color="#0D47A1" 
+          />
+          <ModuleCard 
+            title="Audit Trail" 
+            description="Immutable history of all financial activities" 
+            icon={<ShieldCheck className="h-6 w-6" />} 
+            path="/dashboard/accounting/audit-logs" 
+            color="#374151" 
+          />
+          <ModuleCard 
             title="Tax & Compliance" 
             description="GST preparation, e-Invoicing and statutory returns" 
             icon={<Scale className="h-6 w-6" />} 

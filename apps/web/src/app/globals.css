@@ -77,28 +77,7 @@
   --radius-xl: 20px;
 }
 
-:root.dark {
-  --color-background: #0F172A; /* Slate 900 */
-  --color-foreground: #F8FAFC; /* Slate 50 */
-  --color-card: #1E293B; /* Slate 800 */
-  --color-card-foreground: #F1F5F9; /* Slate 100 */
-  --color-border: #334155; /* Slate 700 */
-  --color-input: #334155;
-  --color-popover: #1E293B;
-  --color-popover-foreground: #F8FAFC;
-  --color-muted: #94A3B8; /* Slate 400 */
-  --color-neutral-50: #020617; /* Slate 950 */
-  --color-neutral-100: #1E293B;
-  --color-neutral-200: #334155;
-  
-  /* Sidebar in dark mode */
-  --color-sidebar: #020617;
-  --color-sidebar-hover: #0F172A;
-  --color-sidebar-active: #1E293B;
 
-  /* Accent overrides for dark mode */
-  --color-accent-600: #3B82F6; /* Brighter blue for dark mode visibility */
-}
 
 /* ============================================
    Base Styles

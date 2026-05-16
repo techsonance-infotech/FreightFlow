@@ -24,8 +24,8 @@ export async function POST(
     const result = await TripEngine.recoverAdvance({
       advanceId: id,
       tenantId: user.tenantId,
-      companyId: user.companyId,
-      recoveryAmount: validatedData.recoveryAmount,
+      companyId: user.companyId!,
+      recoveryAmount: Math.round(Number(validatedData.recoveryAmount || 0) * 100),
       mode: validatedData.mode,
       notes: validatedData.notes,
     });

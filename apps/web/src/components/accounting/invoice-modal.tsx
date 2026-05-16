@@ -12,9 +12,11 @@ interface InvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialSelectedIds?: string[];
+  sourceType?: 'LR' | 'PALLET';
 }
 
-export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) {
+export function InvoiceModal({ isOpen, onClose, onSuccess, initialSelectedIds, sourceType }: InvoiceModalProps) {
   // 1. ALL STATE AT THE VERY TOP
   const [loading, setLoading] = useState(false);
   const [attachmentLoading, setAttachmentLoading] = useState(false);
@@ -125,12 +127,43 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
     }
   };
 
+  const fetchSelectedDetails = async () => {
+    try {
+      setLoading(true);
+      const endpoint = sourceType === 'LR' ? '/api/v1/orders' : '/api/v1/pallets';
+      const items = await Promise.all(
+        initialSelectedIds!.map(id => fetch(`${endpoint}/${id}`).then(res => res.json()))
+      );
+
+      const validItems = items.filter(i => i.id);
+      if (validItems.length > 0) {
+        const first = validItems[0];
+        const totalBase = validItems.reduce((acc, curr) => acc + (curr.totalAmount || curr.subtotal || 0), 0) / 100;
+        
+        setFormData(prev => ({
+          ...prev,
+          customerId: first.dealerId || first.customerId || '',
+          amount: totalBase,
+          narration: `Generated from ${sourceType}s: ${validItems.map(i => i.lrNo).join(', ')}`
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch selected details', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 4. ALL EFFECTS AT THE END OF DEFINITIONS
   useEffect(() => {
     if (isOpen) {
       fetchCustomers();
       fetchAccounts();
       fetchNextInvoiceNumber();
+
+      if (initialSelectedIds && initialSelectedIds.length > 0) {
+        fetchSelectedDetails();
+      }
     }
   }, [isOpen]);
 
@@ -154,73 +187,42 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
       const coaRes = await fetch('/api/v1/accounting/coa');
       const coaData = await coaRes.json();
       
-      let cgstAccountId = '';
-      let sgstAccountId = '';
-      let igstAccountId = '';
-
-      const findTaxAccounts = (nodes: any[]) => {
-        nodes.forEach(node => {
-          const name = node.name.toLowerCase();
-          if (name.includes('cgst') && (name.includes('output') || name.includes('payable'))) cgstAccountId = node.id;
-          if (name.includes('sgst') && (name.includes('output') || name.includes('payable'))) sgstAccountId = node.id;
-          if (name.includes('igst') && (name.includes('output') || name.includes('payable'))) igstAccountId = node.id;
-          if (node.children) findTaxAccounts(node.children);
-        });
-      };
-      findTaxAccounts(coaData.data);
-
       const basePaise = Math.round(formData.amount * 100);
       const gstPaise = Math.round(gstAmount * 100);
       const totalPaise = Math.round(totalAmount * 100);
-      const customer = customers.find(v => v.id === formData.customerId);
+      const source = sourceType || 'LR';
 
-      const voucherData = {
+      const cgstPaise = formData.gstType === 'intra' ? Math.round(gstPaise / 2) : 0;
+      const sgstPaise = formData.gstType === 'intra' ? gstPaise - cgstPaise : 0;
+      const igstPaise = formData.gstType === 'inter' ? gstPaise : 0;
+
+      const invoicePayload = {
+        invoiceNo: formData.invoiceNo,
         date: formData.date,
-        voucherType: 'sales',
-        narration: `${customer?.name} - Invoice ${formData.invoiceNo}. ${formData.narration}`,
-        voucherNo: formData.invoiceNo,
-        metadata: {
-          partyId: formData.customerId,
-          partyType: 'customer',
-          attachments: attachments,
-          baseAmount: basePaise,
-          gstAmount: gstPaise
-        },
-        lines: [
-          {
-            accountId: formData.arAccountId,
-            debit: totalPaise,
-            credit: 0,
-            description: `Total Receivable from ${customer?.name}`
-          },
-          {
-            accountId: formData.revenueAccountId,
-            debit: 0,
-            credit: basePaise,
-            description: `Revenue for Invoice ${formData.invoiceNo}`
-          }
-        ]
+        customerId: formData.customerId,
+        subtotal: basePaise,
+        cgst: cgstPaise,
+        sgst: sgstPaise,
+        igst: igstPaise,
+        totalAmount: totalPaise,
+        notes: formData.narration,
+        orderIds: source === 'LR' ? (initialSelectedIds || []) : [],
+        arAccountId: formData.arAccountId,
+        revenueAccountId: formData.revenueAccountId
       };
 
-      if (gstPaise > 0) {
-        if (formData.gstType === 'intra') {
-          const halfGst = Math.round(gstPaise / 2);
-          if (cgstAccountId) voucherData.lines.push({ accountId: cgstAccountId, debit: 0, credit: halfGst, description: 'Output CGST' });
-          if (sgstAccountId) voucherData.lines.push({ accountId: sgstAccountId, debit: 0, credit: halfGst, description: 'Output SGST' });
-        } else {
-          if (igstAccountId) voucherData.lines.push({ accountId: igstAccountId, debit: 0, credit: gstPaise, description: 'Output IGST' });
-        }
-      }
-
-      const response = await fetch('/api/v1/accounting/vouchers', {
+      const response = await fetch('/api/v1/accounting/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(voucherData)
+        body: JSON.stringify(invoicePayload)
       });
 
-      if (!response.ok) throw new Error('Failed to post invoice voucher');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to record freight invoice');
+      }
 
-      toast.success('Customer invoice recorded successfully');
+      toast.success('Freight invoice generated and recorded successfully');
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -389,16 +391,16 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
               <button
                 type="button"
                 onClick={() => setFormData({...formData, gstType: 'intra'})}
-                className={cn("flex-1 text-[10px] font-black uppercase transition-all rounded-lg", formData.gstType === 'intra' ? "bg-white text-accent-600 shadow-sm" : "text-neutral-400")}
+                className={cn("flex-1 text-[9px] font-black uppercase transition-all rounded-lg", formData.gstType === 'intra' ? "bg-white text-accent-600 shadow-sm" : "text-neutral-400")}
               >
-                Intra
+                Intra (CGST+SGST)
               </button>
               <button
                 type="button"
                 onClick={() => setFormData({...formData, gstType: 'inter'})}
-                className={cn("flex-1 text-[10px] font-black uppercase transition-all rounded-lg", formData.gstType === 'inter' ? "bg-white text-accent-600 shadow-sm" : "text-neutral-400")}
+                className={cn("flex-1 text-[9px] font-black uppercase transition-all rounded-lg", formData.gstType === 'inter' ? "bg-white text-accent-600 shadow-sm" : "text-neutral-400")}
               >
-                Inter
+                Inter (IGST)
               </button>
             </div>
           </div>
@@ -406,13 +408,32 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
 
         <div className="p-6 bg-accent-50/30 rounded-2xl border border-accent-100 space-y-3">
           <div className="flex justify-between text-xs font-bold text-neutral-500 uppercase tracking-widest">
-            <span>Subtotal</span>
+            <span>Subtotal (Taxable Value)</span>
             <span>₹{(formData.amount || 0).toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-xs font-bold text-accent-600 uppercase tracking-widest">
-            <span>GST ({formData.gstRate}%)</span>
-            <span>+ ₹{gstAmount.toLocaleString()}</span>
-          </div>
+          
+          {formData.gstRate > 0 && (
+            <>
+              {formData.gstType === 'intra' ? (
+                <>
+                  <div className="flex justify-between text-[11px] font-bold text-accent-600 uppercase tracking-widest pl-4">
+                    <span>CGST ({formData.gstRate / 2}%)</span>
+                    <span>+ ₹{(gstAmount / 2).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] font-bold text-accent-600 uppercase tracking-widest pl-4">
+                    <span>SGST ({formData.gstRate / 2}%)</span>
+                    <span>+ ₹{(gstAmount / 2).toLocaleString()}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between text-[11px] font-bold text-accent-600 uppercase tracking-widest pl-4">
+                  <span>IGST ({formData.gstRate}%)</span>
+                  <span>+ ₹{gstAmount.toLocaleString()}</span>
+                </div>
+              )}
+            </>
+          )}
+
           <div className="pt-3 border-t border-accent-100 flex justify-between items-center">
             <span className="text-sm font-black text-neutral-900 uppercase tracking-tighter">Total Invoice Amount</span>
             <span className="text-xl font-black text-neutral-900 underline decoration-accent-600 decoration-2 underline-offset-4">₹{totalAmount.toLocaleString()}</span>

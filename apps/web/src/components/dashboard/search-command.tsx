@@ -97,7 +97,7 @@ export function SearchCommand() {
       {/* Decorative Search Bar Trigger */}
       <button 
         onClick={() => setIsOpen(true)}
-        className="hidden lg:flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2 text-slate-400 transition-all hover:border-blue-300 hover:bg-white shadow-sm flex-1 max-w-xs xl:max-w-md"
+        className="hidden lg:flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2 text-slate-400 transition-all hover:border-blue-300 hover:bg-white shadow-sm flex-1 max-w-[180px] xl:max-w-[280px]"
       >
         <Search className="h-4 w-4 shrink-0" />
         <span className="text-left text-sm font-medium text-slate-400 truncate">Search LR, Vehicle, Stakeholder...</span>

@@ -37,10 +37,16 @@ export async function GET(request: Request) {
         { toLocation: { contains: search, mode: 'insensitive' } },
         { dealer: { name: { contains: search, mode: 'insensitive' } } },
         { consignee: { name: { contains: search, mode: 'insensitive' } } },
+        { vehicle: { regNo: { contains: search, mode: 'insensitive' } } },
       ].filter(Boolean);
     }
 
-    if (status) {
+    const unassigned = searchParams.get('unassigned') === 'true';
+
+    if (unassigned) {
+      where.trips = { none: {} };
+      where.status = 'created';
+    } else if (status) {
       where.status = status;
     }
 
@@ -59,6 +65,7 @@ export async function GET(request: Request) {
           dealer: { select: { name: true } },
           consignee: { select: { name: true } },
           vehicle: { select: { regNo: true } },
+          details: true,
         },
         orderBy: { lrNo: 'desc' },
       }),

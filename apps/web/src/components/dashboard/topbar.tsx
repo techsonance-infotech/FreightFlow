@@ -15,7 +15,6 @@ import dynamic from 'next/dynamic';
 const SearchCommand = dynamic(() => import('./search-command').then(mod => mod.SearchCommand), { ssr: false });
 
 import { NotificationCenter } from './notification-center';
-import { useTheme } from '@/components/theme-provider';
 
 interface TopbarProps {
   title?: string;
@@ -30,7 +29,6 @@ interface TopbarProps {
 
 export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -40,7 +38,7 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
   };
 
   return (
-    <header className="no-print sticky top-0 z-30 flex h-20 items-center justify-between border-b border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 px-8 backdrop-blur-xl">
+    <header className="no-print sticky top-0 z-30 flex h-20 items-center justify-between border-b border-neutral-200 bg-white/70 pl-8 pr-2 backdrop-blur-xl">
       <div className="flex items-center gap-4 min-w-0">
         <div className="hidden xl:flex flex-col shrink-0 min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400 leading-none mb-1.5">
@@ -50,18 +48,18 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
             <span className="text-[10px] font-bold text-accent-600 uppercase tracking-[0.1em] leading-none mb-1">
               {getGreeting()}
             </span>
-            <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 truncate max-w-[180px] leading-none" title={user.name}>
+            <h2 className="text-sm font-bold text-neutral-900 truncate max-w-[180px] leading-none" title={user.name}>
               {user.name}
             </h2>
           </div>
         </div>
         
-        <div className="h-10 w-[1px] bg-neutral-100 dark:bg-neutral-800 hidden xl:block mx-1 shrink-0" />
+        <div className="h-10 w-[1px] bg-neutral-100 hidden xl:block mx-1 shrink-0" />
         
         <CompanySwitcher currentCompanyId={user.companyId} />
       </div>
 
-      <div className="flex items-center gap-3 lg:gap-6 flex-1 justify-end ml-4">
+      <div className="flex items-center gap-2 lg:gap-4 flex-1 justify-end ml-4">
         {/* Global Search Component */}
         <SearchCommand />
 
@@ -70,11 +68,9 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
           <NotificationCenter />
           
           <button 
-            onClick={toggleTheme}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-accent-600 shadow-sm active:scale-95"
-            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all hover:bg-neutral-50 hover:text-accent-600 shadow-sm active:scale-95"
           >
-            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            <Moon className="h-5 w-5" />
           </button>
         </div>
 

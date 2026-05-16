@@ -97,9 +97,25 @@ export async function POST(request: Request) {
     const { tenantId, companyId, id: userId } = session.user;
 
     const body = await request.json();
-    const validatedData = JournalEntrySchema.parse(body);
+    const { chequeLeafId, ...otherData } = body;
+    const validatedData = JournalEntrySchema.parse(otherData);
 
-    const voucher = await AccountingEngine.createJournalEntry(tenantId, companyId, validatedData, userId);
+    const voucher = await prisma.$transaction(async (tx) => {
+      const v = await AccountingEngine.createJournalEntry(tenantId, companyId, validatedData, userId, tx);
+      
+      if (chequeLeafId) {
+        await tx.chequeLeaf.update({
+          where: { id: chequeLeafId },
+          data: {
+            status: 'issued',
+            voucherId: v.id,
+            issuedAt: new Date(),
+            amount: v.totalAmount
+          }
+        });
+      }
+      return v;
+    });
     
     return NextResponse.json({ data: voucher }, { status: 201 });
   } catch (error: any) {

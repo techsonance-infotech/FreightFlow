@@ -136,7 +136,7 @@ export async function POST(request: Request) {
           toLocation: validatedData.toLocation,
           departureAt: validatedData.departureAt ? new Date(validatedData.departureAt) : null,
           expectedDeliveryAt: validatedData.expectedDeliveryAt ? new Date(validatedData.expectedDeliveryAt) : null,
-          advanceAmount: validatedData.advanceAmount,
+          advanceAmount: Math.round(Number(validatedData.advanceAmount || 0) * 100),
           status: 'created',
           createdBy: user.id,
           orders: {
@@ -149,18 +149,45 @@ export async function POST(request: Request) {
       });
 
       // Record initial driver advance if provided
-      if (validatedData.advanceAmount > 0) {
+      const advanceAmountPaise = Math.round(Number(validatedData.advanceAmount || 0) * 100);
+      if (advanceAmountPaise > 0) {
         await tx.driverAdvance.create({
           data: {
             tenantId: user.tenantId,
             companyId: user.companyId!,
             driverId: validatedData.driverId,
             tripId: newTrip.id,
-            amount: validatedData.advanceAmount,
+            amount: advanceAmountPaise,
             mode: 'cash', // Default to cash for initial trip advance
             date: new Date(),
             purpose: `Initial advance for trip ${newTrip.id}`,
           },
+        });
+      }
+
+      // Sync cargo statuses to 'loaded'
+      if (validatedData.orderIds.length > 0) {
+        await tx.order.updateMany({
+          where: { id: { in: validatedData.orderIds } },
+          data: { status: 'loaded' }
+        });
+        // Log status for LRs
+        for (const orderId of validatedData.orderIds) {
+          await tx.lrStatusLog.create({
+            data: {
+              companyId: user.companyId!,
+              orderId,
+              status: 'loaded',
+              notes: `Trip ${newTrip.id} dispatched`,
+              updatedBy: user.id,
+            }
+          });
+        }
+      }
+      if (validatedData.palletIds.length > 0) {
+        await tx.orderPallet.updateMany({
+          where: { id: { in: validatedData.palletIds } },
+          data: { status: 'loaded' }
         });
       }
 

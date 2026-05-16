@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { InvoiceModal } from '@/components/accounting/invoice-modal';
 import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -29,6 +31,11 @@ export default function PalletReturnListPage() {
   const [search, setSearch] = useState('');
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [expandedPalletId, setExpandedPalletId] = useState<string | null>(null);
+  const [selectedPallets, setSelectedPallets] = useState<string[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isInvoiceFlow = searchParams.get('action') === 'generate_invoice';
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -241,6 +248,17 @@ export default function PalletReturnListPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <input 
+                    type="checkbox" 
+                    className="rounded-lg border-slate-200" 
+                    checked={selectedPallets.length === pallets.length && pallets.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedPallets(pallets.map(p => p.id));
+                      else setSelectedPallets([]);
+                    }}
+                  />
+                </th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Return ID</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Logistics Context</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-blue-600">Return Payload</th>
@@ -270,10 +288,22 @@ export default function PalletReturnListPage() {
                     <tr 
                       className={cn(
                         "hover:bg-slate-50/50 transition-all group cursor-pointer",
-                        expandedPalletId === pallet.id && "bg-blue-50/30"
+                        expandedPalletId === pallet.id && "bg-blue-50/30",
+                        selectedPallets.includes(pallet.id) && "bg-blue-50"
                       )}
                       onClick={() => setExpandedPalletId(expandedPalletId === pallet.id ? null : pallet.id)}
                     >
+                      <td className="px-6 py-6" onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="checkbox" 
+                          className="rounded-lg border-slate-200" 
+                          checked={selectedPallets.includes(pallet.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedPallets(s => [...s, pallet.id]);
+                            else setSelectedPallets(s => s.filter(id => id !== pallet.id));
+                          }}
+                        />
+                      </td>
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 text-blue-400">
@@ -444,6 +474,61 @@ export default function PalletReturnListPage() {
           </Button>
         </div>
       </div>
+      {/* Sticky Action Bar for Invoice Generation */}
+      {isInvoiceFlow && selectedPallets.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4 animate-in slide-in-from-bottom-10 duration-500">
+          <div className="bg-slate-900 text-white rounded-[2.5rem] shadow-2xl p-6 flex items-center justify-between border border-white/10 backdrop-blur-xl">
+            <div className="flex items-center gap-6">
+              <div className="h-12 w-12 rounded-2xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Box className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Selected for Billing</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-black">{selectedPallets.length}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Return Records</span>
+                </div>
+              </div>
+              <div className="h-10 w-px bg-white/10 hidden md:block" />
+              <div className="hidden md:block">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Est. Total Base</p>
+                <p className="text-xl font-black text-emerald-400">
+                  ₹{(pallets.filter(p => selectedPallets.includes(p.id)).reduce((acc, curr) => acc + (curr.subtotal || 0), 0) / 100).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                className="text-slate-400 hover:text-white font-black uppercase tracking-widest text-[10px]"
+                onClick={() => setSelectedPallets([])}
+              >
+                Clear
+              </Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 text-white h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-600/20 gap-3"
+                onClick={() => setIsInvoiceModalOpen(true)}
+              >
+                Process Invoice
+                <Truck className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <InvoiceModal 
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        onSuccess={() => {
+          fetchPallets();
+          setSelectedPallets([]);
+          router.push('/dashboard/accounting/invoices');
+        }}
+        initialSelectedIds={selectedPallets}
+        sourceType="PALLET"
+      />
     </div>
   );
 }

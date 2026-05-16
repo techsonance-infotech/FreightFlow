@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, User, Truck, Calendar, X, Loader2 } from 'lucide-react';
+import { Wallet, User, Truck, Calendar, X, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { DriverAdvanceSchema, type DriverAdvance } from '@freightflow/shared';
 
 interface AdvanceModalProps {
   isOpen: boolean;
@@ -14,9 +17,19 @@ export function AdvanceModal({ isOpen, onClose, onSuccess }: AdvanceModalProps) 
   const [loading, setLoading] = useState(false);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [trips, setTrips] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    driverId: '', tripId: '', amount: '', mode: 'cash' as 'cash' | 'bank',
-    purpose: '', date: new Date().toISOString().split('T')[0],
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<any>({
+    resolver: zodResolver(DriverAdvanceSchema),
+    defaultValues: {
+      mode: 'cash',
+      date: new Date().toISOString().split('T')[0],
+      amount: 0,
+    },
   });
 
   useEffect(() => {
@@ -30,28 +43,22 @@ export function AdvanceModal({ isOpen, onClose, onSuccess }: AdvanceModalProps) 
     });
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.driverId || !form.amount) return;
+  const onSubmit = async (data: any) => {
     try {
       setLoading(true);
       const res = await fetch('/api/v1/trips/advances', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          driverId: form.driverId,
-          tripId: form.tripId || undefined,
-          amount: Math.round(parseFloat(form.amount) * 100),
-          mode: form.mode,
-          purpose: form.purpose,
-          date: form.date,
-        }),
+        body: JSON.stringify(data),
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+      if (!res.ok) { 
+        const err = await res.json(); 
+        throw new Error(err.error || 'Failed to record advance'); 
+      }
       toast.success('Advance recorded successfully');
       onSuccess();
       onClose();
-      setForm({ driverId: '', tripId: '', amount: '', mode: 'cash', purpose: '', date: new Date().toISOString().split('T')[0] });
+      reset();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -74,12 +81,12 @@ export function AdvanceModal({ isOpen, onClose, onSuccess }: AdvanceModalProps) 
           </h3>
           <p className="text-xs text-slate-400 font-bold mb-8">Disburse advance payment to a driver</p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Driver *</label>
               <div className="relative">
                 <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                <select value={form.driverId} onChange={(e) => setForm({ ...form, driverId: e.target.value })} required
+                <select {...register('driverId')} required
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-600/10">
                   <option value="">Select Driver</option>
                   {drivers.map((d: any) => (
@@ -87,13 +94,14 @@ export function AdvanceModal({ isOpen, onClose, onSuccess }: AdvanceModalProps) 
                   ))}
                 </select>
               </div>
+              {errors.driverId && <p className="text-[10px] text-red-500 font-bold uppercase">{(errors.driverId as any).message}</p>}
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Linked Trip (Optional)</label>
               <div className="relative">
                 <Truck className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                <select value={form.tripId} onChange={(e) => setForm({ ...form, tripId: e.target.value })}
+                <select {...register('tripId')}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-600/10">
                   <option value="">No Trip (Standalone)</option>
                   {trips.map((t: any) => (
@@ -106,19 +114,17 @@ export function AdvanceModal({ isOpen, onClose, onSuccess }: AdvanceModalProps) 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount (₹) *</label>
-                <input type="number" step="0.01" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required placeholder="0.00"
+                <input type="number" step="0.01" {...register('amount', { valueAsNumber: true })} required placeholder="0.00"
                   className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-black text-slate-900 focus:ring-2 focus:ring-blue-600/10" />
+                {errors.amount && <p className="text-[10px] text-red-500 font-bold uppercase">{(errors.amount as any).message}</p>}
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mode</label>
-                <div className="flex bg-slate-50 p-1 rounded-xl h-[46px]">
-                  {(['cash', 'bank'] as const).map((m) => (
-                    <button key={m} type="button" onClick={() => setForm({ ...form, mode: m })}
-                      className={`flex-1 text-[10px] font-black uppercase rounded-lg transition-all ${form.mode === m ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>
-                      {m}
-                    </button>
-                  ))}
-                </div>
+                <select {...register('mode')}
+                  className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-[10px] font-black uppercase text-slate-700 focus:ring-2 focus:ring-blue-600/10">
+                  <option value="cash">Cash</option>
+                  <option value="bank">Bank</option>
+                </select>
               </div>
             </div>
 
@@ -126,14 +132,14 @@ export function AdvanceModal({ isOpen, onClose, onSuccess }: AdvanceModalProps) 
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</label>
               <div className="relative">
                 <Calendar className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
+                <input type="date" {...register('date')}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-600/10" />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Purpose / Notes</label>
-              <textarea value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })} rows={2} placeholder="e.g. Fuel advance for Delhi trip"
+              <textarea {...register('purpose')} rows={2} placeholder="e.g. Fuel advance for Delhi trip"
                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-600/10 resize-none" />
             </div>
 

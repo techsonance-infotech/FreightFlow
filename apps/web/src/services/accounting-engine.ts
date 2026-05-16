@@ -8,6 +8,140 @@ import {
 
 export class AccountingEngine {
   /**
+   * Records an audit log entry for any system action.
+   */
+  static async recordAuditLog(
+    tenantId: string,
+    companyId: string,
+    userId: string | null,
+    action: 'create' | 'update' | 'delete',
+    entityType: string,
+    entityId: string,
+    changes: any
+  ) {
+    try {
+      await prisma.auditLog.create({
+        data: {
+          tenantId,
+          companyId,
+          userId,
+          action,
+          entityType,
+          entityId,
+          changes
+        }
+      });
+    } catch (err) {
+      console.error('[AuditLog Error]:', err);
+    }
+  }
+
+  /**
+   * Closes the current financial year and generates closing entries.
+   */
+  static async closeFinancialYear(
+    tenantId: string,
+    companyId: string,
+    userId: string,
+    fyData: { name: string; startDate: string; endDate: string }
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      // 1. Get all Income and Expense accounts
+      const accounts = await tx.chartOfAccount.findMany({
+        where: { 
+          companyId,
+          type: { in: ['income', 'expense', 'revenue'] }
+        },
+        include: {
+          journalLines: {
+            where: { journalEntry: { status: 'posted', date: { lte: new Date(fyData.endDate) } } },
+            select: { debit: true, credit: true }
+          }
+        }
+      });
+
+      // 2. Identify Retained Earnings / Profit & Loss A/c
+      let retainedEarningsAcc = await tx.chartOfAccount.findFirst({
+        where: { companyId, name: { contains: 'Retained Earnings', mode: 'insensitive' } }
+      });
+
+      if (!retainedEarningsAcc) {
+        retainedEarningsAcc = await tx.chartOfAccount.findFirst({
+          where: { companyId, name: { contains: 'Profit & Loss', mode: 'insensitive' } }
+        });
+      }
+
+      if (!retainedEarningsAcc) throw new Error('Could not find Retained Earnings or P&L account for closing.');
+
+      // 3. Calculate Net Profit/Loss
+      let totalIncome = 0;
+      let totalExpense = 0;
+      const closingLines: any[] = [];
+
+      accounts.forEach(acc => {
+        const balance = acc.journalLines.reduce((sum, l) => sum + (l.debit - l.credit), 0);
+        if (balance === 0) return;
+
+        if (acc.type === 'income' || acc.type === 'revenue') totalIncome += Math.abs(balance);
+        else totalExpense += Math.abs(balance);
+
+        // Closing line for this account (to make it zero)
+        closingLines.push({
+          accountId: acc.id,
+          debit: balance > 0 ? 0 : Math.abs(balance),
+          credit: balance > 0 ? Math.abs(balance) : 0,
+          description: `Year End Closing: Transfer to Retained Earnings`
+        });
+      });
+
+      const netProfit = totalIncome - totalExpense;
+
+      // 4. Final line to Retained Earnings
+      closingLines.push({
+        accountId: retainedEarningsAcc.id,
+        debit: netProfit > 0 ? Math.abs(netProfit) : 0,
+        credit: netProfit > 0 ? 0 : Math.abs(netProfit),
+        description: `Year End Net Profit Transfer`
+      });
+
+      // 5. Create the Closing Voucher
+      const voucher = await tx.journalEntry.create({
+        data: {
+          tenantId,
+          companyId,
+          date: new Date(fyData.endDate),
+          voucherType: 'journal',
+          voucherNo: `CLOSE-${fyData.name}`,
+          narration: `Financial Year Closing Entry for ${fyData.name}`,
+          totalAmount: Math.abs(netProfit),
+          status: 'posted',
+          createdBy: userId,
+          lines: {
+            create: closingLines
+          }
+        }
+      });
+
+      // 6. Create Financial Year record
+      await tx.financialYear.create({
+        data: {
+          tenantId,
+          companyId,
+          name: fyData.name,
+          startDate: new Date(fyData.startDate),
+          endDate: new Date(fyData.endDate),
+          isClosed: true,
+          closedAt: new Date(),
+          closedBy: userId,
+          closingVoucherId: voucher.id
+        }
+      });
+
+      return voucher;
+    });
+  }
+
+  /**
    * Retrieves the Chart of Accounts for a company, formatted as a tree.
    */
   static async getChartOfAccounts(tenantId: string, companyId: string) {
@@ -75,38 +209,37 @@ export class AccountingEngine {
   /**
    * Posts a Journal Entry (Voucher) ensuring Double-Entry balance.
    */
-  static async createJournalEntry(tenantId: string, companyId: string, data: JournalEntry, userId?: string) {
-    // 1. Validate DR = CR
-    let totalDebit = 0;
-    let totalCredit = 0;
+  static async createJournalEntry(tenantId: string, companyId: string, data: JournalEntry, userId?: string, tx?: any) {
+    const execute = async (t: any) => {
+      // 1. Validate DR = CR
+      let totalDebit = 0;
+      let totalCredit = 0;
 
-    data.lines.forEach(line => {
-      totalDebit += line.debit;
-      totalCredit += line.credit;
-    });
-
-    if (totalDebit !== totalCredit) {
-      throw new Error(`Unbalanced journal entry: Debits (${totalDebit}) do not equal Credits (${totalCredit}).`);
-    }
-
-    if (totalDebit === 0) {
-      throw new Error('Journal entry must have a non-zero value.');
-    }
-
-    // 2. Generate Voucher No if not provided
-    let voucherNo = data.voucherNo;
-    if (!voucherNo) {
-      // Auto-generate based on type (simple implementation)
-      const prefix = data.voucherType.substring(0, 2).toUpperCase();
-      const count = await prisma.journalEntry.count({
-        where: { tenantId, companyId, voucherType: data.voucherType }
+      data.lines.forEach(line => {
+        totalDebit += line.debit;
+        totalCredit += line.credit;
       });
-      voucherNo = `${prefix}-${Date.now().toString().slice(-6)}-${count + 1}`;
-    }
 
-    // 3. Create Transaction
-    return prisma.$transaction(async (tx) => {
-      const entry = await tx.journalEntry.create({
+      if (totalDebit !== totalCredit) {
+        throw new Error(`Unbalanced journal entry: Debits (${totalDebit}) do not equal Credits (${totalCredit}).`);
+      }
+
+      if (totalDebit === 0) {
+        throw new Error('Journal entry must have a non-zero value.');
+      }
+
+      // 2. Generate Voucher No if not provided
+      let voucherNo = data.voucherNo;
+      if (!voucherNo) {
+        const prefix = data.voucherType.substring(0, 2).toUpperCase();
+        const count = await t.journalEntry.count({
+          where: { tenantId, companyId, voucherType: data.voucherType }
+        });
+        voucherNo = `${prefix}-${Date.now().toString().slice(-6)}-${count + 1}`;
+      }
+
+      // 3. Create Entry
+      const entry = await t.journalEntry.create({
         data: {
           tenantId,
           companyId,
@@ -117,7 +250,6 @@ export class AccountingEngine {
           totalAmount: totalDebit,
           status: data.status || 'posted',
           createdBy: userId,
-          // Operational Metadata
           category: data.category,
           vehicleId: data.vehicleId,
           tripId: data.tripId,
@@ -138,24 +270,24 @@ export class AccountingEngine {
         }
       });
 
-      // 4. Cross-Module Operational Sync (Production-Grade Logic)
+      // 4. Operational Sync
       if (data.category && data.vehicleId) {
         if (data.category === 'fuel' && data.metadata?.litres) {
-          await tx.fuelEntry.create({
+          await t.fuelEntry.create({
             data: {
               tenantId,
               companyId,
               vehicleId: data.vehicleId,
               date: new Date(data.date),
               quantity: data.metadata.litres,
-              rate: Math.round(data.metadata.rate * 100), // convert to paise
+              rate: Math.round(data.metadata.rate * 100),
               amount: totalDebit,
               vendor: data.metadata.vendorName,
               odometer: data.metadata.odo || 0,
             }
           });
         } else if (data.category === 'maintenance') {
-          await tx.maintenanceJob.create({
+          await t.maintenanceJob.create({
             data: {
               tenantId,
               companyId,
@@ -174,7 +306,7 @@ export class AccountingEngine {
       }
 
       if (data.tripId && (data.category === 'trip' || data.voucherType === 'payment')) {
-        await tx.tripExpense.create({
+        await t.tripExpense.create({
           data: {
             tenantId,
             companyId,
@@ -188,8 +320,18 @@ export class AccountingEngine {
         });
       }
 
+      // 5. Audit Log
+      await this.recordAuditLog(tenantId, companyId, userId || null, 'create', 'JournalEntry', entry.id, {
+        voucherNo: entry.voucherNo,
+        amount: entry.totalAmount,
+        type: entry.voucherType
+      });
+
       return entry;
-    });
+    };
+
+    if (tx) return execute(tx);
+    return prisma.$transaction(execute);
   }
 
   /**
@@ -302,26 +444,36 @@ export class AccountingEngine {
           totalAmount: data.totalAmount,
           notes: data.notes,
           status: 'sent',
-          orders: {
-            connect: data.orderIds.map(id => ({ id }))
-          }
+          ...(data.orderIds && data.orderIds.length > 0 ? {
+            orders: {
+              connect: data.orderIds.map(id => ({ id }))
+            }
+          } : {})
         }
       });
 
       // 2. Auto GL Entry Rules
-      // We need to find the appropriate system accounts. In a real app, these are configured in settings.
-      // For now, we will look them up by type and common names/codes.
-      const arAccount = await tx.chartOfAccount.findFirst({
-        where: { tenantId, companyId, type: 'asset', name: { contains: 'Receivable', mode: 'insensitive' } }
-      });
-      const revenueAccount = await tx.chartOfAccount.findFirst({
-        where: { tenantId, companyId, type: 'revenue', name: { contains: 'Freight', mode: 'insensitive' } }
-      });
+      // Use provided accounts or search for defaults
+      const arAccount = data.arAccountId 
+        ? await tx.chartOfAccount.findUnique({ where: { id: data.arAccountId } })
+        : await tx.chartOfAccount.findFirst({
+            where: { tenantId, companyId, type: 'asset', name: { contains: 'Receivable', mode: 'insensitive' } }
+          });
+
+      const revenueAccount = data.revenueAccountId
+        ? await tx.chartOfAccount.findUnique({ where: { id: data.revenueAccountId } })
+        : await tx.chartOfAccount.findFirst({
+            where: { tenantId, companyId, type: 'revenue', name: { contains: 'Freight', mode: 'insensitive' } }
+          });
+
       const cgstAccount = await tx.chartOfAccount.findFirst({
         where: { tenantId, companyId, type: 'liability', name: { contains: 'CGST', mode: 'insensitive' } }
       });
       const sgstAccount = await tx.chartOfAccount.findFirst({
         where: { tenantId, companyId, type: 'liability', name: { contains: 'SGST', mode: 'insensitive' } }
+      });
+      const igstAccount = await tx.chartOfAccount.findFirst({
+        where: { tenantId, companyId, type: 'liability', name: { contains: 'IGST', mode: 'insensitive' } }
       });
 
       if (arAccount && revenueAccount) {
@@ -335,6 +487,9 @@ export class AccountingEngine {
         }
         if (invoice.sgst > 0 && sgstAccount) {
           lines.push({ companyId, accountId: sgstAccount.id, description: `SGST Output`, debit: 0, credit: invoice.sgst });
+        }
+        if (invoice.igst > 0 && igstAccount) {
+          lines.push({ companyId, accountId: igstAccount.id, description: `IGST Output`, debit: 0, credit: invoice.igst });
         }
 
         await tx.journalEntry.create({
@@ -354,6 +509,9 @@ export class AccountingEngine {
       }
 
       return invoice;
+    }).catch(err => {
+      console.error('AccountingEngine.generateFreightInvoice failed:', err);
+      throw err;
     });
   }
 
