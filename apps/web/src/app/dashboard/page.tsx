@@ -31,7 +31,7 @@ export default async function ExecutiveDashboard() {
     redirect('/auth/login');
   }
 
-  const kpis = await ReportEngine.getDashboardKPIs(session.user.tenantId, session.user.companyId || '');
+  const kpis = await ReportEngine.getDashboardKPIs();
   const trend = kpis.revenueTrend;
 
   return (
