@@ -18,9 +18,8 @@ import { ApiKeyManager } from '@/components/admin/integrations/api-key-manager';
 import { WebhookManager } from '@/components/admin/integrations/webhook-manager';
 import { SandboxOperations } from '@/components/admin/tenants/sandbox-operations';
 
-export default async function TenantDetailPage({ params }: { params: { id: string } }) {
-  // ... (existing logic)
-  const { id } = params;
+export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   // Deep fetch of tenant ecosystem
   const tenant = await prisma.tenant.findUnique({
@@ -246,8 +245,8 @@ function BusinessRow({ company }: any) {
 
 function ModuleToggle({ label, active, icon }: any) {
   return (
-    <div className={`p-6 rounded-[2rem] border transition-all ${
-      active ? 'bg-white/10 border-white/20' : 'bg-slate-800/30 border-slate-800 opacity-50 grayscale'
+    <div className={`p-6 rounded-[2rem] border transition-all duration-300 hover:scale-[1.02] ${
+      active ? 'bg-white/10 border-white/25 hover:bg-white/[0.12] hover:border-white/40' : 'bg-slate-800/30 border-slate-800 opacity-50 grayscale hover:opacity-70 hover:grayscale-0'
     }`}>
       <div className="flex items-center justify-between mb-4">
         <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${active ? 'bg-blue-600 shadow-lg shadow-blue-500/20' : 'bg-slate-700'}`}>
@@ -257,7 +256,7 @@ function ModuleToggle({ label, active, icon }: any) {
       </div>
       <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{label}</p>
       <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-        {active && <div className="h-full bg-blue-600 w-full" />}
+        {active && <div className="h-full bg-blue-600 w-full animate-pulse" />}
       </div>
     </div>
   );

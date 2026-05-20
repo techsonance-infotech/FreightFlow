@@ -2,8 +2,10 @@ import React from 'react';
 import { getSession } from '@/lib/auth-utils';
 import { redirect } from 'next/navigation';
 import { getMyTickets } from '@/app/actions/support-tickets';
+import { getMyLicenseRequest } from '@/app/actions/license-request';
 import { TicketForm } from '@/components/support/ticket-form';
 import { TicketList } from '@/components/support/ticket-list';
+import { LicenseChat } from '@/components/license/license-chat';
 import { 
   Shield, MessageSquare, LogOut, LayoutDashboard, 
   HelpCircle, Bug, ShieldCheck, History, Info
@@ -19,6 +21,7 @@ export default async function SupportPage({ searchParams }: any) {
 
   const { category } = await searchParams;
   const myTickets = await getMyTickets();
+  const licenseRequest = await getMyLicenseRequest();
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
@@ -42,11 +45,14 @@ export default async function SupportPage({ searchParams }: any) {
         </div>
       </div>
 
-      <Tabs defaultValue={category === 'license' ? 'new' : 'overview'} className="space-y-10">
+      <Tabs defaultValue={category === 'license' && licenseRequest ? 'license-chat' : (category === 'license' ? 'new' : 'overview')} className="space-y-10">
         <div className="flex justify-center">
           <TabsList className="bg-white border border-slate-100 p-1 rounded-2xl h-14 shadow-sm">
             <TabsTrigger value="overview" className="rounded-xl px-8 font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">Overview</TabsTrigger>
             <TabsTrigger value="new" className="rounded-xl px-8 font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">New Request</TabsTrigger>
+            {licenseRequest && (
+              <TabsTrigger value="license-chat" className="rounded-xl px-8 font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">License Chat</TabsTrigger>
+            )}
             <TabsTrigger value="history" className="rounded-xl px-8 font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">My Tickets</TabsTrigger>
             <TabsTrigger value="faq" className="rounded-xl px-8 font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">Help & FAQ</TabsTrigger>
           </TabsList>
@@ -135,6 +141,19 @@ export default async function SupportPage({ searchParams }: any) {
            </div>
            <TicketList tickets={myTickets} />
         </TabsContent>
+
+        {licenseRequest && (
+           <TabsContent value="license-chat" className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-8">
+                 <div className="flex items-center gap-3">
+                    <ShieldCheck className="h-6 w-6 text-emerald-500" />
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Active Upgrade Thread</h2>
+                 </div>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Admin Dispatch Connection</p>
+              </div>
+              <LicenseChat initialRequest={licenseRequest as any} />
+           </TabsContent>
+        )}
 
         <TabsContent value="faq">
            {/* Placeholder for FAQ */}

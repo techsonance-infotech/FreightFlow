@@ -15,6 +15,63 @@ export async function createSupportTicket(formData: {
 
   const { tenantId, companyId, id: userId } = session.user;
 
+  if (formData.category === 'license') {
+    // Parse plan type from the subject/description, default to 'pro'
+    const subjectLower = formData.subject.toLowerCase();
+    const descLower = formData.description.toLowerCase();
+    let planType = 'pro';
+    if (subjectLower.includes('starter') || descLower.includes('starter')) {
+      planType = 'starter';
+    } else if (subjectLower.includes('enterprise') || descLower.includes('enterprise')) {
+      planType = 'enterprise';
+    }
+
+    // Check if an active/pending license request exists
+    const existing = await prisma.licenseRequest.findFirst({
+      where: { tenantId, status: 'pending' }
+    });
+
+    if (existing) {
+      throw new Error('You already have a pending license request.');
+    }
+
+    // 1. Create the standard support ticket so it shows up in general ticket history & helpdesk
+    const ticket = await prisma.supportTicket.create({
+      data: {
+        tenantId,
+        userId,
+        subject: formData.subject,
+        description: formData.description,
+        category: formData.category,
+        priority: formData.priority,
+        status: 'open',
+      },
+    });
+
+    // 2. Create the specialized license request for checkout and key generation
+    const request = await prisma.licenseRequest.create({
+      data: {
+        tenantId,
+        userId,
+        planType,
+        status: 'pending'
+      }
+    });
+
+    // Create the initial message detailing their inquiry
+    await prisma.supportMessage.create({
+      data: {
+        requestId: request.id,
+        message: `License support inquiry logged.\nSubject: ${formData.subject}\nDescription: ${formData.description}`,
+        isAction: false,
+      }
+    });
+
+    revalidatePath('/dashboard/support');
+    revalidatePath('/admin/support');
+    return ticket;
+  }
+
   const ticket = await prisma.supportTicket.create({
     data: {
       tenantId,
@@ -86,6 +143,25 @@ export async function updateTicketStatus(ticketId: string, data: {
       adminResponse: data.adminResponse,
     },
   });
+
+  // Sync to LicenseRequest
+  if (ticket.category === 'license') {
+    let reqStatus = 'pending';
+    if (data.status === 'solved' || data.status === 'closed') {
+      reqStatus = 'approved';
+    } else if (data.status === 'blocked') {
+      reqStatus = 'blocked';
+    } else if (data.status === 'pending') {
+      reqStatus = 'pending';
+    }
+    await prisma.licenseRequest.updateMany({
+      where: { 
+        tenantId: ticket.tenantId,
+        status: { in: ['pending', 'blocked'] }
+      },
+      data: { status: reqStatus }
+    });
+  }
 
   revalidatePath('/dashboard/support');
   revalidatePath('/admin/support');

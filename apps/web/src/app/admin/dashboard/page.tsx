@@ -12,6 +12,8 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { getPlatformHealth } from '@/app/actions/admin/system-activity';
+import { DashboardKycQueue } from '@/components/admin/dashboard/kyc-queue';
+import { DashboardTicketAlerts } from '@/components/admin/dashboard/ticket-alerts';
 
 // Force client refresh - Phase 4 Intelligence Synchronized
 
@@ -32,7 +34,9 @@ export default async function AdminDashboardPage() {
     allTenants,
     kycStats,
     revenueHistory,
-    platformHealth
+    platformHealth,
+    pendingKycDocs,
+    recentSupportTickets
   ] = await Promise.all([
     prisma.tenant.count(),
     prisma.user.count(),
@@ -55,7 +59,19 @@ export default async function AdminDashboardPage() {
       orderBy: { capturedAt: 'desc' },
       take: 1
     }) : Promise.resolve([]),
-    getPlatformHealth()
+    getPlatformHealth(),
+    prisma.kycDocument.findMany({
+      where: { status: 'pending' },
+      take: 3,
+      orderBy: { createdAt: 'desc' },
+      include: { tenant: { select: { id: true, name: true } } }
+    }),
+    prisma.supportTicket.findMany({
+      where: { status: 'open' },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      include: { tenant: { select: { name: true } }, user: { select: { name: true } } }
+    })
   ]);
 
   const latestRevenue = (revenueHistory && revenueHistory[0]) || { mrr: 0, churnRate: 0 };
@@ -187,6 +203,12 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Compliance & Helpdesk Operations */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <DashboardKycQueue documents={pendingKycDocs} />
+        <DashboardTicketAlerts tickets={recentSupportTickets} />
+      </div>
+
       {/* System Vitality */}
       <div className="bg-white border border-slate-200 rounded-[3rem] p-12 shadow-sm">
         <div className="flex items-center gap-4 mb-12">
@@ -239,12 +261,12 @@ function StatCard({ label, value, subValue, icon, trend, color }: any) {
 
 function ActionButton({ icon, label, color, href }: any) {
   return (
-    <Link href={href || '#'} className={`w-full h-16 ${color} hover:opacity-90 rounded-2xl flex items-center gap-4 px-6 transition-all active:scale-[0.98] group/btn`}>
+    <Link href={href || '#'} className={`w-full h-16 ${color} hover:opacity-95 rounded-2xl flex items-center gap-4 px-6 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] group/btn shadow-sm`}>
       <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center group-hover/btn:bg-white/20 transition-colors">
         {icon}
       </div>
       <span className="text-xs font-black uppercase tracking-widest text-white">{label}</span>
-      <ArrowUpRight className="h-4 w-4 text-white/40 ml-auto group-hover/btn:text-white transition-colors" />
+      <ArrowUpRight className="h-4 w-4 text-white/40 ml-auto group-hover/btn:text-white transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-colors" />
     </Link>
   );
 }

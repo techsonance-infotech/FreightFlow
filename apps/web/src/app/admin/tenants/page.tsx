@@ -14,8 +14,9 @@ import { format } from 'date-fns';
 
 import { cn } from '@/lib/utils';
 
-export default async function AdminTenantsPage({ searchParams }: { searchParams: { page?: string, search?: string } }) {
-  const page = Number(searchParams.page) || 1;
+export default async function AdminTenantsPage({ searchParams }: { searchParams: Promise<{ page?: string, search?: string }> }) {
+  const resolvedParams = await searchParams;
+  const page = Number(resolvedParams.page) || 1;
   const limit = 10;
   const skip = (page - 1) * limit;
 
@@ -58,8 +59,8 @@ export default async function AdminTenantsPage({ searchParams }: { searchParams:
       </div>
 
       <div className="bg-white border border-slate-100 rounded-[3.5rem] overflow-hidden shadow-sm flex flex-col">
-        <div className="max-h-[70vh] overflow-y-auto custom-scrollbar relative">
-          <table className="w-full text-left border-collapse">
+        <div className="max-h-[70vh] overflow-y-auto overflow-x-auto custom-scrollbar relative">
+          <table className="w-full min-w-[1000px] lg:min-w-0 text-left border-collapse">
             <thead className="sticky top-0 bg-white z-30 shadow-sm">
               <tr className="border-b border-slate-50 bg-slate-50/30 backdrop-blur-md">
                 <th className="px-10 py-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Workspace / Owner</th>
