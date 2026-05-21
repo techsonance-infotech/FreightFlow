@@ -80,6 +80,25 @@ export async function updateTicketStatus(ticketId: string, data: {
     }
   });
 
+  // Sync to LicenseRequest
+  if (ticket.category === 'license') {
+    let reqStatus = 'pending';
+    if (data.status === 'solved' || data.status === 'closed') {
+      reqStatus = 'approved';
+    } else if (data.status === 'blocked') {
+      reqStatus = 'blocked';
+    } else if (data.status === 'pending') {
+      reqStatus = 'pending';
+    }
+    await prisma.licenseRequest.updateMany({
+      where: { 
+        tenantId: ticket.tenantId,
+        status: { in: ['pending', 'blocked'] }
+      },
+      data: { status: reqStatus }
+    });
+  }
+
   // Log the action
   await prisma.auditLogPlatform.create({
     data: {
@@ -146,6 +165,19 @@ export async function generateAndSendLicense(data: {
       data: { status: 'approved' }
     });
 
+    // Solve corresponding standard support ticket if it exists
+    await tx.supportTicket.updateMany({
+      where: {
+        tenantId: data.tenantId,
+        category: 'license',
+        status: { in: ['open', 'pending', 'blocked'] }
+      },
+      data: {
+        status: 'solved',
+        adminResponse: `License key generated for ${data.plan.toUpperCase()} tier. Valid until ${expiresAt.toLocaleDateString()}.`
+      }
+    });
+
     // 3. Update Tenant License Expiry
     await tx.tenant.update({
       where: { id: data.tenantId },
@@ -185,3 +217,67 @@ export async function generateAndSendLicense(data: {
   revalidatePath('/admin/tenants');
   return { success: true, license: licenseKey };
 }
+
+export async function getGlobalLicenseRequests() {
+  const session = await getAdminSession();
+  if (!session) throw new Error('Unauthorized');
+
+  try {
+    // Self-healing: Backport any legacy SupportTickets of category 'license' that don't have a LicenseRequest yet
+    const licenseTickets = await prisma.supportTicket.findMany({
+      where: { category: 'license' }
+    });
+
+    for (const ticket of licenseTickets) {
+      const existingReq = await prisma.licenseRequest.findFirst({
+        where: { tenantId: ticket.tenantId }
+      });
+
+      if (!existingReq) {
+        // Parse planType from ticket details
+        const subjectLower = ticket.subject.toLowerCase();
+        const descLower = ticket.description.toLowerCase();
+        let planType = 'pro';
+        if (subjectLower.includes('starter') || descLower.includes('starter')) {
+          planType = 'starter';
+        } else if (subjectLower.includes('enterprise') || descLower.includes('enterprise')) {
+          planType = 'enterprise';
+        }
+
+        // Create LicenseRequest matching the ticket's state
+        const request = await prisma.licenseRequest.create({
+          data: {
+            tenantId: ticket.tenantId,
+            userId: ticket.userId,
+            planType,
+            status: ticket.status === 'solved' ? 'approved' : ticket.status === 'blocked' ? 'blocked' : 'pending',
+            createdAt: ticket.createdAt,
+            updatedAt: ticket.updatedAt
+          }
+        });
+
+        // Create initial support chat message
+        await prisma.supportMessage.create({
+          data: {
+            requestId: request.id,
+            message: `License support inquiry logged.\nSubject: ${ticket.subject}\nDescription: ${ticket.description}`,
+            isAction: false,
+            createdAt: ticket.createdAt
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Self-healing backport failed:', error);
+  }
+
+  return await prisma.licenseRequest.findMany({
+    include: {
+      tenant: { select: { name: true } },
+      user: { select: { name: true, email: true } }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20
+  });
+}
+

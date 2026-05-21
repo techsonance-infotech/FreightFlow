@@ -96,9 +96,15 @@ export function PaymentDispatcher({ requestId }: { requestId: string }) {
             placeholder="UPI ID"
             className="h-12 bg-white/5 border-white/10 text-white rounded-xl text-[11px] font-bold focus:ring-0 focus:border-blue-500"
           />
+          <Input 
+            value={data.qrUrl}
+            onChange={(e) => setData({...data, qrUrl: e.target.value})}
+            placeholder="QR Code Image URL (optional)"
+            className="h-12 bg-white/5 border-white/10 text-white rounded-xl text-[11px] font-bold focus:ring-0 focus:border-blue-500"
+          />
           <div className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl">
-            <QrCode className="h-5 w-5 text-blue-400" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Default Scanner Attached</span>
+            <QrCode className="h-5 w-5 text-blue-400 animate-pulse" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Dynamic Scan-to-Pay QR Scanner Active</span>
           </div>
         </div>
 

@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
+    const dealerId = searchParams.get('dealerId') || '';
     const skip = (page - 1) * limit;
 
     const where: any = { 
@@ -29,9 +30,16 @@ export async function GET(request: Request) {
       ];
     }
 
+    if (dealerId) {
+      where.dealers = {
+        some: { id: dealerId }
+      };
+    }
+
     const [items, total] = await Promise.all([
       prisma.consignee.findMany({ 
         where, 
+        include: { dealers: true },
         skip, 
         take: limit, 
         orderBy: { updatedAt: 'desc' } 
@@ -60,13 +68,18 @@ export async function POST(request: Request) {
     if (!session || !session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const validatedData = ConsigneeSchema.parse(body);
+    const { dealerIds, ...createData } = validatedData as any;
 
     const item = await prisma.consignee.create({
       data: { 
-        ...validatedData, 
+        ...createData, 
         tenantId: session.user.tenantId, 
-        companyId: session.user.companyId! 
+        companyId: session.user.companyId!,
+        dealers: dealerIds && dealerIds.length > 0 ? {
+          connect: dealerIds.map((id: string) => ({ id }))
+        } : undefined
       },
+      include: { dealers: true }
     });
 
     return NextResponse.json(item, { status: 201 });

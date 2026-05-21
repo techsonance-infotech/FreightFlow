@@ -484,6 +484,7 @@ model Dealer {
   tenantId     String  @map("tenant_id") @db.Uuid
   companyId    String  @map("company_id") @db.Uuid
   name         String  @db.VarChar(255)
+  code         String? @db.VarChar(50)
   shortName    String? @map("short_name") @db.VarChar(100)
   personName   String? @map("person_name") @db.VarChar(255)
   address      String? @db.Text
@@ -524,6 +525,7 @@ model Dealer {
   tenant  Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   orders  Order[]
   pallets OrderPallet[]
+  consignees Consignee[]
 
   @@index([tenantId])
   @@index([companyId, name])
@@ -609,6 +611,7 @@ model Consignee {
   tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   orders           Order[]
   palletizedOrders OrderPallet[]
+  dealers          Dealer[]
 
   @@index([tenantId])
   @@index([companyId, name])

@@ -38,6 +38,7 @@ export async function getDealerEntryRecords(
         where,
         include: {
           dealer: true,
+          consignee: true,
           details: true,
         },
         orderBy: {
@@ -52,6 +53,7 @@ export async function getDealerEntryRecords(
         where,
         include: {
           dealer: true,
+          consignee: true,
           palletDetails: true,
         },
         orderBy: {
@@ -75,6 +77,7 @@ export async function getDealerEntryRecords(
       lrNo: r.lrNo,
       billNo: r.gstBillNo || '-',
       dealerName: r.dealer?.name || 'Walk-in',
+      consigneeName: r.consignee?.name || 'Direct Customer',
       loadType: 'BOX',
       weight: Number(r.totalWeight || 0),
       boxes: r.totalBoxes || 0,
@@ -94,6 +97,7 @@ export async function getDealerEntryRecords(
       lrNo: r.lrNo || '-',
       billNo: (r.metadata as any)?.invoiceNo || '-',
       dealerName: r.dealer?.name || 'Walk-in',
+      consigneeName: r.consignee?.name || 'Direct Customer',
       loadType: 'PALLET',
       weight: Number(r.totalWeight || 0),
       boxes: r.totalBoxes || 0,

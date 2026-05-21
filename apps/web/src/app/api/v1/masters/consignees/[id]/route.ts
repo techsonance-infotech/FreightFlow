@@ -17,6 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         companyId: session.user.companyId, 
         deletedAt: null 
       },
+      include: { dealers: true }
     });
 
     if (!item) return NextResponse.json({ error: 'Consignee not found' }, { status: 404 });
@@ -36,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     
     // Use partial schema for updates
     const validatedData = ConsigneeSchema.partial().parse(body);
-    const { id: _, ...updateData } = validatedData;
+    const { id: _, dealerIds, ...updateData } = validatedData as any;
 
     const updated = await prisma.consignee.update({
       where: { 
@@ -44,7 +45,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         tenantId: session.user.tenantId, 
         companyId: session.user.companyId 
       },
-      data: updateData
+      data: {
+        ...updateData,
+        dealers: dealerIds ? {
+          set: dealerIds.map((dId: string) => ({ id: dId }))
+        } : undefined
+      },
+      include: { dealers: true }
     });
 
     return NextResponse.json(updated);

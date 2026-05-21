@@ -108,10 +108,10 @@ export default function AdminNotificationsPage() {
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Notification Type</label>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { id: 'info', label: 'Info', color: 'blue' },
-                    { id: 'promotional', label: 'Promo', color: 'purple' },
-                    { id: 'alert', label: 'Alert', color: 'rose' },
-                    { id: 'maintenance', label: 'System', color: 'amber' },
+                    { id: 'info', label: 'Info', colorClass: 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100' },
+                    { id: 'promotional', label: 'Promo', colorClass: 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-100' },
+                    { id: 'alert', label: 'Alert', colorClass: 'bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-100' },
+                    { id: 'maintenance', label: 'System', colorClass: 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-100' },
                   ].map(t => (
                     <button
                       key={t.id}
@@ -119,7 +119,7 @@ export default function AdminNotificationsPage() {
                       onClick={() => setForm({...form, type: t.id})}
                       className={cn(
                         "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
-                        form.type === t.id ? `bg-${t.color}-600 text-white border-${t.color}-600 shadow-lg` : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
+                        form.type === t.id ? t.colorClass : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
                       )}
                     >
                       {t.label}
@@ -135,7 +135,7 @@ export default function AdminNotificationsPage() {
                    placeholder="CTA Link (Optional)" 
                    value={form.link}
                    onChange={e => setForm({...form, link: e.target.value})}
-                   className="h-12 rounded-xl bg-slate-50 border-none font-medium"
+                   className="h-12 rounded-xl bg-slate-50 border-none font-medium text-slate-900"
                  />
                </div>
                <Button 

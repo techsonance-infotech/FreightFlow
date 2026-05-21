@@ -234,62 +234,108 @@ export function LicenseChat({ initialRequest }: LicenseChatProps) {
 }
 
 function TenantPaymentCard({ payload, timestamp, isMounted }: any) {
+  const [showQrModal, setShowQrModal] = useState(false);
+
+  // Generate dynamic scan-to-pay QR Code URL using QR Server API
+  // upi://pay?pa={upiId}&pn={accountHolder}&am=0&cu=INR
+  const encodedUpiUrl = `upi://pay?pa=${encodeURIComponent(payload.upiId)}&pn=${encodeURIComponent(payload.accountHolder)}&am=0&cu=INR`;
+  const qrCodeUrl = payload.qrUrl && payload.qrUrl !== '/scanners/default_upi.png'
+    ? payload.qrUrl
+    : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(encodedUpiUrl)}`;
+
   return (
-    <div className="flex flex-col items-center w-full my-6 animate-in slide-in-from-left-4 duration-500">
-      <div className="w-full max-w-lg bg-white border border-slate-100 rounded-[2.5rem] p-10 relative overflow-hidden shadow-xl">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-16 -mt-16" />
-        
-        <div className="flex items-center gap-4 mb-10">
-          <div className="h-14 w-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
-            <CreditCard className="h-6 w-6 text-white" />
+    <>
+      <div className="flex flex-col items-center w-full my-6 animate-in slide-in-from-left-4 duration-500">
+        <div className="w-full max-w-lg bg-white border border-slate-100 rounded-[2.5rem] p-10 relative overflow-hidden shadow-xl">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-16 -mt-16" />
+          
+          <div className="flex items-center gap-4 mb-10">
+            <div className="h-14 w-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+              <CreditCard className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h4 className="text-xl font-black text-slate-900 tracking-tight">Payment Instructions</h4>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-600">Official Platform Disbursement</p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-xl font-black text-slate-900 tracking-tight">Payment Instructions</h4>
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-600">Official Platform Disbursement</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10">
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Bank Name</p>
-            <p className="text-sm font-black text-slate-900">{payload.bankName}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Bank Name</p>
+              <p className="text-sm font-black text-slate-900">{payload.bankName}</p>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Account Holder</p>
+              <p className="text-sm font-black text-slate-900">{payload.accountHolder}</p>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">A/C Number</p>
+              <p className="text-sm font-black text-slate-900 font-mono tracking-wider">{payload.accountNumber}</p>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">IFSC Code</p>
+              <p className="text-sm font-black text-slate-900 font-mono">{payload.ifscCode}</p>
+            </div>
           </div>
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Account Holder</p>
-            <p className="text-sm font-black text-slate-900">{payload.accountHolder}</p>
-          </div>
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">A/C Number</p>
-            <p className="text-sm font-black text-slate-900 font-mono tracking-wider">{payload.accountNumber}</p>
-          </div>
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">IFSC Code</p>
-            <p className="text-sm font-black text-slate-900 font-mono">{payload.ifscCode}</p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-6 p-6 bg-blue-600 rounded-[2rem] text-white shadow-xl shadow-blue-100 group cursor-pointer hover:bg-blue-700 transition-all">
-          <div className="h-12 w-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0 border border-white/20">
-            <QrCode className="h-7 w-7 text-white" />
+          <div 
+            onClick={() => setShowQrModal(true)}
+            className="flex items-center gap-6 p-6 bg-blue-600 rounded-[2rem] text-white shadow-xl shadow-blue-100 group cursor-pointer hover:bg-blue-700 transition-all animate-pulse"
+          >
+            <div className="h-12 w-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0 border border-white/20">
+              <QrCode className="h-7 w-7 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">UPI ID: {payload.upiId}</p>
+              <p className="text-[9px] font-bold text-blue-100 uppercase tracking-widest">Click to view QR Scanner</p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-blue-200 group-hover:translate-x-1 transition-transform" />
           </div>
-          <div className="flex-1">
-            <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">UPI ID: {payload.upiId}</p>
-            <p className="text-[9px] font-bold text-blue-100 uppercase tracking-widest">Click to view QR Scanner</p>
-          </div>
-          <ArrowRight className="h-5 w-5 text-blue-200 group-hover:translate-x-1 transition-transform" />
-        </div>
 
-        <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Verified Governance Card</span>
+          <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Verified Governance Card</span>
+            </div>
+            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+              {isMounted ? new Date(timestamp).toLocaleTimeString() : '--:--'}
+            </span>
           </div>
-          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
-            {isMounted ? new Date(timestamp).toLocaleTimeString() : '--:--'}
-          </span>
         </div>
       </div>
-    </div>
+
+      {showQrModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-8 animate-in fade-in duration-300">
+          <div className="w-full max-w-sm bg-white rounded-[3rem] p-10 border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] relative overflow-hidden text-center flex flex-col items-center">
+            <button 
+              onClick={() => setShowQrModal(false)} 
+              className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <div className="h-14 w-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 border border-blue-100">
+              <QrCode className="h-6 w-6" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Scan UPI QR Code</h3>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 mb-8">Scan with GPay / PhonePe / PayTM to pay</p>
+            
+            <div className="bg-slate-50 p-4 rounded-[2rem] border border-slate-100 mb-8 flex items-center justify-center h-64 w-64 shadow-inner">
+              <img 
+                src={qrCodeUrl}
+                alt="UPI Payment QR Code"
+                className="h-56 w-56 object-contain rounded-xl"
+              />
+            </div>
+            
+            <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4">
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Account Name</p>
+              <p className="text-xs font-black text-slate-700 mt-1">{payload.accountHolder}</p>
+              <p className="text-[10px] font-black text-blue-600 mt-2">{payload.upiId}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

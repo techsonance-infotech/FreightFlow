@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ConsigneeSchema, type Consignee } from '@freightflow/shared';
@@ -15,16 +15,41 @@ import {
 } from 'lucide-react';
 
 interface ConsigneeFormProps {
-  initialData?: Consignee;
+  initialData?: Consignee & { dealers?: any[] };
   onSuccess: (data: Consignee) => void;
   onCancel: () => void;
+  defaultDealerId?: string;
 }
 
-export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuccess, onCancel }) => {
+export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuccess, onCancel, defaultDealerId }) => {
   const [gstFile, setGstFile] = useState<File | null>(null);
   const [panFile, setPanFile] = useState<File | null>(null);
   const [msmeFile, setMsmeFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const [dealers, setDealers] = useState<any[]>([]);
+  const [loadingDealers, setLoadingDealers] = useState(false);
+
+  useEffect(() => {
+    const fetchDealers = async () => {
+      try {
+        setLoadingDealers(true);
+        const res = await fetch('/api/v1/masters/dealers?limit=100').then((r) => r.json());
+        if (res.data) {
+          setDealers(res.data);
+        }
+      } catch (error) {
+        console.error('Failed to load dealers:', error);
+      } finally {
+        setLoadingDealers(false);
+      }
+    };
+    fetchDealers();
+  }, []);
+
+  const defaultDealerIds = initialData?.dealers
+    ? initialData.dealers.map((d: any) => d.id)
+    : (initialData as any)?.dealerIds || (defaultDealerId ? [defaultDealerId] : []);
 
   const {
     register,
@@ -32,7 +57,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<Consignee>({
+  } = useForm<Consignee & { dealerIds: string[] }>({
     resolver: zodResolver(ConsigneeSchema) as any,
     defaultValues: {
       ...initialData,
@@ -50,7 +75,8 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
       creditDays: initialData?.creditDays ?? 0,
       isMsme: initialData?.isMsme ?? false,
       isActive: initialData?.isActive ?? true,
-    }
+      dealerIds: defaultDealerIds,
+    } as any
   });
 
   const onSubmit = async (data: Consignee) => {
@@ -141,6 +167,66 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
           <Input label="Phone Number *" placeholder="10-digit mobile" icon={<Phone className="h-4 w-4" />} error={errors.phone?.message} {...register('phone')} />
           <Input label="Email Address" placeholder="consignee@example.com" icon={<Mail className="h-4 w-4" />} error={errors.email?.message} {...register('email')} />
           <Input label="Delivery Address *" placeholder="Full destination address" icon={<Home className="h-4 w-4" />} error={errors.address?.message} {...register('address')} />
+          
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+              Assigned Dealers (Many-to-Many)
+            </label>
+            <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-3">
+              {watch('dealerIds')?.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {watch('dealerIds')?.map((dId: string) => {
+                    const dealer = dealers.find((d) => d.id === dId);
+                    return (
+                      <span key={dId} className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1 rounded-xl text-[10px] font-black uppercase border border-blue-100 shadow-sm animate-in zoom-in-95 duration-150">
+                        {dealer?.name || 'Loading...'}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = watch('dealerIds') || [];
+                            setValue('dealerIds', current.filter((id: string) => id !== dId));
+                          }}
+                          className="hover:text-blue-800 focus:outline-none transition-colors ml-1 font-bold text-xs"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                  No dealers assigned yet. (Customer will act as a general customer)
+                </p>
+              )}
+
+              <div className="relative">
+                <select
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                  value=""
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      const current = watch('dealerIds') || [];
+                      if (!current.includes(val)) {
+                        setValue('dealerIds', [...current, val]);
+                      }
+                      e.target.value = ""; // reset select
+                    }
+                  }}
+                >
+                  <option value="">{loadingDealers ? 'Loading dealers...' : 'Select dealers to assign...'}</option>
+                  {dealers
+                    .filter((d) => !(watch('dealerIds') || []).includes(d.id))
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} {d.shortName ? `(${d.shortName})` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Logistics & Credit */}
