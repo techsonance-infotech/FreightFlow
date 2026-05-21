@@ -71,13 +71,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validatedData = VehicleSchema.parse(body);
 
-    // Global unique check for Reg No
+    // Unique check for Reg No within the same company
     const existing = await prisma.vehicle.findFirst({
-      where: { regNo: validatedData.regNo, deletedAt: null },
+      where: { regNo: validatedData.regNo, companyId: user.companyId, deletedAt: null },
     });
 
     if (existing) {
-      return NextResponse.json({ error: 'Vehicle with this registration number already exists' }, { status: 400 });
+      return NextResponse.json({ error: 'Vehicle with this registration number already exists in this company' }, { status: 400 });
     }
 
     const { assignedDriverId, ...vehicleData } = validatedData;

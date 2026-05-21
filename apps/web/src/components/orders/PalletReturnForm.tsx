@@ -41,6 +41,9 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
   const [isPalletModalOpen, setIsPalletModalOpen] = useState(false);
   const [isConsigneeModalOpen, setIsConsigneeModalOpen] = useState(false);
   const [successPallet, setSuccessPallet] = useState<any>(null);
+  
+  const [dealerSearch, setDealerSearch] = useState('');
+  const [vehicleSearch, setVehicleSearch] = useState('');
 
   const { 
     register, 
@@ -150,6 +153,17 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
     fetchNextLr();
   }, [watchedDate, initialData?.id, setValue, getValues]);
 
+  useEffect(() => {
+    if (!watchedDealerId || initialData?.id) return;
+    const dealer = dealers.find(d => d.id === watchedDealerId);
+    if (dealer?.address && !getValues('fromAddress')) {
+      setValue('fromAddress', dealer.address);
+    }
+    if (dealer?.location && !getValues('fromLocation')) {
+      setValue('fromLocation', dealer.location);
+    }
+  }, [watchedDealerId, dealers, initialData?.id]);
+
   // Calculation Logic
   useEffect(() => {
     const totalQty = watchedPallets.reduce((acc: number, curr: any) => acc + (parseInt(curr.qty as any) || 0), 0);
@@ -237,28 +251,62 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
     }
   };
 
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10 animate-in fade-in duration-700">
-      
-      {/* Premium Sticky Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100 -mx-8 px-8 py-4 mb-8 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
-            <Zap className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none uppercase">{initialData?.id ? 'Edit Pallet Return' : 'Register Pallet Return'}</h2>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Reverse Logistics Hub</p>
-          </div>
+  if (loadingMasters) {
+    return (
+      <div className="space-y-10 animate-pulse">
+        {/* Banner Skeleton */}
+        <div className="bg-slate-100 rounded-[2.5rem] p-10 h-44 flex flex-col justify-end space-y-4">
+          <div className="h-4 w-40 bg-slate-200 rounded-lg animate-pulse" />
+          <div className="h-8 w-80 bg-slate-200 rounded-lg animate-pulse" />
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 h-12 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 flex items-center gap-2">
-            {isSubmitting ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-4 w-4" />}
-            {isSubmitting ? 'Syncing...' : 'Publish Return'}
-          </Button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Left Column Skeleton */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-8">
+            <div className="bg-white rounded-3xl border border-slate-100 p-8 space-y-6">
+              <div className="flex gap-4 items-center">
+                <div className="h-10 w-10 bg-slate-100 rounded-xl" />
+                <div className="space-y-2">
+                  <div className="h-4 w-32 bg-slate-100 rounded-lg animate-pulse" />
+                  <div className="h-3 w-48 bg-slate-100 rounded-lg animate-pulse" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
+              <div className="flex justify-between items-center">
+                <div className="h-6 w-40 bg-slate-100 rounded-lg animate-pulse" />
+                <div className="h-12 w-32 bg-slate-100 rounded-xl animate-pulse" />
+              </div>
+              <div className="h-48 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+            </div>
+          </div>
+
+          {/* Right Column Skeleton */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-8">
+            <div className="bg-white rounded-3xl border border-slate-100 p-8 space-y-6">
+              <div className="h-6 w-32 bg-slate-100 rounded-lg animate-pulse" />
+              <div className="space-y-4">
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    );
+  }
 
+  return (
+    <div className="relative min-h-[500px]">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10 animate-in fade-in duration-700">
+      
       {/* Hero Banner (Non-sticky) */}
       <div className="bg-blue-600 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-blue-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
@@ -288,35 +336,105 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <FormInputWrapper label="Dealer / Consignor *" error={errors.dealerId?.message}>
                 <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watchedDealerId} onValueChange={(val) => setValue('dealerId', val, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Registry Member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {dealers.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Dealer..."
+                        autoComplete="off"
+                        value={dealers.find(d => d.id === watch('dealerId'))?.name || dealerSearch}
+                        onChange={(e) => {
+                          setDealerSearch(e.target.value);
+                          if (!e.target.value) setValue('dealerId', '');
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {dealers
+                          .filter(d => !dealerSearch || d.name.toLowerCase().includes(dealerSearch.toLowerCase()))
+                          .map(d => (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setValue('dealerId', d.id, { shouldValidate: true });
+                                setDealerSearch(d.name);
+                                if (d.code) {
+                                  setValue('partyCode', d.code, { shouldDirty: true });
+                                }
+                                (document.activeElement as HTMLElement)?.blur();
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{d.name}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d.location || 'Active Dealer'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                  <input type="hidden" {...register('dealerId')} />
                   <button type="button" onClick={() => setIsDealerModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
                 </div>
               </FormInputWrapper>
 
-
               <FormInputWrapper label="Vehicle Allocation *" error={errors.vehicleId?.message}>
                 <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watchedVehicleId} onValueChange={(val) => setValue('vehicleId', val, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Asset" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.regNo || v.plateNumber}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <Truck className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Vehicle..."
+                        autoComplete="off"
+                        value={vehicles.find(v => v.id === watch('vehicleId'))?.regNo || vehicleSearch}
+                        onChange={(e) => {
+                          setVehicleSearch(e.target.value);
+                          if (!e.target.value) setValue('vehicleId', '');
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {vehicles
+                          .filter(v => !vehicleSearch || (v.regNo || v.plateNumber || '').toLowerCase().includes(vehicleSearch.toLowerCase()))
+                          .map(v => (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setValue('vehicleId', v.id, { shouldValidate: true });
+                                setVehicleSearch(v.regNo || v.plateNumber);
+                                (document.activeElement as HTMLElement)?.blur();
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{v.regNo || v.plateNumber}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{v.type || 'Standard Fleet'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                  <input type="hidden" {...register('vehicleId')} />
                   <button type="button" onClick={() => setIsVehicleModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
@@ -369,51 +487,49 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
           <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
             <FormSectionHeader icon={<MapPin className="text-rose-500" />} title="Territory Mapping" sub="Define pick-up and delivery points" />
             
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <FormInputWrapper label="Origin City/Point (Hub) *" error={errors.fromLocation?.message}>
-                  <div className="relative group/field">
-                    <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400" />
-                    <input 
-                      {...register('fromLocation')} 
-                      placeholder="e.g. Mumbai Hub"
-                      className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none" 
-                    />
-                  </div>
-                </FormInputWrapper>
+                <Textarea 
+                  label="Full Origin Address *" 
+                  error={errors.fromAddress?.message} 
+                  icon={<MapPin className="h-4 w-4 text-blue-500" />}
+                  rows={2}
+                  placeholder="Enter detailed street address, building, etc..."
+                  className="min-h-[80px]"
+                  {...register('fromAddress')} 
+                />
 
-                <FormInputWrapper label="Origin Full Address *" error={errors.fromAddress?.message}>
-                  <div className="relative group/field">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <input 
-                      {...register('fromAddress')} 
-                      placeholder="Hub / Warehouse"
-                      className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none" 
-                    />
-                  </div>
-                </FormInputWrapper>
+                <Textarea 
+                  label="Full Destination Address *" 
+                  error={errors.toAddress?.message} 
+                  icon={<MapPin className="h-4 w-4 text-emerald-500" />}
+                  rows={2}
+                  placeholder="Enter detailed street address, building, etc..."
+                  className="min-h-[80px]"
+                  {...register('toAddress')} 
+                />
+              </div>
 
-                <FormInputWrapper label="Destination Point *" error={errors.toLocation?.message}>
-                  <div className="relative group/field">
-                    <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400" />
-                    <input 
-                      {...register('toLocation')} 
-                      placeholder="Destination Hub"
-                      className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none" 
-                    />
-                  </div>
-                </FormInputWrapper>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Textarea 
+                  label="Origin City/Point *" 
+                  error={errors.fromLocation?.message} 
+                  icon={<Navigation className="h-4 w-4 text-blue-400" />}
+                  rows={2}
+                  className="min-h-[60px]"
+                  placeholder="e.g. Mumbai, Maharashtra..."
+                  {...register('fromLocation')} 
+                />
 
-                <FormInputWrapper label="Destination Address *" error={errors.toAddress?.message}>
-                  <div className="relative group/field">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <input 
-                      {...register('toAddress')} 
-                      placeholder="Hub Address"
-                      className="w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none" 
-                    />
-                  </div>
-                </FormInputWrapper>
+                <Textarea 
+                  label="Destination City/Point *" 
+                  error={errors.toLocation?.message} 
+                  icon={<Navigation className="h-4 w-4 text-emerald-400" />}
+                  rows={2}
+                  className="min-h-[60px]"
+                  placeholder="e.g. Bangalore, Karnataka..."
+                  {...register('toLocation')} 
+                />
               </div>
             </div>
           </div>
@@ -632,174 +748,196 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                   <tr>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest w-20">Sr.</th>
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[350px]">Consignee Identification *</th>
-                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[250px]">Pallet Specification *</th>
-                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[250px]">Code</th>
-                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-32 text-center">Qty *</th>
-                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-center">Unit Rate *</th>
+                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[280px]">Pallet Specification *</th>
+                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[120px]">Code</th>
+                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-24 text-center">Qty *</th>
+                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-center">Unit Rate *</th>
+                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-right">Total Amount *</th>
                     <th className="px-8 py-6 w-20"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {palletFields.map((field, index) => (
-                    <tr key={field.id} className="group hover:bg-blue-50/10 transition-all duration-300">
-                      <td className="px-8 py-8 align-top">
-                        <span className="text-sm font-black text-slate-200 group-hover:text-blue-500 transition-colors">#{index + 1}</span>
-                      </td>
-                      <td className="px-4 py-8 align-top">
-                        <div className="flex gap-2">
-                          <div className="flex-1 relative group/field">
-                            <div className="relative">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
-                                <User className="h-4 w-4" />
+                  {palletFields.map((field, index) => {
+                    const rowQty = Number(watchedPallets[index]?.qty) || 0;
+                    const rowRate = Number(watchedPallets[index]?.rate) || 0;
+                    const rowTotal = (rowQty * rowRate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                    return (
+                      <tr key={field.id} className="group hover:bg-blue-50/10 transition-all duration-300">
+                        <td className="px-8 py-8 align-top">
+                          <span className="text-sm font-black text-slate-200 group-hover:text-blue-500 transition-colors">#{index + 1}</span>
+                        </td>
+                        <td className="px-4 py-8 align-top">
+                          <div className="flex gap-2">
+                            <div className="flex-1 relative group/field">
+                              <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                                  <User className="h-4 w-4" />
+                                </div>
+                                <input 
+                                  {...register(`palletDetails.${index}.consigneeName` as any)} 
+                                  autoComplete="off"
+                                  placeholder="Search Consignee..." 
+                                  className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none" 
+                                />
                               </div>
-                              <input 
-                                {...register(`palletDetails.${index}.consigneeName` as any)} 
-                                autoComplete="off"
-                                placeholder="Search Consignee..." 
-                                className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none" 
-                              />
-                            </div>
-                            
-                            <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] overflow-y-auto">
-                              <div className="p-2 space-y-1">
-                                {consignees.length > 0 ? (
-                                  consignees
-                                    .filter(c => !watch(`palletDetails.${index}.consigneeName`) || c.name.toLowerCase().includes(watch(`palletDetails.${index}.consigneeName`).toLowerCase()))
-                                    .map(c => (
-                                      <button
-                                        key={c.id}
-                                        type="button"
-                                        onMouseDown={() => {
-                                          setValue(`palletDetails.${index}.consigneeName` as any, c.name, { shouldDirty: true });
-                                        }}
-                                        className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
-                                      >
-                                        <div>
-                                          <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{c.name}</p>
-                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{c.location || 'Active Consignee'}</p>
-                                        </div>
-                                      </button>
-                                    ))
-                                ) : (
-                                  <div className="p-4 text-center">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Consignees Found</p>
-                                  </div>
-                                )}
+                              
+                              <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] overflow-y-auto">
+                                <div className="p-2 space-y-1">
+                                  {consignees.length > 0 ? (
+                                    consignees
+                                      .filter(c => {
+                                        const inputVal = watch(`palletDetails.${index}.consigneeName`);
+                                        const matchesSearch = !inputVal || c.name.toLowerCase().includes(inputVal.toLowerCase());
+                                        const matchesDealer = !watchedDealerId || 
+                                          (c.dealers && c.dealers.some((d: any) => d.id === watchedDealerId));
+                                        return matchesSearch && matchesDealer;
+                                      })
+                                      .map(c => (
+                                        <button
+                                          key={c.id}
+                                          type="button"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            setValue(`palletDetails.${index}.consigneeName` as any, c.name, { shouldDirty: true });
+                                            (document.activeElement as HTMLElement)?.blur();
+                                          }}
+                                          className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                                        >
+                                          <div>
+                                            <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{c.name}</p>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{c.location || 'Active Consignee'}</p>
+                                          </div>
+                                        </button>
+                                      ))
+                                  ) : (
+                                    <div className="p-4 text-center">
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Consignees Found</p>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                            <button 
+                              type="button" 
+                              onClick={() => setIsConsigneeModalOpen(true)} 
+                              className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0 shadow-sm"
+                            >
+                              <Plus className="h-5 w-5" />
+                            </button>
                           </div>
+                        </td>
+                        <td className="px-4 py-8 align-top">
+                          <div className="flex gap-2">
+                            <div className="flex-1 relative group/field">
+                              <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                                  <Search className="h-4 w-4" />
+                                </div>
+                                <input 
+                                  {...register(`palletDetails.${index}.palletDisplayId` as any)} 
+                                  autoComplete="off"
+                                  placeholder="Search Pallet ID..." 
+                                  className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none" 
+                                />
+                              </div>
+                              
+                              <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] overflow-y-auto">
+                                <div className="p-2 space-y-1">
+                                  {palletMasters.length > 0 ? (
+                                    palletMasters
+                                      .filter(p => !watch(`palletDetails.${index}.palletDisplayId`) || p.palletId.toLowerCase().includes(watch(`palletDetails.${index}.palletDisplayId`).toLowerCase()) || p.name?.toLowerCase().includes(watch(`palletDetails.${index}.palletDisplayId`).toLowerCase()))
+                                      .map(p => (
+                                        <button
+                                          key={p.id}
+                                          type="button"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            setValue(`palletDetails.${index}.palletDisplayId` as any, p.palletId, { shouldDirty: true });
+                                            if (p.code) {
+                                              setValue(`palletDetails.${index}.code` as any, p.code, { shouldDirty: true });
+                                            }
+                                            (document.activeElement as HTMLElement)?.blur();
+                                          }}
+                                          className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                                        >
+                                          <div>
+                                            <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{p.palletId}</p>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.name || 'STANDARD PALLET'}</p>
+                                          </div>
+                                          {p.dimensions && (
+                                            <span className="px-2 py-1 bg-slate-100 rounded-md text-[9px] font-black text-slate-500 uppercase tracking-tighter">{p.dimensions}</span>
+                                          )}
+                                        </button>
+                                      ))
+                                  ) : (
+                                    <div className="p-4 text-center">
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Pallets Found</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <button 
+                              type="button" 
+                              onClick={() => setIsPalletModalOpen(true)} 
+                              className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0 shadow-sm"
+                            >
+                              <Plus className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-4 py-8 align-top">
+                          <div className="bg-slate-50/50 rounded-2xl border border-slate-100 shadow-inner h-12 flex items-center px-4">
+                            <input 
+                              type="text" 
+                              {...register(`palletDetails.${index}.code` as any)} 
+                              readOnly
+                              placeholder="-"
+                              className="w-full bg-transparent border-none font-bold text-slate-500 text-sm focus:ring-0 outline-none" 
+                            />
+                          </div>
+                        </td>
+                        <td className="px-4 py-8 align-top">
+                          <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-2">
+                            <input 
+                              type="number" 
+                              {...register(`palletDetails.${index}.qty` as any, { valueAsNumber: true })} 
+                              className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
+                              min="0"
+                            />
+                          </div>
+                        </td>
+                        <td className="px-4 py-8 align-top">
+                          <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-4">
+                            <span className="text-xs font-black text-slate-400 mr-2">₹</span>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              {...register(`palletDetails.${index}.rate` as any, { valueAsNumber: true })} 
+                              className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
+                              min="0"
+                            />
+                          </div>
+                        </td>
+                        <td className="px-4 py-8 align-top text-right">
+                          <div className="h-12 flex items-center justify-end pr-4">
+                            <span className="text-base font-black text-slate-800 tracking-tight">₹{rowTotal}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-8 text-center align-top">
                           <button 
                             type="button" 
-                            onClick={() => setIsConsigneeModalOpen(true)} 
-                            className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0 shadow-sm"
+                            onClick={() => removePallet(index)} 
+                            disabled={palletFields.length === 1}
+                            className="p-3 rounded-xl text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all disabled:opacity-0"
                           >
-                            <Plus className="h-5 w-5" />
+                            <Trash2 className="h-5 w-5" />
                           </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-8 align-top">
-                        <div className="flex gap-2">
-                          <div className="flex-1 relative group/field">
-                            <div className="relative">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
-                                <Search className="h-4 w-4" />
-                              </div>
-                              <input 
-                                {...register(`palletDetails.${index}.palletDisplayId` as any)} 
-                                autoComplete="off"
-                                placeholder="Search Pallet ID..." 
-                                className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none" 
-                              />
-                            </div>
-                            
-                            <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] overflow-y-auto">
-                              <div className="p-2 space-y-1">
-                                {palletMasters.length > 0 ? (
-                                  palletMasters
-                                    .filter(p => !watch(`palletDetails.${index}.palletDisplayId`) || p.palletId.toLowerCase().includes(watch(`palletDetails.${index}.palletDisplayId`).toLowerCase()) || p.name?.toLowerCase().includes(watch(`palletDetails.${index}.palletDisplayId`).toLowerCase()))
-                                    .map(p => (
-                                      <button
-                                        key={p.id}
-                                        type="button"
-                                        onMouseDown={() => {
-                                          setValue(`palletDetails.${index}.palletDisplayId` as any, p.palletId, { shouldDirty: true });
-                                          if (p.code) {
-                                            setValue(`palletDetails.${index}.code` as any, p.code, { shouldDirty: true });
-                                          }
-                                        }}
-                                        className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
-                                      >
-                                        <div>
-                                          <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{p.palletId}</p>
-                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.name || 'STANDARD PALLET'}</p>
-                                        </div>
-                                        {p.dimensions && (
-                                          <span className="px-2 py-1 bg-slate-100 rounded-md text-[9px] font-black text-slate-500 uppercase tracking-tighter">{p.dimensions}</span>
-                                        )}
-                                      </button>
-                                    ))
-                                ) : (
-                                  <div className="p-4 text-center">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Pallets Found</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsPalletModalOpen(true)} 
-                            className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0 shadow-sm"
-                          >
-                            <Plus className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-8 align-top">
-                        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 shadow-inner h-12 flex items-center px-4">
-                          <input 
-                            type="text" 
-                            {...register(`palletDetails.${index}.code` as any)} 
-                            readOnly
-                            placeholder="-"
-                            className="w-full bg-transparent border-none font-bold text-slate-500 text-sm focus:ring-0 outline-none" 
-                          />
-                        </div>
-                      </td>
-                      <td className="px-4 py-8 align-top">
-                        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-2">
-                          <input 
-                            type="number" 
-                            {...register(`palletDetails.${index}.qty` as any, { valueAsNumber: true })} 
-                            className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
-                            min="0"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-4 py-8 align-top">
-                        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-4">
-                          <span className="text-xs font-black text-slate-400 mr-2">₹</span>
-                          <input 
-                            type="number" 
-                            step="0.01"
-                            {...register(`palletDetails.${index}.rate` as any, { valueAsNumber: true })} 
-                            className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
-                            min="0"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-8 py-8 text-center align-top">
-                        <button 
-                          type="button" 
-                          onClick={() => removePallet(index)} 
-                          disabled={palletFields.length === 1}
-                          className="p-3 rounded-xl text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all disabled:opacity-0"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               <div className="p-10 bg-slate-50/30 flex justify-between items-center rounded-b-[2.5rem]">
@@ -815,6 +953,12 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                     <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Pallet Quantity</p>
                     <p className="text-4xl font-black text-slate-900 tracking-tighter">
                       {totals.totalQty} <span className="text-sm text-slate-400 font-bold ml-1 uppercase">Units</span>
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Amount</p>
+                    <p className="text-4xl font-black text-blue-600 tracking-tighter">
+                      ₹{totals.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
@@ -882,10 +1026,11 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
       </Modal>
 
       <Modal isOpen={isConsigneeModalOpen} onClose={() => setIsConsigneeModalOpen(false)} title="Quick Add Consignee" size="lg">
-        <ConsigneeForm onSuccess={(c) => { setConsignees(prev => [c, ...prev]); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
+        <ConsigneeForm defaultDealerId={watchedDealerId} onSuccess={(c) => { setConsignees(prev => [c, ...prev]); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
       </Modal>
 
     </form>
+    </div>
   );
 }
 

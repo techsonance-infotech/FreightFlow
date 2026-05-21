@@ -137,7 +137,7 @@ export default function ConsigneesPage() {
   const columns = [
     { 
       header: 'Consignee Profile', 
-      accessor: (row: Consignee) => (
+      accessor: (row: Consignee & { dealers?: any[] }) => (
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-lg shadow-sm border border-orange-100">
             <Building2 className="h-5 w-5 text-orange-600" />
@@ -145,6 +145,17 @@ export default function ConsigneesPage() {
           <div>
             <p className="font-black text-slate-900 leading-tight">{row.name}</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{row.companyName || 'No Sub-Company'}</p>
+            {row.dealers && row.dealers.length > 0 ? (
+              <div className="flex flex-wrap gap-1 mt-1.5 max-w-[220px]">
+                {row.dealers.map((d: any) => (
+                  <span key={d.id} className="inline-flex items-center bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md text-[8px] font-black uppercase border border-blue-100 shadow-sm">
+                    {d.name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1">General Customer</p>
+            )}
           </div>
         </div>
       )

@@ -31,6 +31,7 @@ export const DealerForm: React.FC<DealerFormProps> = ({ initialData, onSuccess, 
     defaultValues: {
       ...initialData,
       name: initialData?.name || '',
+      code: initialData?.code || '',
       address: initialData?.address || '',
       phone: initialData?.phone || '',
       tdsRate: initialData?.tdsRate || 0,
@@ -125,7 +126,10 @@ export const DealerForm: React.FC<DealerFormProps> = ({ initialData, onSuccess, 
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Business Identity</h3>
           </div>
           <Input label="Dealer/Company Name *" placeholder="e.g. Agarwal Logistics" error={errors.name?.message} {...register('name')} />
-          <Input label="Short Name" placeholder="e.g. AGW" error={errors.shortName?.message} {...register('shortName')} />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Short Name" placeholder="e.g. AGW" error={errors.shortName?.message} {...register('shortName')} />
+            <Input label="Dealer Code" placeholder="e.g. DLR-001" error={errors.code?.message} {...register('code')} />
+          </div>
           <Input label="Contact Person" placeholder="e.g. Rajesh Agarwal" error={errors.personName?.message} {...register('personName')} />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Phone Number *" placeholder="10-digit" error={errors.phone?.message} {...register('phone')} />

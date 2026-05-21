@@ -42,6 +42,10 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [isPalletModalOpen, setIsPalletModalOpen] = useState(false);
   const [successPallet, setSuccessPallet] = useState<any>(null);
+  
+  const [dealerSearch, setDealerSearch] = useState('');
+  const [consigneeSearch, setConsigneeSearch] = useState('');
+  const [vehicleSearch, setVehicleSearch] = useState('');
 
   const { 
     register, 
@@ -156,6 +160,48 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
     fetchNextLr();
   }, [watchedDate, initialData?.id, setValue, getValues]);
 
+  // Predictive Route logic
+  useEffect(() => {
+    if (!watchedDealerId || !watchedConsigneeId || initialData?.id) return;
+
+    const fetchLastRoute = async () => {
+      try {
+        const res = await fetch(`/api/v1/orders/last-route?dealerId=${watchedDealerId}&consigneeId=${watchedConsigneeId}`).then(r => r.json());
+        if (res?.route) {
+          if (!getValues('fromLocation')) setValue('fromLocation', res.route.fromLocation);
+          if (!getValues('toLocation')) setValue('toLocation', res.route.toLocation);
+          toast.info('Route auto-filled from history', { duration: 2000 });
+        }
+      } catch (e) {
+        console.error('Failed to fetch last route');
+      }
+    };
+
+    fetchLastRoute();
+  }, [watchedDealerId, watchedConsigneeId, initialData?.id]);
+
+  useEffect(() => {
+    if (!watchedDealerId || initialData?.id) return;
+    const dealer = dealers.find(d => d.id === watchedDealerId);
+    if (dealer?.address && !getValues('fromAddress')) {
+      setValue('fromAddress', dealer.address);
+    }
+    if (dealer?.location && !getValues('fromLocation')) {
+      setValue('fromLocation', dealer.location);
+    }
+  }, [watchedDealerId, dealers, initialData?.id]);
+
+  useEffect(() => {
+    if (!watchedConsigneeId || initialData?.id) return;
+    const consignee = consignees.find(c => c.id === watchedConsigneeId);
+    if (consignee?.address && !getValues('toAddress')) {
+      setValue('toAddress', consignee.address);
+    }
+    if (consignee?.location && !getValues('toLocation')) {
+      setValue('toLocation', consignee.location);
+    }
+  }, [watchedConsigneeId, consignees, initialData?.id]);
+
   // Calculation Logic
   useEffect(() => {
     const totalQty = watchedPallets.reduce((acc, curr) => acc + (parseInt(curr.qty as any) || 0), 0);
@@ -244,28 +290,62 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
     }
   };
 
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10 animate-in fade-in duration-700">
-      
-      {/* Premium Sticky Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100 -mx-8 px-8 py-4 mb-8 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
-            <Zap className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none uppercase">{initialData?.id ? 'Edit Pallet Load' : 'Establish Palletized Load'}</h2>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Advanced Fleet Ops Hub</p>
-          </div>
+  if (loadingMasters) {
+    return (
+      <div className="space-y-10 animate-pulse">
+        {/* Banner Skeleton */}
+        <div className="bg-slate-100 rounded-[2.5rem] p-10 h-44 flex flex-col justify-end space-y-4">
+          <div className="h-4 w-40 bg-slate-200 rounded-lg animate-pulse" />
+          <div className="h-8 w-80 bg-slate-200 rounded-lg animate-pulse" />
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 h-12 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 flex items-center gap-2">
-            {isSubmitting ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="h-4 w-4" />}
-            {isSubmitting ? 'Syncing...' : 'Publish Load'}
-          </Button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Left Column Skeleton */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-8">
+            <div className="bg-white rounded-3xl border border-slate-100 p-8 space-y-6">
+              <div className="flex gap-4 items-center">
+                <div className="h-10 w-10 bg-slate-100 rounded-xl" />
+                <div className="space-y-2">
+                  <div className="h-4 w-32 bg-slate-100 rounded-lg animate-pulse" />
+                  <div className="h-3 w-48 bg-slate-100 rounded-lg animate-pulse" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
+              <div className="flex justify-between items-center">
+                <div className="h-6 w-40 bg-slate-100 rounded-lg animate-pulse" />
+                <div className="h-12 w-32 bg-slate-100 rounded-xl animate-pulse" />
+              </div>
+              <div className="h-48 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+            </div>
+          </div>
+
+          {/* Right Column Skeleton */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-8">
+            <div className="bg-white rounded-3xl border border-slate-100 p-8 space-y-6">
+              <div className="h-6 w-32 bg-slate-100 rounded-lg animate-pulse" />
+              <div className="space-y-4">
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    );
+  }
 
+  return (
+    <div className="relative min-h-[500px]">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10 animate-in fade-in duration-700">
+      
       {/* Hero Banner (Non-sticky) */}
       <div className="bg-blue-600 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-blue-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
@@ -295,23 +375,55 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <FormInputWrapper label="Dealer / Consignor *" error={errors.dealerId?.message}>
                 <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watchedDealerId} onValueChange={(val) => {
-                      setValue('dealerId', val, { shouldValidate: true });
-                      const dealer = dealers.find(d => d.id === val);
-                      if (dealer) {
-                        setValue('companyName', dealer.name, { shouldDirty: true });
-                        setValue('partyCode', dealer.code || '', { shouldDirty: true });
-                      }
-                    }}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Registry Member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {dealers.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Dealer..."
+                        autoComplete="off"
+                        value={dealers.find(d => d.id === watch('dealerId'))?.name || dealerSearch}
+                        onChange={(e) => {
+                          setDealerSearch(e.target.value);
+                          if (!e.target.value) setValue('dealerId', '');
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {dealers
+                          .filter(d => !dealerSearch || d.name.toLowerCase().includes(dealerSearch.toLowerCase()))
+                          .map(d => (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setValue('dealerId', d.id, { shouldValidate: true });
+                                const dealer = dealers.find(x => x.id === d.id);
+                                if (dealer) {
+                                  setValue('companyName', dealer.name, { shouldDirty: true });
+                                  setValue('partyCode', dealer.code || '', { shouldDirty: true });
+                                }
+                                setDealerSearch(d.name);
+                                (document.activeElement as HTMLElement)?.blur();
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{d.name}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d.location || 'Active Dealer'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                  <input type="hidden" {...register('dealerId')} />
                   <button type="button" onClick={() => setIsDealerModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
@@ -320,16 +432,55 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
 
               <FormInputWrapper label="Consignee *" error={errors.consigneeId?.message}>
                 <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watchedConsigneeId} onValueChange={(val) => setValue('consigneeId', val, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Consignee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {consignees.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Consignee..."
+                        autoComplete="off"
+                        value={consignees.find(c => c.id === watch('consigneeId'))?.name || consigneeSearch}
+                        onChange={(e) => {
+                          setConsigneeSearch(e.target.value);
+                          if (!e.target.value) setValue('consigneeId', '');
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {consignees
+                          .filter(c => {
+                            const matchesSearch = !consigneeSearch || c.name.toLowerCase().includes(consigneeSearch.toLowerCase());
+                            const matchesDealer = !watchedDealerId || 
+                              (c.dealers && c.dealers.some((d: any) => d.id === watchedDealerId));
+                            return matchesSearch && matchesDealer;
+                          })
+                          .map(c => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setValue('consigneeId', c.id, { shouldValidate: true });
+                                setConsigneeSearch(c.name);
+                                (document.activeElement as HTMLElement)?.blur();
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{c.name}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{c.location || 'Active Consignee'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                  <input type="hidden" {...register('consigneeId')} />
                   <button type="button" onClick={() => setIsConsigneeModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
@@ -338,16 +489,50 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
 
               <FormInputWrapper label="Vehicle Allocation *" error={errors.vehicleId?.message}>
                 <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={watchedVehicleId} onValueChange={(val) => setValue('vehicleId', val, { shouldValidate: true })}>
-                      <SelectTrigger className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                        <SelectValue placeholder="Select Asset" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.regNo || v.plateNumber}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <Truck className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Vehicle..."
+                        autoComplete="off"
+                        value={vehicles.find(v => v.id === watch('vehicleId'))?.regNo || vehicleSearch}
+                        onChange={(e) => {
+                          setVehicleSearch(e.target.value);
+                          if (!e.target.value) setValue('vehicleId', '');
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {vehicles
+                          .filter(v => !vehicleSearch || (v.regNo || v.plateNumber || '').toLowerCase().includes(vehicleSearch.toLowerCase()))
+                          .map(v => (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setValue('vehicleId', v.id, { shouldValidate: true });
+                                setVehicleSearch(v.regNo || v.plateNumber);
+                                (document.activeElement as HTMLElement)?.blur();
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{v.regNo || v.plateNumber}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{v.type || 'Standard Fleet'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                  <input type="hidden" {...register('vehicleId')} />
                   <button type="button" onClick={() => setIsVehicleModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
@@ -401,72 +586,48 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             <FormSectionHeader icon={<MapPin className="text-rose-500" />} title="Territory Mapping" sub="Define pick-up and delivery points" />
             
             <div className="space-y-8">
-              <div className="grid grid-cols-1 gap-8">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Origin Address *</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-4 h-4 w-4 text-blue-500" />
-                    <Textarea 
-                      {...register('fromAddress')} 
-                      placeholder="Enter detailed street address, building, etc..."
-                      className={cn(
-                        "min-h-[80px] pl-12 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none",
-                        errors.fromAddress && "border-rose-300 ring-4 ring-rose-50"
-                      )}
-                    />
-                    {errors.fromAddress && <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1.5 ml-1"><AlertCircle className="h-3 w-3" /> {errors.fromAddress.message}</p>}
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Textarea 
+                  label="Full Origin Address *" 
+                  error={errors.fromAddress?.message} 
+                  icon={<MapPin className="h-4 w-4 text-blue-500" />}
+                  rows={2}
+                  placeholder="Enter detailed street address, building, etc..."
+                  className="min-h-[80px]"
+                  {...register('fromAddress')} 
+                />
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Destination Address *</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-4 h-4 w-4 text-emerald-500" />
-                    <Textarea 
-                      {...register('toAddress')} 
-                      placeholder="Enter detailed street address, building, etc..."
-                      className={cn(
-                        "min-h-[80px] pl-12 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none",
-                        errors.toAddress && "border-rose-300 ring-4 ring-rose-50"
-                      )}
-                    />
-                    {errors.toAddress && <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1.5 ml-1"><AlertCircle className="h-3 w-3" /> {errors.toAddress.message}</p>}
-                  </div>
-                </div>
+                <Textarea 
+                  label="Full Destination Address *" 
+                  error={errors.toAddress?.message} 
+                  icon={<MapPin className="h-4 w-4 text-emerald-500" />}
+                  rows={2}
+                  placeholder="Enter detailed street address, building, etc..."
+                  className="min-h-[80px]"
+                  {...register('toAddress')} 
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Origin City/Point *</label>
-                  <div className="relative">
-                    <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400" />
-                    <input 
-                      {...register('fromLocation')} 
-                      placeholder="e.g. Mumbai, Maharashtra..."
-                      className={cn(
-                        "w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none",
-                        errors.fromLocation && "border-rose-300 ring-4 ring-rose-50"
-                      )}
-                    />
-                    {errors.fromLocation && <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1.5 ml-1"><AlertCircle className="h-3 w-3" /> {errors.fromLocation.message}</p>}
-                  </div>
-                </div>
+                <Textarea 
+                  label="Origin City/Point *" 
+                  error={errors.fromLocation?.message} 
+                  icon={<Navigation className="h-4 w-4 text-blue-400" />}
+                  rows={2}
+                  className="min-h-[60px]"
+                  placeholder="e.g. Mumbai, Maharashtra..."
+                  {...register('fromLocation')} 
+                />
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Destination City/Point *</label>
-                  <div className="relative">
-                    <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400" />
-                    <input 
-                      {...register('toLocation')} 
-                      placeholder="e.g. Bangalore, Karnataka..."
-                      className={cn(
-                        "w-full h-12 pl-12 pr-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all outline-none",
-                        errors.toLocation && "border-rose-300 ring-4 ring-rose-50"
-                      )}
-                    />
-                    {errors.toLocation && <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1.5 ml-1"><AlertCircle className="h-3 w-3" /> {errors.toLocation.message}</p>}
-                  </div>
-                </div>
+                <Textarea 
+                  label="Destination City/Point *" 
+                  error={errors.toLocation?.message} 
+                  icon={<Navigation className="h-4 w-4 text-emerald-400" />}
+                  rows={2}
+                  className="min-h-[60px]"
+                  placeholder="e.g. Bangalore, Karnataka..."
+                  {...register('toLocation')} 
+                />
               </div>
             </div>
           </div>
@@ -757,11 +918,13 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                                     <button
                                       key={p.id}
                                       type="button"
-                                      onMouseDown={() => {
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
                                         setValue(`palletDetails.${index}.palletDisplayId`, p.palletId, { shouldDirty: true });
                                         if (p.code) {
                                           setValue(`palletDetails.${index}.code`, p.code, { shouldDirty: true });
                                         }
+                                        (document.activeElement as HTMLElement)?.blur();
                                       }}
                                       className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
                                     >
@@ -866,11 +1029,12 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
               </div>
             </div>
           </div>
-        </div>
       </div>
+    </div>
+    </div>
 
         {/* Actions */}
-        <div className="flex justify-end items-center gap-4 pt-4">
+        <div className="flex justify-end items-center gap-4 pt-8">
           <Button 
             type="button" 
             variant="ghost" 
@@ -888,13 +1052,12 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             {isSubmitting ? 'ESTABLISHING...' : 'PUBLISH CONSIGNMENT'}
           </Button>
         </div>
-      </div>
       <Modal isOpen={isDealerModalOpen} onClose={() => setIsDealerModalOpen(false)} title="Quick Add Dealer" size="lg">
         <DealerForm onSuccess={(d) => { setDealers(prev => [d, ...prev]); setValue('dealerId', d.id!); setIsDealerModalOpen(false); }} onCancel={() => setIsDealerModalOpen(false)} />
       </Modal>
 
       <Modal isOpen={isConsigneeModalOpen} onClose={() => setIsConsigneeModalOpen(false)} title="Quick Add Consignee" size="lg">
-        <ConsigneeForm onSuccess={(c) => { setConsignees(prev => [c, ...prev]); setValue('consigneeId', c.id!); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
+        <ConsigneeForm defaultDealerId={watchedDealerId} onSuccess={(c) => { setConsignees(prev => [c, ...prev]); setValue('consigneeId', c.id!); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
       </Modal>
 
       <Modal isOpen={!!successPallet} onClose={() => onSuccess(successPallet)} title="" size="md">
@@ -951,6 +1114,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
       </Modal>
 
     </form>
+    </div>
   );
 }
 

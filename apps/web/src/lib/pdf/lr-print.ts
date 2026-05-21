@@ -2,8 +2,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 
-// Helper to convert Image URL to Base64
-async function getBase64Image(imgUrl: string): Promise<string | null> {
+// Helper to convert Image URL to Base64 with dimension metadata
+async function getBase64Image(imgUrl: string): Promise<{ data: string; width: number; height: number } | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
@@ -14,7 +14,11 @@ async function getBase64Image(imgUrl: string): Promise<string | null> {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      resolve({
+        data: canvas.toDataURL('image/png'),
+        width: img.width,
+        height: img.height
+      });
     };
     img.onerror = () => resolve(null);
   });
@@ -33,7 +37,10 @@ export async function generateLRPrintPDF(order: any, company: any) {
     try {
       const logoData = await getBase64Image(company.logoUrl);
       if (logoData) {
-        doc.addImage(logoData, 'PNG', (pageWidth / 2) - 20, currentY, 40, 15);
+        const targetHeight = 15;
+        const targetWidth = Math.min(80, targetHeight * (logoData.width / logoData.height));
+        const centeredX = (pageWidth / 2) - (targetWidth / 2);
+        doc.addImage(logoData.data, 'PNG', centeredX, currentY, targetWidth, targetHeight);
         currentY += 16; // Reduced space after logo
       }
     } catch (e) {}
@@ -203,7 +210,7 @@ export async function generateLRPrintPDF(order: any, company: any) {
     try {
       const sigData = await getBase64Image(company.signatureUrl);
       if (sigData) {
-        doc.addImage(sigData, 'PNG', pageWidth - margin - 35, currentY + 11, 30, 8);
+        doc.addImage(sigData.data, 'PNG', pageWidth - margin - 35, currentY + 11, 30, 8);
       }
     } catch (e) {}
   }

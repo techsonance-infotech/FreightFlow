@@ -3,8 +3,8 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { numberToWords } from '../utils/number-to-words';
 
-// Helper to convert Image URL to Base64
-async function getBase64Image(imgUrl: string): Promise<string | null> {
+// Helper to convert Image URL to Base64 with dimension metadata
+async function getBase64Image(imgUrl: string): Promise<{ data: string; width: number; height: number } | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
@@ -15,7 +15,11 @@ async function getBase64Image(imgUrl: string): Promise<string | null> {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      resolve({
+        data: canvas.toDataURL('image/png'),
+        width: img.width,
+        height: img.height
+      });
     };
     img.onerror = () => resolve(null);
   });
@@ -34,9 +38,7 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   currentY += 4;
 
   // 1. Merged Master Box: Company + Consignor/Consignee + Logistics
-  const masterBoxHeight = 50; // Maximum compaction
   doc.setDrawColor(200);
-  doc.rect(margin, currentY, boxWidth, masterBoxHeight);
   
   // Header bar (Blue-ish background for Copy Title)
   doc.setFontSize(8);
@@ -46,25 +48,30 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   doc.rect(margin + 0.1, currentY + 0.1, boxWidth - 0.2, 5, 'F');
   doc.text(copyTitle.toUpperCase(), pageWidth / 2, currentY + 3.5, { align: 'center' });
   
-  // Section A: Company Branding (Compact)
+  // Section A: Company Branding (Compact & Premium)
   let brandY = currentY + 10;
+  let textStartX = margin + 20; // Default fallback if no logo
+  
   if (company?.logoUrl) {
     try {
       const logoData = await getBase64Image(company.logoUrl);
       if (logoData) {
-        doc.addImage(logoData, 'PNG', margin + 2, brandY - 4, 15, 8);
+        const targetHeight = 14; // Increased for a highly prominent, beautiful display
+        const targetWidth = Math.min(25, targetHeight * (logoData.width / logoData.height));
+        doc.addImage(logoData.data, 'PNG', margin + 2, brandY - 4, targetWidth, targetHeight);
+        textStartX = margin + 2 + targetWidth + 3; // Dynamic padding of 3mm after the logo
       }
     } catch (e) {}
   }
 
   doc.setFontSize(9);
-  doc.text(company?.name?.toUpperCase() || 'COMPANY NAME', margin + 20, brandY);
+  doc.text(company?.name?.toUpperCase() || 'COMPANY NAME', textStartX, brandY);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  const supplierLines = doc.splitTextToSize(company?.address || '', boxWidth - 85);
-  doc.text(supplierLines, margin + 20, brandY + 3.5);
+  const supplierLines = doc.splitTextToSize(company?.address || '', boxWidth - (textStartX - margin) - 65);
+  doc.text(supplierLines, textStartX, brandY + 3.5);
   doc.setFont('helvetica', 'bold');
-  doc.text(`GST No: ${company?.gstin?.toUpperCase() || '-'}`, margin + 20, brandY + 10);
+  doc.text(`GST No: ${company?.gstin?.toUpperCase() || '-'}`, textStartX, brandY + 10);
 
   // Metadata (Right side stacked)
   doc.setFontSize(8);
@@ -76,25 +83,59 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   doc.setDrawColor(230);
   doc.line(margin, currentY + 25, pageWidth - margin, currentY + 25);
 
-  // Section B: Consignor & Consignee (Compact)
+  // Section B: Consignor & Consignee (Dynamic Address, GST, PAN & Code)
   let partyY = currentY + 29;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.text('CONSIGNOR (DEALER)', margin + 2, partyY);
   doc.text('CONSIGNEE', pageWidth / 2 + 2, partyY);
   
+  // Dealer Name & Bold Code
   doc.setFont('helvetica', 'normal');
-  doc.text(order.dealer?.name?.toUpperCase() || '-', margin + 2, partyY + 3.5);
-  doc.text(order.consignee?.name?.toUpperCase() || '-', pageWidth / 2 + 2, partyY + 3.5);
+  const dName = order.dealer?.name?.toUpperCase() || '-';
+  doc.text(dName, margin + 2, partyY + 3.5);
+  if (order.dealer?.code) {
+    const dNameWidth = doc.getTextWidth(dName);
+    doc.setFont('helvetica', 'bold');
+    doc.text(` - ${order.dealer.code}`, margin + 2 + dNameWidth, partyY + 3.5);
+    doc.setFont('helvetica', 'normal');
+  }
+
+  // Consignee Name
+  const cName = order.consignee?.name?.toUpperCase() || '-';
+  doc.text(cName, pageWidth / 2 + 2, partyY + 3.5);
+  if (order.consignee?.code) {
+    const cNameWidth = doc.getTextWidth(cName);
+    doc.setFont('helvetica', 'bold');
+    doc.text(` - ${order.consignee.code}`, pageWidth / 2 + 2 + cNameWidth, partyY + 3.5);
+    doc.setFont('helvetica', 'normal');
+  }
   
-  doc.text(`GST: ${order.dealer?.gstin || '-'}`, margin + 2, partyY + 7);
-  doc.text(`GST: ${order.consignee?.gstin || '-'}`, pageWidth / 2 + 2, partyY + 7);
+  // Wrapped Address Lines
+  const dAddr = doc.splitTextToSize(order.dealer?.address || '-', (boxWidth / 2) - 8);
+  const cAddr = doc.splitTextToSize(order.consignee?.address || order.toAddress || '-', (boxWidth / 2) - 8);
+  doc.text(dAddr, margin + 2, partyY + 7);
+  doc.text(cAddr, pageWidth / 2 + 2, partyY + 7);
+
+  // Calculate wrapped address height offset
+  const addrHeight = Math.max(dAddr.length, cAddr.length) * 3;
+  let taxY = partyY + 7 + addrHeight + 1.5;
+
+  // GST & PAN Info
+  const dGST = order.dealer?.gstin || '-';
+  const dPAN = order.dealer?.pan || '-';
+  doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, taxY);
+
+  const cGST = order.consignee?.gstin || '-';
+  const cPAN = order.consignee?.pan || '-';
+  doc.text(`GST: ${cGST} | PAN: ${cPAN}`, pageWidth / 2 + 2, taxY);
 
   // Horizontal Divider 2
-  doc.line(margin, currentY + 41, pageWidth - margin, currentY + 41);
+  const divider2Y = taxY + 4;
+  doc.line(margin, divider2Y, pageWidth - margin, divider2Y);
 
-  // Section C: Logistics Row (Includes E-Way Bill now)
-  let logY = currentY + 45;
+  // Section C: Logistics Row (Includes E-Way Bill)
+  let logY = divider2Y + 4;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.text(`Veh No: ${order.vehicle?.plateNumber || order.vehicle?.regNo || '-'}`, margin + 2, logY);
@@ -102,6 +143,10 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   doc.setFont('helvetica', 'normal');
   doc.text(`From: ${order.fromLocation || '-'}`, margin + 95, logY);
   doc.text(`To: ${order.toLocation || '-'}`, pageWidth / 2 + 50, logY);
+
+  const masterBoxHeight = (logY + 4) - currentY;
+  doc.setDrawColor(200);
+  doc.rect(margin, currentY, boxWidth, masterBoxHeight);
 
   currentY += masterBoxHeight + 2;
 
@@ -186,7 +231,7 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
       if (sigData) {
         // Moved further upward and slightly to the right to account for image padding
         // footerContentY + 1 centers it better if the image has white space at the top
-        doc.addImage(sigData, 'PNG', pageWidth - margin - 30, footerContentY + 1, 30, 15);
+        doc.addImage(sigData.data, 'PNG', pageWidth - margin - 30, footerContentY + 1, 30, 15);
       }
     } catch (e) {
       console.error('Failed to add signature to PDF:', e);

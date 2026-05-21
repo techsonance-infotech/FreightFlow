@@ -48,6 +48,7 @@ interface RecordItem {
   lrNo: string;
   billNo: string;
   dealerName: string;
+  consigneeName: string;
   loadType: string;
   weight: number;
   boxes: number;
@@ -72,8 +73,46 @@ export default function DealerEntryReportPage() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
-  const totalPages = Math.ceil(records.length / itemsPerPage);
-  const paginatedRecords = records.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Get processed records for the table preview dynamically based on cumulative view toggle
+  const processedRecords = React.useMemo(() => {
+    if (isCumulative) {
+      const cumulative: any[] = [];
+      records.forEach(r => {
+        r.details.forEach((d, idx) => {
+          cumulative.push({
+            id: `${r.id}-${d.product}-${d.type}-${idx}`,
+            date: r.date,
+            lrNo: r.lrNo,
+            billNo: r.billNo,
+            dealerName: r.dealerName,
+            consigneeName: r.consigneeName,
+            loadType: d.type || r.loadType,
+            boxes: d.qty,
+            weight: d.weight,
+            productDescription: d.product || 'Standard Cargo',
+          });
+        });
+      });
+      return cumulative;
+    } else {
+      return records.map(r => ({
+        id: r.id,
+        date: r.date,
+        lrNo: r.lrNo,
+        billNo: r.billNo,
+        dealerName: r.dealerName,
+        consigneeName: r.consigneeName,
+        loadType: r.loadType,
+        boxes: r.boxes,
+        weight: r.weight,
+        productDescription: r.details.map((d: any) => `${d.product} (${d.qty})`).join(', ') || 'Standard Cargo',
+      }));
+    }
+  }, [records, isCumulative]);
+
+  const totalPages = Math.ceil(processedRecords.length / itemsPerPage);
+  const paginatedRecords = processedRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   useEffect(() => {
     async function init() {
@@ -161,13 +200,23 @@ export default function DealerEntryReportPage() {
     drawHeader();
 
     if (isCumulative) {
-      // Group by Product/Type
+      // Group by Date, Consignee, LR No, Product, Type
       const cumulative: Record<string, any> = {};
       records.forEach(r => {
         r.details.forEach(d => {
-          const key = `${d.product}-${d.type}`;
+          const dateStr = format(new Date(r.date), 'dd/MM/yy');
+          const key = `${dateStr}-${r.consigneeName || 'Direct Customer'}-${r.lrNo || '-'}-${d.product || 'Standard Cargo'}-${d.type || 'BOX'}`;
           if (!cumulative[key]) {
-            cumulative[key] = { product: d.product, type: d.type, qty: 0, weight: 0, records: 0 };
+            cumulative[key] = {
+              date: dateStr,
+              consigneeName: r.consigneeName || 'Direct Customer',
+              lrNo: r.lrNo || '-',
+              product: d.product || 'Standard Cargo',
+              type: d.type || 'BOX',
+              qty: 0,
+              weight: 0,
+              records: 0
+            };
           }
           cumulative[key].qty += d.qty;
           cumulative[key].weight += d.weight;
@@ -177,24 +226,25 @@ export default function DealerEntryReportPage() {
 
       const tableBody = Object.values(cumulative).map((item, idx) => [
         (idx + 1).toString(),
-        item.product || 'Standard Cargo',
-        item.type || 'BOX',
+        item.date,
+        item.consigneeName,
+        item.lrNo,
+        item.product,
+        item.type,
         item.qty.toString(),
-        item.weight.toFixed(2),
-        item.records.toString()
+        item.weight.toFixed(2)
       ]);
 
       autoTable(doc, {
         startY: currentY,
-        head: [['SR.', 'PRODUCT DESCRIPTION', 'TYPE', 'TOTAL QTY/BOX', 'TOTAL WEIGHT', 'NO. OF ENTRIES']],
+        head: [['SR.', 'DATE', 'CONSIGNEE / CUSTOMER', 'LR NO.', 'PRODUCT DESCRIPTION', 'TYPE', 'TOTAL QTY/BOX', 'TOTAL WEIGHT']],
         body: tableBody,
         theme: 'grid',
         headStyles: { fillColor: [15, 43, 91], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
         bodyStyles: { fontSize: 8 },
-        foot: [['', 'GRAND TOTAL', '', 
+        foot: [['', '', '', '', 'GRAND TOTAL', '', 
           Object.values(cumulative).reduce((a, b) => a + b.qty, 0).toString(),
-          Object.values(cumulative).reduce((a, b) => a + b.weight, 0).toFixed(2),
-          ''
+          Object.values(cumulative).reduce((a, b) => a + b.weight, 0).toFixed(2)
         ]],
         footStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontStyle: 'bold' }
       });
@@ -205,23 +255,23 @@ export default function DealerEntryReportPage() {
         format(new Date(r.date), 'dd/MM/yy'),
         r.lrNo,
         r.dealerName,
+        r.consigneeName,
+        r.details.map((d: any) => `${d.product} (${d.qty})`).join(', ') || 'Standard Cargo',
         r.loadType === 'PALLET' ? 'PALLET' : 'BOX',
         r.boxes.toString(),
-        r.weight.toFixed(2),
-        r.billNo
+        r.weight.toFixed(2)
       ]);
 
       autoTable(doc, {
         startY: currentY,
-        head: [['SR.', 'DATE', 'LR NO.', 'DEALER', 'TYPE', 'BOX', 'WEIGHT', 'INV. NO']],
+        head: [['SR.', 'DATE', 'LR NO.', 'DEALER', 'CONSIGNEE / CUSTOMER', 'PRODUCT DESCRIPTION', 'TYPE', 'BOX', 'WEIGHT']],
         body: tableBody,
         theme: 'grid',
         headStyles: { fillColor: [15, 43, 91], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
         bodyStyles: { fontSize: 8 },
-        foot: [['', '', '', 'TOTAL', '', 
+        foot: [['', '', '', '', 'TOTAL', '', '', 
           records.reduce((a, b) => a + b.boxes, 0).toString(),
-          records.reduce((a, b) => a + b.weight, 0).toFixed(2),
-          ''
+          records.reduce((a, b) => a + b.weight, 0).toFixed(2)
         ]],
         footStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontStyle: 'bold' }
       });
@@ -405,18 +455,23 @@ export default function DealerEntryReportPage() {
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">LR No</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Dealer</th>
+                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Consignee / Customer</th>
+                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Product Description</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Type</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Box</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Weight (KG)</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Invoice Ref</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {paginatedRecords.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/30 transition-colors group">
                   <td className="px-8 py-6 text-xs font-bold text-slate-600">{format(new Date(r.date), 'dd MMM yyyy')}</td>
-                  <td className="px-8 py-6 text-xs font-black text-slate-900 group-hover:text-brand-900 transition-colors">{r.lrNo}</td>
+                  <td className="px-8 py-6 text-xs font-black text-slate-900 group-hover:text-brand-900 transition-colors">
+                    {r.lrNo || '-'}
+                  </td>
                   <td className="px-8 py-6 text-xs font-bold text-slate-700">{r.dealerName}</td>
+                  <td className="px-8 py-6 text-xs font-bold text-slate-700">{r.consigneeName}</td>
+                  <td className="px-8 py-6 text-xs font-bold text-slate-700">{r.productDescription}</td>
                   <td className="px-8 py-6">
                     <span className={cn(
                       "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
@@ -425,12 +480,11 @@ export default function DealerEntryReportPage() {
                   </td>
                   <td className="px-8 py-6 text-xs font-black text-slate-900 text-center">{r.boxes}</td>
                   <td className="px-8 py-6 text-xs font-black text-slate-900 text-right">{r.weight.toFixed(2)}</td>
-                  <td className="px-8 py-6 text-xs font-bold text-slate-400 text-right">{r.billNo}</td>
                 </tr>
               ))}
               {records.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-24 text-center">
+                  <td colSpan={8} className="py-24 text-center">
                     <div className="h-16 w-16 rounded-full bg-slate-50 mx-auto flex items-center justify-center mb-4">
                       <FileText className="h-8 w-8 text-slate-200" />
                     </div>

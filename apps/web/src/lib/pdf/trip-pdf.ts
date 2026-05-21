@@ -2,8 +2,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 
-// Helper to convert Image URL to Base64
-async function getBase64Image(imgUrl: string): Promise<string | null> {
+// Helper to convert Image URL to Base64 with dimension metadata
+async function getBase64Image(imgUrl: string): Promise<{ data: string; width: number; height: number } | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
@@ -14,7 +14,11 @@ async function getBase64Image(imgUrl: string): Promise<string | null> {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      resolve({
+        data: canvas.toDataURL('image/png'),
+        width: img.width,
+        height: img.height
+      });
     };
     img.onerror = () => resolve(null);
   });
@@ -32,7 +36,9 @@ export async function generateTripPDF(trip: any, company: any) {
     try {
       const logoData = await getBase64Image(company.logoUrl);
       if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, currentY, 35, 12);
+        const targetHeight = 12;
+        const targetWidth = Math.min(50, targetHeight * (logoData.width / logoData.height));
+        doc.addImage(logoData.data, 'PNG', margin, currentY, targetWidth, targetHeight);
       }
     } catch (e) {}
   }
