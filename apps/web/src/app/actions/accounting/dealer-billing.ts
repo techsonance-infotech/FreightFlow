@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@freightflow/db';
+import { prisma, Prisma } from '@freightflow/db';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth-utils';
 
@@ -38,7 +38,7 @@ export async function getDealerRecords(
   dealerId: string,
   startDate?: Date,
   endDate?: Date,
-  loadType: 'BOX' | 'PALLET' | 'BOTH' = 'BOTH',
+  loadType: 'BOX' | 'PALLET' | 'BOTH' | 'PALLET_RETURN' = 'BOTH',
   companyId?: string
 ) {
   try {
@@ -83,9 +83,13 @@ export async function getDealerRecords(
       });
     }
 
-    if (loadType === 'PALLET' || loadType === 'BOTH') {
+    if (loadType === 'PALLET' || loadType === 'BOTH' || loadType === 'PALLET_RETURN') {
       palletRecords = await prisma.orderPallet.findMany({
         ...query,
+        where: {
+          ...query.where,
+          type: loadType === 'PALLET_RETURN' ? 'RETURN' : 'OUTWARD'
+        },
         include: {
           ...query.include,
           palletDetails: true,
@@ -111,7 +115,7 @@ export async function getDealerRecords(
 
     const unifiedPallet = palletRecords.map(r => ({
       ...r,
-      loadType: 'PALLET' as const,
+      loadType: r.type === 'RETURN' ? ('PALLET_RETURN' as const) : ('PALLET' as const),
       cgstPct: Number(r.cgstPct || 0),
       sgstPct: Number(r.sgstPct || 0),
       igstPct: Number(r.igstPct || 0),
@@ -119,10 +123,10 @@ export async function getDealerRecords(
       rate: Number(r.rate || 0) / 100, // Convert paise to rupees
       gstPct: Number(r.gstPct || 0),
       details: (r.palletDetails || []).map((d: any) => ({
-        productName: d.palletDisplayId || 'Pallet',
+        productName: d.palletDisplayId || (r.type === 'RETURN' ? 'Empty Pallet Return' : 'Pallet'),
         weight: Number(d.weight || d.qty || 0), 
         boxCount: d.qty,
-        packingType: 'Pallet',
+        packingType: r.type === 'RETURN' ? 'Pallet Return' : 'Pallet',
       })),
     }));
 
@@ -186,7 +190,7 @@ export async function getNextInvoiceNumber() {
     const fyString = `${fyStart.toString().slice(-2)}-${fyEnd.toString().slice(-2)}`;
     const prefix = `INV/${fyString}/`;
 
-    // Search in Orders (gstBillNo)
+    // 1. Search in standard Orders (gstBillNo)
     const lastOrder = await prisma.order.findFirst({
       where: {
         companyId,
@@ -196,13 +200,35 @@ export async function getNextInvoiceNumber() {
       select: { gstBillNo: true }
     });
 
-    let nextSeq = 1;
+    // 2. Fetch all Pallets containing metadata with invoice info to check sequence
+    const palletRecords = await prisma.orderPallet.findMany({
+      where: {
+        companyId,
+        metadata: {
+          not: Prisma.DbNull
+        }
+      },
+      select: { metadata: true }
+    });
+
+    let maxSeq = 0;
+
     if (lastOrder?.gstBillNo) {
       const parts = lastOrder.gstBillNo.split('/');
       const seq = parseInt(parts[parts.length - 1]);
-      if (!isNaN(seq)) nextSeq = seq + 1;
+      if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
     }
 
+    for (const p of palletRecords) {
+      const meta = p.metadata as any;
+      if (meta && typeof meta === 'object' && meta.invoiceNo && typeof meta.invoiceNo === 'string' && meta.invoiceNo.startsWith(prefix)) {
+        const parts = meta.invoiceNo.split('/');
+        const seq = parseInt(parts[parts.length - 1]);
+        if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+      }
+    }
+
+    const nextSeq = maxSeq + 1;
     return `${prefix}${nextSeq.toString().padStart(3, '0')}`;
   } catch (e) {
     console.error('Error fetching next invoice number:', e);

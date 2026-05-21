@@ -19,13 +19,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const { user } = session;
-  
+
   // Verify License
   const licenseStatus = await verifyTenantLicense(user.tenantId);
-  
+
   // Allow access to support page even if license is invalid
   const isSupportPage = pathname === '/dashboard/support';
-  
+
   if (!licenseStatus.valid && !isSupportPage) {
     return <LicenseExpiredScreen error={licenseStatus.error || 'Your license has expired.'} />;
   }
@@ -48,7 +48,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen bg-slate-50 flex-col">
       <TrialBanner daysRemaining={licenseStatus.daysRemaining} plan={licenseStatus.plan} />
-      
+
       <div className="relative flex-1 overflow-hidden">
         <Sidebar user={user} />
 
@@ -58,15 +58,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="flex-1 p-8 overflow-y-auto">
             {children}
           </div>
-        
-        <footer className="px-8 py-8 border-t border-slate-200 text-center bg-slate-50/50">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
-            FreightFlow &copy; {new Date().getFullYear()} &bull; Logistics & Supply Chain Intelligence
-          </p>
-          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 mt-2">
-            Proudly Built & Powered by <Link href="/dashboard/about" className="text-blue-500 hover:text-blue-600 transition-colors">TechSonance InfoTech LLP</Link>
-          </p>
-        </footer>
+
+          <footer className="px-8 py-8 border-t border-slate-200 text-center bg-slate-50/50">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+              FreightFlow &copy; {new Date().getFullYear()} &bull; Logistics & Supply Chain Intelligence
+            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 mt-2">
+              Proudly Built & Powered by <Link href="/dashboard/about" className="text-blue-500 hover:text-blue-600 transition-colors">TechSonance InfoTech LLP</Link>
+            </p>
+          </footer>
         </main>
       </div>
     </div>

@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { 
-  Bell, Settings, User as UserIcon, LogOut, 
+import {
+  Bell, Settings, User as UserIcon, LogOut,
   Menu, Sun, Moon, Search, ChevronDown, ShieldCheck,
   MessageSquare
 } from 'lucide-react';
@@ -53,9 +53,9 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
             </h2>
           </div>
         </div>
-        
+
         <div className="h-10 w-[1px] bg-neutral-100 hidden xl:block mx-1 shrink-0" />
-        
+
         <CompanySwitcher currentCompanyId={user.companyId} />
       </div>
 
@@ -66,8 +66,8 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
         <div className="flex items-center gap-3">
           {/* Notifications Center */}
           <NotificationCenter />
-          
-          <button 
+
+          <button
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all hover:bg-neutral-50 hover:text-accent-600 shadow-sm active:scale-95"
           >
             <Moon className="h-5 w-5" />
@@ -78,7 +78,7 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
 
         {/* User Account Section */}
         <div className="relative">
-          <button 
+          <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex items-center gap-4 p-1.5 pr-3 rounded-2xl transition-all hover:bg-neutral-50 group border border-transparent hover:border-neutral-100 active:scale-[0.98]"
           >
@@ -106,7 +106,7 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
                   <p className="text-sm font-bold text-neutral-900 mt-1">{user.name}</p>
                   <p className="text-[10px] font-medium text-neutral-500 truncate">{user.email}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <Link href="/dashboard/settings/profile" onClick={() => setIsProfileOpen(false)}>
                     <DropdownItem icon={<UserIcon className="h-4 w-4" />} label="My Profile" desc="Personal information" />
@@ -118,9 +118,9 @@ export function Topbar({ title = 'Dashboard', user }: TopbarProps) {
                     <DropdownItem icon={<MessageSquare className="h-4 w-4 text-blue-500" />} label="Help & Support" desc="Chat with our team" />
                   </Link>
                 </div>
-                
+
                 <div className="mt-2 pt-2 border-t border-neutral-50">
-                  <button 
+                  <button
                     onClick={() => {
                       setIsProfileOpen(false);
                       logout();

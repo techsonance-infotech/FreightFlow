@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { 
   getGlobalSupportMetrics, 
-  getGlobalTicketRegistry 
+  getGlobalTicketRegistry,
+  getGlobalLicenseRequests
 } from '@/app/actions/admin/support';
 import { SupportMetrics } from '@/components/admin/support/support-metrics';
 import { TicketRegistry } from '@/components/admin/support/ticket-registry';
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils';
 export default async function AdminSupportPage() {
   const metrics = await getGlobalSupportMetrics();
   const tickets = await getGlobalTicketRegistry();
+  const licenseRequests = await getGlobalLicenseRequests();
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-10 lg:p-20 space-y-20">
@@ -48,7 +50,7 @@ export default async function AdminSupportPage() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-16">
         <div className="xl:col-span-2">
-          <TicketRegistry tickets={tickets} />
+          <TicketRegistry tickets={tickets} licenseRequests={licenseRequests} />
         </div>
 
         <div className="xl:col-span-1 space-y-10">

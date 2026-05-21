@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const DealerSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(3, 'Dealer name must be at least 3 characters'),
+  code: z.string().optional().nullable().or(z.literal('')),
   shortName: z.string().optional().nullable().or(z.literal('')),
   personName: z.string().optional().nullable().or(z.literal('')),
   address: z.string().min(5, 'Full address is required'),
@@ -141,6 +142,7 @@ export const ConsigneeSchema = z.object({
   panUrl: z.string().optional().nullable().or(z.literal('')),
   msmeUrl: z.string().optional().nullable().or(z.literal('')),
   
+  dealerIds: z.array(z.string().uuid()).optional().nullable(),
   isActive: z.boolean().default(true),
 });
 

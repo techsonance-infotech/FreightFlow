@@ -29,6 +29,7 @@ interface OrderFormProps {
 export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingMasters, setLoadingMasters] = useState(true);
   const [masters, setMasters] = useState<{
     dealers: any[];
     consignees: any[];
@@ -150,6 +151,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     if (dealer?.address && !getValues('fromAddress')) {
       setValue('fromAddress', dealer.address);
     }
+    if (dealer?.location && !getValues('fromLocation')) {
+      setValue('fromLocation', dealer.location);
+    }
   }, [watchedDealerId, masters.dealers, isEditing]);
 
   useEffect(() => {
@@ -158,11 +162,15 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     if (consignee?.address && !getValues('toAddress')) {
       setValue('toAddress', consignee.address);
     }
+    if (consignee?.location && !getValues('toLocation')) {
+      setValue('toLocation', consignee.location);
+    }
   }, [watchedConsigneeId, masters.consignees, isEditing]);
 
   useEffect(() => {
     const fetchMasters = async () => {
       try {
+        setLoadingMasters(true);
         const [dealers, consignees, vehicles, products, productUnits] = await Promise.all([
           fetch('/api/v1/masters/dealers?limit=100').then((r) => r.json()),
           fetch('/api/v1/masters/consignees?limit=100').then((r) => r.json()),
@@ -179,6 +187,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
         });
       } catch (error) {
         console.error('Failed to fetch master data', error);
+      } finally {
+        setLoadingMasters(false);
       }
     };
     fetchMasters();
@@ -335,9 +345,61 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     );
   };
 
+  if (loadingMasters) {
+    return (
+      <div className="space-y-10 animate-pulse">
+        {/* Banner Skeleton */}
+        <div className="bg-slate-100 rounded-[2.5rem] p-10 h-44 flex flex-col justify-end space-y-4">
+          <div className="h-4 w-40 bg-slate-200 rounded-lg animate-pulse" />
+          <div className="h-8 w-80 bg-slate-200 rounded-lg animate-pulse" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Left Column Skeleton */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-8">
+            <div className="bg-white rounded-3xl border border-slate-100 p-8 space-y-6">
+              <div className="flex gap-4 items-center">
+                <div className="h-10 w-10 bg-slate-100 rounded-xl" />
+                <div className="space-y-2">
+                  <div className="h-4 w-32 bg-slate-100 rounded-lg animate-pulse" />
+                  <div className="h-3 w-48 bg-slate-100 rounded-lg animate-pulse" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-10 space-y-6">
+              <div className="flex justify-between items-center">
+                <div className="h-6 w-40 bg-slate-100 rounded-lg animate-pulse" />
+                <div className="h-12 w-32 bg-slate-100 rounded-xl animate-pulse" />
+              </div>
+              <div className="h-48 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+            </div>
+          </div>
+
+          {/* Right Column Skeleton */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-8">
+            <div className="bg-white rounded-3xl border border-slate-100 p-8 space-y-6">
+              <div className="h-6 w-32 bg-slate-100 rounded-lg animate-pulse" />
+              <div className="space-y-4">
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+                <div className="h-16 bg-slate-50/50 border border-slate-100 rounded-2xl animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <>
-    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-12 pb-24 px-4 max-w-[1800px] mx-auto">
+    <div className="relative min-h-[500px]">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-12 pb-24 px-4 max-w-[1800px] mx-auto">
       {/* Premium Gradient Header */}
       <div className="bg-blue-600 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-blue-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
@@ -395,9 +457,14 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                             <button
                               key={d.id}
                               type="button"
-                              onMouseDown={() => {
+                              onMouseDown={(e) => {
+                                e.preventDefault();
                                 setValue('dealerId', d.id, { shouldValidate: true });
                                 setDealerSearch(d.name);
+                                if (d.code) {
+                                  setValue('partyCode', d.code, { shouldDirty: true });
+                                }
+                                (document.activeElement as HTMLElement)?.blur();
                               }}
                               className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
                             >
@@ -440,14 +507,21 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                     <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
                       <div className="p-2 space-y-1">
                         {masters.consignees
-                          .filter(c => !consigneeSearch || c.name.toLowerCase().includes(consigneeSearch.toLowerCase()))
+                          .filter(c => {
+                            const matchesSearch = !consigneeSearch || c.name.toLowerCase().includes(consigneeSearch.toLowerCase());
+                            const matchesDealer = !watchedDealerId || 
+                              (c.dealers && c.dealers.some((d: any) => d.id === watchedDealerId));
+                            return matchesSearch && matchesDealer;
+                          })
                           .map(c => (
                             <button
                               key={c.id}
                               type="button"
-                              onMouseDown={() => {
+                              onMouseDown={(e) => {
+                                e.preventDefault();
                                 setValue('consigneeId', c.id, { shouldValidate: true });
                                 setConsigneeSearch(c.name);
+                                (document.activeElement as HTMLElement)?.blur();
                               }}
                               className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
                             >
@@ -495,9 +569,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                             <button
                               key={v.id}
                               type="button"
-                              onMouseDown={() => {
+                              onMouseDown={(e) => {
+                                e.preventDefault();
                                 setValue('vehicleId', v.id, { shouldValidate: true });
                                 setVehicleSearch(v.regNo);
+                                (document.activeElement as HTMLElement)?.blur();
                               }}
                               className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
                             >
@@ -891,9 +967,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                                   <button
                                     key={p.id}
                                     type="button"
-                                    onMouseDown={() => {
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
                                       setValue(`details.${index}.productName`, p.name);
                                       if (p.unit?.name) setValue(`details.${index}.packingType`, p.unit.name);
+                                      (document.activeElement as HTMLElement)?.blur();
                                     }}
                                     className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
                                   >
@@ -1017,13 +1095,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     </Modal>
 
     <Modal isOpen={isConsigneeModalOpen} onClose={() => setIsConsigneeModalOpen(false)} title="Quick Add Consignee" size="lg">
-      <ConsigneeForm onSuccess={(c) => { setMasters(m => ({ ...m, consignees: [c, ...m.consignees] })); setValue('consigneeId', c.id!); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
+      <ConsigneeForm defaultDealerId={watchedDealerId} onSuccess={(c) => { setMasters(m => ({ ...m, consignees: [c, ...m.consignees] })); setValue('consigneeId', c.id!); setIsConsigneeModalOpen(false); }} onCancel={() => setIsConsigneeModalOpen(false)} />
     </Modal>
 
     <Modal isOpen={isVehicleModalOpen} onClose={() => setIsVehicleModalOpen(false)} title="Quick Add Vehicle" size="lg">
       <VehicleForm onSuccess={(v) => { setMasters(m => ({ ...m, vehicles: [v, ...m.vehicles] })); setValue('vehicleId', v.id!); setIsVehicleModalOpen(false); }} onCancel={() => setIsVehicleModalOpen(false)} />
     </Modal>
-    </>
+    </div>
   );
 };
 

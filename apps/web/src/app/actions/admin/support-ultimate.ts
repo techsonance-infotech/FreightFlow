@@ -27,11 +27,38 @@ export async function updateTicketStatus(requestId: string, status: string) {
   const session = await getAdminSession();
   if (!session) throw new Error('Unauthorized');
 
+  const req = await prisma.licenseRequest.findUnique({
+    where: { id: requestId },
+    select: { tenantId: true }
+  });
+
+  let ticketStatus = 'open';
+  if (status === 'approved' || status === 'solved') {
+    ticketStatus = 'solved';
+  } else if (status === 'blocked') {
+    ticketStatus = 'blocked';
+  } else if (status === 'pending') {
+    ticketStatus = 'pending';
+  }
+
   await prisma.$transaction([
     prisma.licenseRequest.update({
       where: { id: requestId },
       data: { status }
     }),
+    ...(req?.tenantId ? [
+      prisma.supportTicket.updateMany({
+        where: {
+          tenantId: req.tenantId,
+          category: 'license',
+          status: { in: ['open', 'pending', 'blocked'] }
+        },
+        data: {
+          status: ticketStatus,
+          adminResponse: `Status changed in Fulfillment Queue to ${status.toUpperCase()}.`
+        }
+      })
+    ] : []),
     prisma.supportMessage.create({
       data: {
         requestId,

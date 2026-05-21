@@ -35,7 +35,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!existing) return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
 
     if (validatedData.regNo && validatedData.regNo !== existing.regNo) {
-      const duplicate = await prisma.vehicle.findFirst({ where: { regNo: validatedData.regNo, deletedAt: null, id: { not: id } } });
+      const duplicate = await prisma.vehicle.findFirst({
+        where: { 
+          regNo: validatedData.regNo, 
+          companyId: session.user.companyId, 
+          deletedAt: null, 
+          id: { not: id } 
+        } 
+      });
       if (duplicate) return NextResponse.json({ error: 'Registration number already in use' }, { status: 400 });
     }
 
