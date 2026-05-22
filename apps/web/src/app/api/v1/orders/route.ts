@@ -106,14 +106,19 @@ export async function POST(request: Request) {
     const hamaliPaise = Math.round(Number(validatedData.hamali || 0) * 100);
     const ratePaise = Math.round(Number(validatedData.rate || 0) * 100);
 
+    const isGst = validatedData.isGstRequired === true;
+    const cgstPct = isGst ? validatedData.cgstPct : 0;
+    const sgstPct = isGst ? validatedData.sgstPct : 0;
+    const igstPct = isGst ? validatedData.igstPct : 0;
+
     // Calculate totals server-side for integrity
     const totals = LREngine.calculateOrderTotals({
       details: validatedData.details,
       freight: freightPaise,
       hamali: hamaliPaise,
-      cgstPct: validatedData.cgstPct,
-      sgstPct: validatedData.sgstPct,
-      igstPct: validatedData.igstPct,
+      cgstPct,
+      sgstPct,
+      igstPct,
       gstType: validatedData.gstType as any,
       rateOn: validatedData.rateOn as any,
       rate: ratePaise,
@@ -144,15 +149,16 @@ export async function POST(request: Request) {
           hamali: hamaliPaise,
           rateOn: validatedData.rateOn,
           rate: ratePaise,
-          cgstPct: validatedData.cgstPct,
-          sgstPct: validatedData.sgstPct,
-          igstPct: validatedData.igstPct,
+          cgstPct: cgstPct,
+          sgstPct: sgstPct,
+          igstPct: igstPct,
           gstType: validatedData.gstType,
           totalWeight: totals.totalWeight,
           totalBoxes: totals.totalBoxes,
           subtotal: totals.subtotal,
           cgstAmount: totals.cgstAmount,
           sgstAmount: totals.sgstAmount,
+          igstAmount: totals.igstAmount,
           totalAmount: totals.totalAmount,
           status: 'created',
           createdBy: user.id,

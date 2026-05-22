@@ -171,37 +171,45 @@ export async function generatePalletPDF(pallet: any, company: any) {
   currentY = (doc as any).lastAutoTable.finalY + 5;
 
   // 6. Box 4: Totals & Summary
-  doc.rect(margin, currentY, boxWidth, 25);
+  const hasGst = Number(pallet.cgstPct) > 0 || Number(pallet.sgstPct) > 0 || Number(pallet.igstPct) > 0;
+  const summaryBoxHeight = hasGst ? 25 : 15;
+  doc.rect(margin, currentY, boxWidth, summaryBoxHeight);
   const subtotal = pallet.subtotal / 100;
   const totalAmount = pallet.totalAmount / 100;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text(`Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
-  
-  let taxY = currentY + 9;
-  if (pallet.cgstAmount > 0) {
-    doc.text(`CGST (${pallet.cgstPct}%): ${(pallet.cgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
-  if (pallet.sgstAmount > 0) {
-    doc.text(`SGST (${pallet.sgstPct}%): ${(pallet.sgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
-  if (pallet.igstAmount > 0) {
-    doc.text(`IGST (${pallet.igstPct}%): ${(pallet.igstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
 
-  doc.setFontSize(9);
-  doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 22, { align: 'right' });
+  if (hasGst) {
+    doc.text(`Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
+    
+    let taxY = currentY + 9;
+    if (pallet.cgstAmount > 0) {
+      doc.text(`CGST (${pallet.cgstPct}%): ${(pallet.cgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+      taxY += 4;
+    }
+    if (pallet.sgstAmount > 0) {
+      doc.text(`SGST (${pallet.sgstPct}%): ${(pallet.sgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+      taxY += 4;
+    }
+    if (pallet.igstAmount > 0) {
+      doc.text(`IGST (${pallet.igstPct}%): ${(pallet.igstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+      taxY += 4;
+    }
+
+    doc.setFontSize(9);
+    doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 22, { align: 'right' });
+  } else {
+    doc.setFontSize(9);
+    doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 11, { align: 'right' });
+  }
   
   doc.setFontSize(8);
   doc.text(`Total Invoice Amount in Words : ${numberToWords(Math.floor(totalAmount))} only`, margin + 2, currentY + 5);
   doc.setFont('helvetica', 'normal');
   doc.text('Return Of returnable packing matearial', margin + 2, currentY + 10);
 
-  currentY += 30;
+  currentY += summaryBoxHeight + 5;
 
   // 7. Box 5: Transport Info
   doc.rect(margin, currentY, boxWidth, 22);

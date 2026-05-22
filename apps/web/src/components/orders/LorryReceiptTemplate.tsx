@@ -16,7 +16,7 @@ interface LorryReceiptTemplateProps {
   onClose: () => void;
 }
 
-export function LorryReceiptTemplate({ order, orders, onClose }: LorryReceiptTemplateProps) {
+export function LorryReceiptTemplate({ order, orders, company, copyType, onClose }: LorryReceiptTemplateProps) {
   const items = orders || (order ? [order] : []);
   
 
@@ -116,6 +116,13 @@ export function LorryReceiptTemplate({ order, orders, onClose }: LorryReceiptTem
                     </div>
                   </div>
                   <div className="text-right">
+                    {copyType && (
+                      <div className="mb-2">
+                        <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-blue-100/50">
+                          {copyType}
+                        </span>
+                      </div>
+                    )}
                     <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl inline-block mb-4">
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Lorry Receipt No.</p>
                       <p className="text-2xl font-black tracking-tighter">#{item.lrNo}</p>

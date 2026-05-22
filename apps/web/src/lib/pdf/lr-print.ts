@@ -169,14 +169,57 @@ export async function generateLRPrintPDF(order: any, company: any) {
 
   currentY = (doc as any).lastAutoTable.finalY + 5;
 
-  // 6. Box 4: Additional Details
-  const summaryBoxHeight = 15;
+  // 6. Box 4: Totals & Summary
+  const showFinancials = order.freight > 0 || order.subtotal > 0;
+  const hasGst = Number(order.cgstPct) > 0 || Number(order.sgstPct) > 0 || Number(order.igstPct) > 0;
+  const summaryBoxHeight = showFinancials ? (hasGst ? 32 : 20) : 15;
   doc.rect(margin, currentY, boxWidth, summaryBoxHeight);
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text(`GST Bill No: ${order.gstBillNo || '-'}`, margin + 2, currentY + 8);
+  doc.text(`GST Bill No: ${order.gstBillNo || '-'}`, margin + 2, currentY + 5);
 
+  if (showFinancials) {
+    const subtotal = order.subtotal / 100;
+    const totalAmount = order.totalAmount / 100;
+    const freight = order.freight / 100;
+    const hamali = order.hamali / 100;
+    const rightAlignX = pageWidth - margin - 2;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Base Freight: Rs. ${freight.toFixed(2)}`, rightAlignX, currentY + 5, { align: 'right' });
+    if (hamali > 0) {
+      doc.text(`Hamali: Rs. ${hamali.toFixed(2)}`, rightAlignX, currentY + 9, { align: 'right' });
+    }
+
+    if (hasGst) {
+      doc.text(`Subtotal: Rs. ${subtotal.toFixed(2)}`, rightAlignX, currentY + 13, { align: 'right' });
+
+      let taxY = currentY + 17;
+      if (order.gstType === 'intra') {
+        if (order.cgstAmount > 0) {
+          doc.text(`CGST (${order.cgstPct}%): Rs. ${(order.cgstAmount / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
+          taxY += 4;
+        }
+        if (order.sgstAmount > 0) {
+          doc.text(`SGST (${order.sgstPct}%): Rs. ${(order.sgstAmount / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
+          taxY += 4;
+        }
+      } else {
+        if (order.igstAmount > 0) {
+          doc.text(`IGST (${order.igstPct}%): Rs. ${(order.igstAmount / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
+          taxY += 4;
+        }
+      }
+      doc.setFontSize(9);
+      doc.text(`Grand Total: Rs. ${totalAmount.toFixed(2)}`, rightAlignX, currentY + 28, { align: 'right' });
+    } else {
+      doc.setFontSize(9);
+      doc.text(`Grand Total: Rs. ${totalAmount.toFixed(2)}`, rightAlignX, currentY + 16, { align: 'right' });
+    }
+  }
+
+  doc.setFont('helvetica', 'normal');
   currentY += summaryBoxHeight + 5;
 
   // 7. Box 5: Transport Info
