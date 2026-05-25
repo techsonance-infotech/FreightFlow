@@ -93,26 +93,23 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   doc.setFont('helvetica', 'normal');
   const dName = pallet.dealer?.name?.toUpperCase() || '-';
   doc.text(dName, margin + 2, partyY + 3.5);
-  if (pallet.dealer?.code) {
+  const codeVal = pallet.dealer?.code || pallet.partyCode;
+  if (codeVal) {
     const dNameWidth = doc.getTextWidth(dName);
     doc.setFont('helvetica', 'bold');
-    doc.text(` - ${pallet.dealer.code}`, margin + 2 + dNameWidth, partyY + 3.5);
+    doc.text(` - ${codeVal}`, margin + 2 + dNameWidth, partyY + 3.5);
     doc.setFont('helvetica', 'normal');
   }
 
   // Consignee Name
-  const cName = pallet.consignee?.name?.toUpperCase() || pallet.companyName || '-';
-  doc.text(cName, pageWidth / 2 + 2, partyY + 3.5);
-  if (pallet.consignee?.code) {
-    const cNameWidth = doc.getTextWidth(cName);
-    doc.setFont('helvetica', 'bold');
-    doc.text(` - ${pallet.consignee.code}`, pageWidth / 2 + 2 + cNameWidth, partyY + 3.5);
-    doc.setFont('helvetica', 'normal');
-  }
+  const cName = pallet.dealer?.name 
+    ? `${pallet.dealer.name}${codeVal ? ` (${codeVal})` : ''}` 
+    : (pallet.consignee?.name || pallet.companyName || '-');
+  doc.text(cName.toUpperCase(), pageWidth / 2 + 2, partyY + 3.5);
   
   // Wrapped Address Lines
   const dAddr = doc.splitTextToSize(pallet.dealer?.address || '-', (boxWidth / 2) - 8);
-  const cAddr = doc.splitTextToSize(pallet.consignee?.address || pallet.toAddress || '-', (boxWidth / 2) - 8);
+  const cAddr = doc.splitTextToSize(pallet.dealer?.address || pallet.consignee?.address || pallet.toAddress || '-', (boxWidth / 2) - 8);
   doc.text(dAddr, margin + 2, partyY + 7);
   doc.text(cAddr, pageWidth / 2 + 2, partyY + 7);
 
@@ -125,8 +122,8 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   const dPAN = pallet.dealer?.pan || '-';
   doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, taxY);
 
-  const cGST = pallet.consignee?.gstin || '-';
-  const cPAN = pallet.consignee?.pan || '-';
+  const cGST = pallet.dealer?.gstin || pallet.consignee?.gstin || '-';
+  const cPAN = pallet.dealer?.pan || pallet.consignee?.pan || '-';
   doc.text(`GST: ${cGST} | PAN: ${cPAN}`, pageWidth / 2 + 2, taxY);
 
   // Horizontal Divider 2
@@ -155,7 +152,7 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
     head: [['Sr.', 'Description of Goods', 'Code', 'Qty', 'UOM', 'Rate', 'Total (Rs.)']],
     body: (pallet.palletDetails || []).map((item: any, idx: number) => [
       idx + 1,
-      item.palletDisplayId || 'PALLET UNIT',
+      `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
       item.code || '-',
       item.boxQty || item.qty || 0,
       item.uom || 'UNIT',
@@ -180,28 +177,28 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   currentY = (doc as any).lastAutoTable.finalY + 2;
 
   // 4b. Totals & Summary Box (Updated based on with GST or Without GST)
-  const isGstActive = (pallet.cgstAmount > 0 || pallet.sgstAmount > 0 || pallet.igstAmount > 0);
+  const isGstActive = (Number(pallet.cgstAmount) > 0 || Number(pallet.sgstAmount) > 0 || Number(pallet.igstAmount) > 0);
   const summaryBoxHeight = isGstActive ? 23 : 15;
   doc.rect(margin, currentY, boxWidth, summaryBoxHeight);
   
-  const subtotal = (pallet.subtotal || 0) / 100;
-  const totalAmount = (pallet.totalAmount || 0) / 100;
+  const subtotal = (Number(pallet.subtotal) || 0) / 100;
+  const totalAmount = (Number(pallet.totalAmount) || 0) / 100;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.text(`Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 4, { align: 'right' });
   
   let taxRowY = currentY + 7.5;
-  if (pallet.cgstAmount > 0) {
-    doc.text(`CGST (${pallet.cgstPct}%): ${(pallet.cgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxRowY, { align: 'right' });
+  if (Number(pallet.cgstAmount) > 0) {
+    doc.text(`CGST (${Number(pallet.cgstPct)}%): ${(Number(pallet.cgstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxRowY, { align: 'right' });
     taxRowY += 3.5;
   }
-  if (pallet.sgstAmount > 0) {
-    doc.text(`SGST (${pallet.sgstPct}%): ${(pallet.sgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxRowY, { align: 'right' });
+  if (Number(pallet.sgstAmount) > 0) {
+    doc.text(`SGST (${Number(pallet.sgstPct)}%): ${(Number(pallet.sgstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxRowY, { align: 'right' });
     taxRowY += 3.5;
   }
-  if (pallet.igstAmount > 0) {
-    doc.text(`IGST (${pallet.igstPct}%): ${(pallet.igstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxRowY, { align: 'right' });
+  if (Number(pallet.igstAmount) > 0) {
+    doc.text(`IGST (${Number(pallet.igstPct)}%): ${(Number(pallet.igstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxRowY, { align: 'right' });
     taxRowY += 3.5;
   }
 

@@ -53,6 +53,8 @@ export default function LRPrintPage() {
     });
   };
 
+  const hasGst = Number(order.cgstPct) > 0 || Number(order.sgstPct) > 0 || Number(order.igstPct) > 0;
+
   return (
     <div className="min-h-screen bg-muted/50 p-8">
       {/* Control Bar - Hidden during print */}
@@ -187,21 +189,34 @@ export default function LRPrintPage() {
                 <span>Hamali Charges</span>
                 <span>{formatCurrency(order.hamali)}</span>
               </div>
-              <div className="flex justify-between text-xs font-bold">
-                <span>Sub-Total</span>
-                <span>{formatCurrency(order.subtotal)}</span>
-              </div>
+              {hasGst && (
+                <div className="flex justify-between text-xs font-bold">
+                  <span>Sub-Total</span>
+                  <span>{formatCurrency(order.subtotal)}</span>
+                </div>
+              )}
             </div>
-            <div className="p-3 space-y-2 bg-gray-50">
-              <div className="flex justify-between text-xs">
-                <span>CGST ({order.cgstPct}%)</span>
-                <span>{formatCurrency(order.cgstAmount)}</span>
+            {hasGst && (
+              <div className="p-3 space-y-2 bg-gray-50">
+                {order.gstType === 'intra' ? (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span>CGST ({order.cgstPct}%)</span>
+                      <span>{formatCurrency(order.cgstAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>SGST ({order.sgstPct}%)</span>
+                      <span>{formatCurrency(order.sgstAmount)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between text-xs">
+                    <span>IGST ({order.igstPct}%)</span>
+                    <span>{formatCurrency(order.igstAmount)}</span>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between text-xs">
-                <span>SGST ({order.sgstPct}%)</span>
-                <span>{formatCurrency(order.sgstAmount)}</span>
-              </div>
-            </div>
+            )}
             <div className="p-3 flex justify-between items-center bg-black text-white">
               <span className="text-sm font-black uppercase">Grand Total</span>
               <span className="text-lg font-black">₹ {formatCurrency(order.totalAmount)}</span>

@@ -191,26 +191,28 @@ export function InvoicePreviewModal({ isOpen, onClose, invoice }: InvoicePreview
                 <span className="text-sm font-bold text-neutral-700">{formatAmount(invoice.subtotal)}</span>
               </div>
               
-              <div className="space-y-2 py-3 bg-neutral-50 rounded-xl border border-neutral-100">
-                {invoice.cgst > 0 && (
-                  <div className="flex justify-between items-center px-4">
-                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">CGST</span>
-                    <span className="text-xs font-bold text-neutral-600">{formatAmount(invoice.cgst)}</span>
-                  </div>
-                )}
-                {invoice.sgst > 0 && (
-                  <div className="flex justify-between items-center px-4">
-                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">SGST</span>
-                    <span className="text-xs font-bold text-neutral-600">{formatAmount(invoice.sgst)}</span>
-                  </div>
-                )}
-                {invoice.igst > 0 && (
-                  <div className="flex justify-between items-center px-4">
-                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">IGST</span>
-                    <span className="text-xs font-bold text-neutral-600">{formatAmount(invoice.igst)}</span>
-                  </div>
-                )}
-              </div>
+              {(invoice.cgst > 0 || invoice.sgst > 0 || invoice.igst > 0) && (
+                <div className="space-y-2 py-3 bg-neutral-50 rounded-xl border border-neutral-100">
+                  {invoice.cgst > 0 && (
+                    <div className="flex justify-between items-center px-4">
+                      <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">CGST</span>
+                      <span className="text-xs font-bold text-neutral-600">{formatAmount(invoice.cgst)}</span>
+                    </div>
+                  )}
+                  {invoice.sgst > 0 && (
+                    <div className="flex justify-between items-center px-4">
+                      <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">SGST</span>
+                      <span className="text-xs font-bold text-neutral-600">{formatAmount(invoice.sgst)}</span>
+                    </div>
+                  )}
+                  {invoice.igst > 0 && (
+                    <div className="flex justify-between items-center px-4">
+                      <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">IGST</span>
+                      <span className="text-xs font-bold text-neutral-600">{formatAmount(invoice.igst)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex justify-between items-center px-4 pt-4 border-t border-neutral-100">
                 <span className="text-xs font-black text-neutral-900 uppercase tracking-tighter">Total Payable</span>
