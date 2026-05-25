@@ -21,8 +21,23 @@ import { VehicleForm } from '@/components/masters/vehicle-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
+function formatLocalDate(dateVal: any): string {
+  if (!dateVal) return '';
+  const d = new Date(dateVal);
+  if (typeof dateVal === 'string' && (dateVal.includes('T') || dateVal.endsWith('Z'))) {
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 interface OrderFormProps {
-  initialData?: Partial<Order>;
+  initialData?: any;
   isEditing?: boolean;
 }
 
@@ -64,16 +79,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     resolver: zodResolver(OrderSchema) as any,
     mode: 'onChange',
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
       details: [{ productName: '', boxCount: 0, weight: 0, sortOrder: 0 }],
-      freight: 0,
-      hamali: 0,
-      cgstPct: 2.5,
-      sgstPct: 2.5,
-      igstPct: 5.0,
       gstType: 'intra',
       rateOn: 'weight',
-      rate: 0,
       status: 'created',
       dealerId: '',
       consigneeId: '',
@@ -88,6 +96,21 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
       partyCode: '',
       companyName: '',
       ...initialData,
+      date: initialData?.date ? formatLocalDate(initialData.date) : formatLocalDate(new Date()),
+      freight: initialData?.freight !== undefined ? initialData.freight : 0,
+      hamali: initialData?.hamali !== undefined ? initialData.hamali : 0,
+      rate: initialData?.rate !== undefined ? initialData.rate : 0,
+      cgstPct: initialData?.cgstPct !== undefined ? Number(initialData.cgstPct) : 2.5,
+      sgstPct: initialData?.sgstPct !== undefined ? Number(initialData.sgstPct) : 2.5,
+      igstPct: initialData?.igstPct !== undefined ? Number(initialData.igstPct) : 5.0,
+      isGstRequired: initialData?.isGstRequired ?? (
+        Number(initialData?.cgstPct) > 0 || 
+        Number(initialData?.sgstPct) > 0 || 
+        Number(initialData?.igstPct) > 0 ||
+        Number(initialData?.cgstAmount) > 0 ||
+        Number(initialData?.sgstAmount) > 0 ||
+        Number(initialData?.igstAmount) > 0
+      ),
     },
   });
 
@@ -510,7 +533,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                           .filter(c => {
                             const matchesSearch = !consigneeSearch || c.name.toLowerCase().includes(consigneeSearch.toLowerCase());
                             const matchesDealer = !watchedDealerId || 
-                              (c.dealers && c.dealers.some((d: any) => d.id === watchedDealerId));
+                              !c.dealers || 
+                              c.dealers.length === 0 ||
+                              c.dealers.some((d: any) => d.id === watchedDealerId);
                             return matchesSearch && matchesDealer;
                           })
                           .map(c => (
@@ -931,6 +956,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-center text-blue-600">Packing *</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-center">Weight (KG) *</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-right">DCPI #</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-right text-blue-600">Total Amount</th>
                   <th className="px-8 py-6 w-20"></th>
                 </tr>
               </thead>
@@ -1042,6 +1068,15 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                         />
                       </div>
                     </td>
+                    <td className="px-4 py-8 align-top text-right font-black text-slate-700 text-sm">
+                      ₹{(() => {
+                        const rateVal = Number(watchedRate || 0);
+                        const qtyVal = watchedRateOn === 'weight' 
+                          ? (Number(watchedDetails[index]?.weight) || 0) 
+                          : (Number(watchedDetails[index]?.boxCount) || 0);
+                        return (qtyVal * rateVal).toFixed(2);
+                      })()}
+                    </td>
                     <td className="px-8 py-8 text-center align-top">
                       <button type="button" onClick={() => remove(index)} disabled={fields.length === 1} className="p-3 rounded-xl text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all disabled:opacity-0"><Trash2 className="h-5 w-5" /></button>
                     </td>
@@ -1059,6 +1094,16 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                   <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Boxes</p>
                   <p className="text-4xl font-black text-slate-900 tracking-tighter">
                     {totals.totalBoxes} <span className="text-sm text-slate-400 font-bold ml-1 uppercase">Units</span>
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Amount</p>
+                  <p className="text-4xl font-black text-blue-600 tracking-tighter">
+                    ₹{(() => {
+                      const rateVal = Number(watchedRate || 0);
+                      const totalQty = watchedRateOn === 'weight' ? totals.totalWeight : totals.totalBoxes;
+                      return (totalQty * rateVal).toFixed(2);
+                    })()}
                   </p>
                 </div>
               </div>

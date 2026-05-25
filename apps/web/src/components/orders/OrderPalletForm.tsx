@@ -31,6 +31,21 @@ interface OrderPalletFormProps {
   onCancel: () => void;
 }
 
+function formatLocalDate(dateVal: any): string {
+  if (!dateVal) return '';
+  const d = new Date(dateVal);
+  if (typeof dateVal === 'string' && (dateVal.includes('T') || dateVal.endsWith('Z'))) {
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalletFormProps) {
   const [dealers, setDealers] = useState<any[]>([]);
   const [consignees, setConsignees] = useState<any[]>([]);
@@ -62,21 +77,21 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
       dealerId: initialData?.dealerId || '',
       consigneeId: initialData?.consigneeId || '',
       vehicleId: initialData?.vehicleId || '',
-      date: initialData?.date ? new Date(initialData?.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: initialData?.date ? formatLocalDate(initialData.date) : formatLocalDate(new Date()),
       companyName: initialData?.companyName || '',
       partyCode: initialData?.partyCode || '',
       fromLocation: initialData?.fromLocation || '',
       fromAddress: initialData?.fromAddress || '',
       toLocation: initialData?.toLocation || '',
       toAddress: initialData?.toAddress || '',
-      freight: initialData?.freight ? initialData.freight / 100 : 0,
-      hamali: initialData?.hamali ? initialData.hamali / 100 : 0,
-      rate: initialData?.rate ? initialData.rate / 100 : 0,
+      freight: initialData?.freight !== undefined ? initialData.freight / 100 : 0,
+      hamali: initialData?.hamali !== undefined ? initialData.hamali / 100 : 0,
+      rate: initialData?.rate !== undefined ? initialData.rate / 100 : 0,
       rateOn: initialData?.rateOn || 'qty',
       gstType: initialData?.gstType || 'intra',
-      cgstPct: initialData?.cgstPct || 2.5,
-      sgstPct: initialData?.sgstPct || 2.5,
-      igstPct: initialData?.igstPct || 5.0,
+      cgstPct: initialData?.cgstPct !== undefined ? Number(initialData.cgstPct) : 2.5,
+      sgstPct: initialData?.sgstPct !== undefined ? Number(initialData.sgstPct) : 2.5,
+      igstPct: initialData?.igstPct !== undefined ? Number(initialData.igstPct) : 5.0,
       type: 'OUTWARD',
       palletDetails: initialData?.palletDetails?.length > 0 
         ? initialData.palletDetails.map((p: any) => ({
@@ -84,7 +99,14 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             rate: p.rate / 100 
           }))
         : [{ palletDisplayId: '', qty: 1, rate: 0, consigneeName: '' }],
-      isGstRequired: initialData?.isGstRequired ?? false,
+      isGstRequired: initialData?.isGstRequired ?? (
+        Number(initialData?.cgstPct) > 0 || 
+        Number(initialData?.sgstPct) > 0 || 
+        Number(initialData?.igstPct) > 0 ||
+        Number(initialData?.cgstAmount) > 0 ||
+        Number(initialData?.sgstAmount) > 0 ||
+        Number(initialData?.igstAmount) > 0
+      ),
     }
   });
 
@@ -456,7 +478,9 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                           .filter(c => {
                             const matchesSearch = !consigneeSearch || c.name.toLowerCase().includes(consigneeSearch.toLowerCase());
                             const matchesDealer = !watchedDealerId || 
-                              (c.dealers && c.dealers.some((d: any) => d.id === watchedDealerId));
+                              !c.dealers || 
+                              c.dealers.length === 0 ||
+                              c.dealers.some((d: any) => d.id === watchedDealerId);
                             return matchesSearch && matchesDealer;
                           })
                           .map(c => (
@@ -885,6 +909,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[250px]">Code</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-32 text-center">Qty *</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-center">Unit Rate *</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-right">Amount</th>
                   <th className="px-8 py-6 w-20"></th>
                 </tr>
               </thead>
@@ -997,6 +1022,13 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                       </div>
                       {errors.palletDetails?.[index]?.rate && <p className="text-[9px] font-bold text-rose-500 mt-1 text-center">{errors.palletDetails[index]?.rate?.message}</p>}
                     </td>
+                    <td className="px-4 py-8 align-top text-right">
+                      <div className="h-12 flex items-center justify-end pr-4">
+                        <span className="text-base font-black text-slate-800 tracking-tight">
+                          ₹{((parseInt(watchedPallets[index]?.qty as any) || 0) * (parseFloat(watchedPallets[index]?.rate as any) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-8 py-8 text-center align-top">
                       <button 
                         type="button" 
@@ -1024,6 +1056,12 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                   <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Quantity</p>
                   <p className="text-4xl font-black text-slate-900 tracking-tighter">
                     {totals.totalQty} <span className="text-sm text-slate-400 font-bold ml-1 uppercase">Units</span>
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Amount</p>
+                  <p className="text-4xl font-black text-blue-600 tracking-tighter">
+                    ₹{totals.baseFreight.toFixed(2)}
                   </p>
                 </div>
               </div>

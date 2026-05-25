@@ -42,6 +42,19 @@ export async function GET(
   }
 }
 
+function getUtcNoonDate(dateVal: any): Date {
+  if (!dateVal) return new Date();
+  const d = new Date(dateVal);
+  if (typeof dateVal === 'string' && dateVal.includes('-') && dateVal.split('-')[0].length === 4) {
+    const [year, month, day] = dateVal.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  }
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const day = d.getDate();
+  return new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -104,7 +117,7 @@ export async function PATCH(
           consigneeId: validatedData.consigneeId,
           ewayBillNo: validatedData.ewayBillNo,
           vehicleId: validatedData.vehicleId,
-          date: new Date(validatedData.date),
+          date: getUtcNoonDate(validatedData.date),
           fromLocation: validatedData.fromLocation,
           fromAddress: validatedData.fromAddress,
           toLocation: validatedData.toLocation,

@@ -171,7 +171,7 @@ export async function generateLRPrintPDF(order: any, company: any) {
 
   // 6. Box 4: Totals & Summary
   const showFinancials = order.freight > 0 || order.subtotal > 0;
-  const hasGst = Number(order.cgstPct) > 0 || Number(order.sgstPct) > 0 || Number(order.igstPct) > 0;
+  const hasGst = (Number(order.cgstAmount) > 0 || Number(order.sgstAmount) > 0 || Number(order.igstAmount) > 0);
   const summaryBoxHeight = showFinancials ? (hasGst ? 32 : 20) : 15;
   doc.rect(margin, currentY, boxWidth, summaryBoxHeight);
 
@@ -180,10 +180,10 @@ export async function generateLRPrintPDF(order: any, company: any) {
   doc.text(`GST Bill No: ${order.gstBillNo || '-'}`, margin + 2, currentY + 5);
 
   if (showFinancials) {
-    const subtotal = order.subtotal / 100;
-    const totalAmount = order.totalAmount / 100;
-    const freight = order.freight / 100;
-    const hamali = order.hamali / 100;
+    const subtotal = (Number(order.subtotal) || 0) / 100;
+    const totalAmount = (Number(order.totalAmount) || 0) / 100;
+    const freight = (Number(order.freight) || 0) / 100;
+    const hamali = (Number(order.hamali) || 0) / 100;
     const rightAlignX = pageWidth - margin - 2;
 
     doc.setFont('helvetica', 'bold');
@@ -197,17 +197,17 @@ export async function generateLRPrintPDF(order: any, company: any) {
 
       let taxY = currentY + 17;
       if (order.gstType === 'intra') {
-        if (order.cgstAmount > 0) {
-          doc.text(`CGST (${order.cgstPct}%): Rs. ${(order.cgstAmount / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
+        if (Number(order.cgstAmount) > 0) {
+          doc.text(`CGST (${Number(order.cgstPct)}%): Rs. ${(Number(order.cgstAmount) / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
           taxY += 4;
         }
-        if (order.sgstAmount > 0) {
-          doc.text(`SGST (${order.sgstPct}%): Rs. ${(order.sgstAmount / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
+        if (Number(order.sgstAmount) > 0) {
+          doc.text(`SGST (${Number(order.sgstPct)}%): Rs. ${(Number(order.sgstAmount) / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
           taxY += 4;
         }
       } else {
-        if (order.igstAmount > 0) {
-          doc.text(`IGST (${order.igstPct}%): Rs. ${(order.igstAmount / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
+        if (Number(order.igstAmount) > 0) {
+          doc.text(`IGST (${Number(order.igstPct)}%): Rs. ${(Number(order.igstAmount) / 100).toFixed(2)}`, rightAlignX, taxY, { align: 'right' });
           taxY += 4;
         }
       }

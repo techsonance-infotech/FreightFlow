@@ -91,6 +91,19 @@ export async function GET(request: Request) {
   }
 }
 
+function getUtcNoonDate(dateVal: any): Date {
+  if (!dateVal) return new Date();
+  const d = new Date(dateVal);
+  if (typeof dateVal === 'string' && dateVal.includes('-') && dateVal.split('-')[0].length === 4) {
+    const [year, month, day] = dateVal.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  }
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const day = d.getDate();
+  return new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+}
+
 // POST /api/v1/pallets - Create a new pallet record
 export async function POST(request: Request) {
   try {
@@ -119,7 +132,7 @@ export async function POST(request: Request) {
         dealerId: validatedData.dealerId,
         consigneeId: validatedData.consigneeId || null,
         vehicleId: validatedData.vehicleId,
-        date: new Date(validatedData.date),
+        date: getUtcNoonDate(validatedData.date),
         companyName: validatedData.companyName,
         partyCode: validatedData.partyCode,
         fromLocation: validatedData.fromLocation,
@@ -158,6 +171,8 @@ export async function POST(request: Request) {
       include: {
         palletDetails: true,
         consigneeDetails: true,
+        dealer: true,
+        vehicle: true,
       },
     });
 

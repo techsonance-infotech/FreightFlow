@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     if (startDate || endDate) {
       where.date = {};
       if (startDate) where.date.gte = new Date(startDate);
-      if (endDate) where.date.lte = new Date(endDate);
+      if (endDate) where.date.lte = new Date(endDate + 'T23:59:59.999Z');
     }
 
     const [orders, total] = await Promise.all([
@@ -85,6 +85,19 @@ export async function GET(request: Request) {
     console.error('[ORDERS_GET]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+function getUtcNoonDate(dateVal: any): Date {
+  if (!dateVal) return new Date();
+  const d = new Date(dateVal);
+  if (typeof dateVal === 'string' && dateVal.includes('-') && dateVal.split('-')[0].length === 4) {
+    const [year, month, day] = dateVal.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  }
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const day = d.getDate();
+  return new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
 }
 
 // POST /api/v1/orders - Create a new order (LR)
@@ -140,7 +153,7 @@ export async function POST(request: Request) {
           consigneeId: validatedData.consigneeId,
           ewayBillNo: validatedData.ewayBillNo,
           vehicleId: validatedData.vehicleId,
-          date: new Date(validatedData.date),
+          date: getUtcNoonDate(validatedData.date),
           fromLocation: validatedData.fromLocation,
           fromAddress: validatedData.fromAddress,
           toLocation: validatedData.toLocation,

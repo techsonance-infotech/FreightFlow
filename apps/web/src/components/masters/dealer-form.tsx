@@ -37,6 +37,7 @@ export const DealerForm: React.FC<DealerFormProps> = ({ initialData, onSuccess, 
       tdsRate: initialData?.tdsRate || 0,
       fleetSize: initialData?.fleetSize || 0,
       isActive: initialData?.isActive ?? true,
+      isPalletReturn: initialData?.isPalletReturn ?? false,
     }
   });
 
@@ -132,7 +133,7 @@ export const DealerForm: React.FC<DealerFormProps> = ({ initialData, onSuccess, 
           </div>
           <Input label="Contact Person" placeholder="e.g. Rajesh Agarwal" error={errors.personName?.message} {...register('personName')} />
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Phone Number *" placeholder="10-digit" error={errors.phone?.message} {...register('phone')} />
+            <Input label="Phone Number" placeholder="10-digit (Optional)" error={errors.phone?.message} {...register('phone')} />
             <Input label="Email" placeholder="vendor@example.com" error={errors.email?.message} {...register('email')} />
           </div>
           <Input label="Pickup/Office Address *" placeholder="Full address" error={errors.address?.message} {...register('address')} />
@@ -176,6 +177,18 @@ export const DealerForm: React.FC<DealerFormProps> = ({ initialData, onSuccess, 
           <Input label="Fleet Size (Approx)" type="number" error={errors.fleetSize?.message} {...register('fleetSize')} onFocus={(e) => e.target.value === '0' && (e.target.value = '')} />
           <Input label="Primary Operating Routes" placeholder="e.g. Mumbai - Delhi, Gujarat" error={errors.primaryRoutes?.message} {...register('primaryRoutes')} />
           
+          <div className="flex items-center gap-2.5 pt-2">
+            <input
+              type="checkbox"
+              id="isPalletReturn"
+              className="h-5 w-5 rounded-lg border-slate-200 text-blue-600 focus:ring-blue-500/30 transition-all cursor-pointer"
+              {...register('isPalletReturn')}
+            />
+            <label htmlFor="isPalletReturn" className="text-xs font-black text-slate-700 uppercase tracking-wider cursor-pointer select-none">
+              Is Pallet Return Type Dealer?
+            </label>
+          </div>
+
           <div className="space-y-4 pt-4">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
               <FileText className="h-3 w-3" /> Documents Vault

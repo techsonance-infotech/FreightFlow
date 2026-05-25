@@ -30,6 +30,21 @@ interface PalletReturnFormProps {
   onCancel: () => void;
 }
 
+function formatLocalDate(dateVal: any): string {
+  if (!dateVal) return '';
+  const d = new Date(dateVal);
+  if (typeof dateVal === 'string' && (dateVal.includes('T') || dateVal.endsWith('Z'))) {
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletReturnFormProps) {
   const [dealers, setDealers] = useState<any[]>([]);
   const [consignees, setConsignees] = useState<any[]>([]);
@@ -43,6 +58,9 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
   const [successPallet, setSuccessPallet] = useState<any>(null);
   
   const [dealerSearch, setDealerSearch] = useState('');
+  const [palletDealerSearch, setPalletDealerSearch] = useState('');
+  const [selectedDealerId, setSelectedDealerId] = useState<string>('');
+  const [selectedPalletDealerId, setSelectedPalletDealerId] = useState<string>('');
   const [vehicleSearch, setVehicleSearch] = useState('');
 
   const { 
@@ -60,7 +78,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
       dealerId: initialData?.dealerId || '',
       consigneeId: initialData?.consigneeId || '',
       vehicleId: initialData?.vehicleId || '',
-      date: initialData?.date ? new Date(initialData?.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: initialData?.date ? formatLocalDate(initialData.date) : formatLocalDate(new Date()),
       companyName: initialData?.companyName || '',
       partyCode: initialData?.partyCode || '',
       fromLocation: initialData?.fromLocation || '',
@@ -82,7 +100,14 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
             rate: p.rate / 100 
           }))
         : [{ palletDisplayId: '', qty: 1, rate: 0, consigneeName: '' }],
-      isGstRequired: initialData?.isGstRequired ?? false,
+      isGstRequired: initialData?.isGstRequired ?? (
+        (initialData?.cgstAmount && initialData.cgstAmount > 0) ||
+        (initialData?.sgstAmount && initialData.sgstAmount > 0) ||
+        (initialData?.igstAmount && initialData.igstAmount > 0) ||
+        (initialData?.cgstPct && Number(initialData.cgstPct) > 0) ||
+        (initialData?.sgstPct && Number(initialData.sgstPct) > 0) ||
+        (initialData?.igstPct && Number(initialData.igstPct) > 0)
+      ) ?? false,
     }
   });
 
@@ -123,10 +148,20 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
           fetch('/api/v1/masters/vehicles?limit=100').then(r => r.json()),
           fetch('/api/v1/masters/pallets?limit=100').then(r => r.json()),
         ]);
-        setDealers(dealersRes.data || []);
+        const loadedDealers = dealersRes.data || [];
+        setDealers(loadedDealers);
         setConsignees(consigneesRes.data || []);
         setVehicles(vehiclesRes.data || []);
         setPalletMasters(palletMastersRes.data || []);
+
+        if (initialData?.dealerId) {
+          const match = loadedDealers.find((d: any) => d.id === initialData.dealerId);
+          if (match?.isPalletReturn) {
+            setSelectedPalletDealerId(initialData.dealerId);
+          } else {
+            setSelectedDealerId(initialData.dealerId);
+          }
+        }
       } catch (error) {
         console.error('Failed to load masters');
       } finally {
@@ -154,15 +189,20 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
   }, [watchedDate, initialData?.id, setValue, getValues]);
 
   useEffect(() => {
-    if (!watchedDealerId || initialData?.id) return;
-    const dealer = dealers.find(d => d.id === watchedDealerId);
-    if (dealer?.address && !getValues('fromAddress')) {
-      setValue('fromAddress', dealer.address);
+    if (!selectedPalletDealerId || initialData?.id) return;
+    const dealer = dealers.find(d => d.id === selectedPalletDealerId);
+    if (dealer && dealer.isPalletReturn === true) {
+      if (dealer.address) {
+        setValue('fromAddress', dealer.address);
+        setValue('toAddress', dealer.address);
+      }
+      const dealerLocation = dealer.area || (dealer as any).location || '';
+      if (dealerLocation) {
+        setValue('fromLocation', dealerLocation);
+        setValue('toLocation', dealerLocation);
+      }
     }
-    if (dealer?.location && !getValues('fromLocation')) {
-      setValue('fromLocation', dealer.location);
-    }
-  }, [watchedDealerId, dealers, initialData?.id]);
+  }, [selectedPalletDealerId, dealers, initialData?.id]);
 
   // Calculation Logic
   useEffect(() => {
@@ -203,8 +243,10 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
 
   const onSubmit = async (data: Pallet) => {
     try {
+      const finalDealerId = selectedPalletDealerId || selectedDealerId || data.dealerId;
       const payload = {
         ...data,
+        dealerId: finalDealerId,
         freight: Math.round(parseFloat((data.freight || 0) as any) * 100),
         hamali: Math.round(parseFloat((data.hamali || 0) as any) * 100),
         rate: Math.round(parseFloat((data.rate || 0) as any) * 100),
@@ -345,10 +387,13 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                         type="text"
                         placeholder="Search Dealer..."
                         autoComplete="off"
-                        value={dealers.find(d => d.id === watch('dealerId'))?.name || dealerSearch}
+                        value={dealers.find(d => d.id === selectedDealerId)?.name || dealerSearch}
                         onChange={(e) => {
                           setDealerSearch(e.target.value);
-                          if (!e.target.value) setValue('dealerId', '');
+                          if (!e.target.value) {
+                            setSelectedDealerId('');
+                            setValue('dealerId', '');
+                          }
                         }}
                         className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
                       />
@@ -364,6 +409,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                               type="button"
                               onMouseDown={(e) => {
                                 e.preventDefault();
+                                setSelectedDealerId(d.id);
                                 setValue('dealerId', d.id, { shouldValidate: true });
                                 setDealerSearch(d.name);
                                 if (d.code) {
@@ -386,6 +432,71 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                   <button type="button" onClick={() => setIsDealerModalOpen(true)} className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0">
                     <Plus className="h-5 w-5" />
                   </button>
+                </div>
+              </FormInputWrapper>
+
+              <FormInputWrapper label="Dealer Pallet Return (Address Auto-Populate)" error={errors.dealerId?.message}>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative group/field">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input 
+                        type="text"
+                        placeholder="Search Pallet Return Dealer..."
+                        autoComplete="off"
+                        value={dealers.find(d => d.id === selectedPalletDealerId)?.name || palletDealerSearch}
+                        onChange={(e) => {
+                          setPalletDealerSearch(e.target.value);
+                          if (!e.target.value) {
+                            setSelectedPalletDealerId('');
+                            setValue('dealerId', '');
+                          }
+                        }}
+                        className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
+                      />
+                    </div>
+                    
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="p-2 space-y-1">
+                        {dealers
+                          .filter(d => d.isPalletReturn === true)
+                          .filter(d => !palletDealerSearch || d.name.toLowerCase().includes(palletDealerSearch.toLowerCase()))
+                          .map(d => (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setSelectedPalletDealerId(d.id);
+                                setValue('dealerId', d.id, { shouldValidate: true });
+                                setPalletDealerSearch(d.name);
+                                if (d.code) {
+                                  setValue('partyCode', d.code, { shouldDirty: true });
+                                }
+                                if (d.address) {
+                                  setValue('fromAddress', d.address, { shouldDirty: true });
+                                  setValue('toAddress', d.address, { shouldDirty: true });
+                                }
+                                const dealerLocation = d.area || (d as any).location || '';
+                                if (dealerLocation) {
+                                  setValue('fromLocation', dealerLocation, { shouldDirty: true });
+                                  setValue('toLocation', dealerLocation, { shouldDirty: true });
+                                }
+                                (document.activeElement as HTMLElement)?.blur();
+                              }}
+                              className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{d.name}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{d.location || 'Pallet Return Dealer'}</p>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </FormInputWrapper>
 

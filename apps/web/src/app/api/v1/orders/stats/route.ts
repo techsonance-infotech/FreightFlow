@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     if (startDate || endDate) {
       baseWhere.date = {};
       if (startDate) baseWhere.date.gte = new Date(startDate);
-      if (endDate) baseWhere.date.lte = new Date(endDate);
+      if (endDate) baseWhere.date.lte = new Date(endDate + 'T23:59:59.999Z');
     }
 
     const [todayCount, inTransitCount, deliveredCount, monthlyRevenue] = await Promise.all([

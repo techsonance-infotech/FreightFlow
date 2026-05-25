@@ -20,6 +20,8 @@ export async function GET(
       include: {
         palletDetails: true,
         consigneeDetails: true,
+        dealer: true,
+        vehicle: true,
       },
     });
 
@@ -32,6 +34,19 @@ export async function GET(
     console.error('[PALLET_GET]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+function getUtcNoonDate(dateVal: any): Date {
+  if (!dateVal) return new Date();
+  const d = new Date(dateVal);
+  if (typeof dateVal === 'string' && dateVal.includes('-') && dateVal.split('-')[0].length === 4) {
+    const [year, month, day] = dateVal.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  }
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const day = d.getDate();
+  return new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
 }
 
 export async function PATCH(
@@ -64,7 +79,7 @@ export async function PATCH(
         dealerId: validatedData.dealerId,
         consigneeId: validatedData.consigneeId || null,
         vehicleId: validatedData.vehicleId,
-        date: new Date(validatedData.date),
+        date: getUtcNoonDate(validatedData.date),
         companyName: validatedData.companyName,
         partyCode: validatedData.partyCode,
         fromLocation: validatedData.fromLocation,
@@ -104,6 +119,8 @@ export async function PATCH(
       include: {
         palletDetails: true,
         consigneeDetails: true,
+        dealer: true,
+        vehicle: true,
       }
     });
 
