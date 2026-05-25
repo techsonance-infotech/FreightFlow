@@ -164,7 +164,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
           </h3>
           <Input label="Consignee Name *" placeholder="e.g. Maruti Suzuki Warehouse" icon={<User className="h-4 w-4" />} error={errors.name?.message} {...register('name')} />
           <Input label="Sub-Company / Unit" placeholder="e.g. Unit 4, Manesar" icon={<Building2 className="h-4 w-4" />} error={errors.companyName?.message} {...register('companyName')} />
-          <Input label="Phone Number *" placeholder="10-digit mobile" icon={<Phone className="h-4 w-4" />} error={errors.phone?.message} {...register('phone')} />
+          <Input label="Phone Number" placeholder="10-digit mobile (Optional)" icon={<Phone className="h-4 w-4" />} error={errors.phone?.message} {...register('phone')} />
           <Input label="Email Address" placeholder="consignee@example.com" icon={<Mail className="h-4 w-4" />} error={errors.email?.message} {...register('email')} />
           <Input label="Delivery Address *" placeholder="Full destination address" icon={<Home className="h-4 w-4" />} error={errors.address?.message} {...register('address')} />
           

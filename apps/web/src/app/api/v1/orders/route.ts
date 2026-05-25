@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     if (startDate || endDate) {
       where.date = {};
       if (startDate) where.date.gte = new Date(startDate);
-      if (endDate) where.date.lte = new Date(endDate);
+      if (endDate) where.date.lte = new Date(endDate + 'T23:59:59.999Z');
     }
 
     const [orders, total] = await Promise.all([
@@ -87,6 +87,19 @@ export async function GET(request: Request) {
   }
 }
 
+function getUtcNoonDate(dateVal: any): Date {
+  if (!dateVal) return new Date();
+  const d = new Date(dateVal);
+  if (typeof dateVal === 'string' && dateVal.includes('-') && dateVal.split('-')[0].length === 4) {
+    const [year, month, day] = dateVal.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  }
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const day = d.getDate();
+  return new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+}
+
 // POST /api/v1/orders - Create a new order (LR)
 export async function POST(request: Request) {
   try {
@@ -106,14 +119,19 @@ export async function POST(request: Request) {
     const hamaliPaise = Math.round(Number(validatedData.hamali || 0) * 100);
     const ratePaise = Math.round(Number(validatedData.rate || 0) * 100);
 
+    const isGst = validatedData.isGstRequired === true;
+    const cgstPct = isGst ? validatedData.cgstPct : 0;
+    const sgstPct = isGst ? validatedData.sgstPct : 0;
+    const igstPct = isGst ? validatedData.igstPct : 0;
+
     // Calculate totals server-side for integrity
     const totals = LREngine.calculateOrderTotals({
       details: validatedData.details,
       freight: freightPaise,
       hamali: hamaliPaise,
-      cgstPct: validatedData.cgstPct,
-      sgstPct: validatedData.sgstPct,
-      igstPct: validatedData.igstPct,
+      cgstPct,
+      sgstPct,
+      igstPct,
       gstType: validatedData.gstType as any,
       rateOn: validatedData.rateOn as any,
       rate: ratePaise,
@@ -135,7 +153,7 @@ export async function POST(request: Request) {
           consigneeId: validatedData.consigneeId,
           ewayBillNo: validatedData.ewayBillNo,
           vehicleId: validatedData.vehicleId,
-          date: new Date(validatedData.date),
+          date: getUtcNoonDate(validatedData.date),
           fromLocation: validatedData.fromLocation,
           fromAddress: validatedData.fromAddress,
           toLocation: validatedData.toLocation,
@@ -144,15 +162,16 @@ export async function POST(request: Request) {
           hamali: hamaliPaise,
           rateOn: validatedData.rateOn,
           rate: ratePaise,
-          cgstPct: validatedData.cgstPct,
-          sgstPct: validatedData.sgstPct,
-          igstPct: validatedData.igstPct,
+          cgstPct: cgstPct,
+          sgstPct: sgstPct,
+          igstPct: igstPct,
           gstType: validatedData.gstType,
           totalWeight: totals.totalWeight,
           totalBoxes: totals.totalBoxes,
           subtotal: totals.subtotal,
           cgstAmount: totals.cgstAmount,
           sgstAmount: totals.sgstAmount,
+          igstAmount: totals.igstAmount,
           totalAmount: totals.totalAmount,
           status: 'created',
           createdBy: user.id,

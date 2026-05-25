@@ -49,7 +49,7 @@ export async function generatePalletPDF(pallet: any, company: any) {
 
   // 2. Box 1: Consignor & Dealer Header
   doc.setDrawColor(200);
-  doc.rect(margin, currentY, boxWidth, 45);
+  doc.rect(margin, currentY, boxWidth, 48);
   
   doc.setFontSize(10);
   doc.setTextColor(0);
@@ -64,7 +64,12 @@ export async function generatePalletPDF(pallet: any, company: any) {
   currentY += 10;
   doc.setFontSize(11);
   doc.text(company?.name?.toUpperCase() || 'COMPANY NAME', margin + 2, currentY);
-  doc.text(pallet.dealer?.name?.toUpperCase() || pallet.companyName || '-', pageWidth / 2 + 2, currentY);
+  
+  let dealerHeader = pallet.dealer?.name?.toUpperCase() || pallet.companyName || '-';
+  if (pallet.dealer?.code) {
+    dealerHeader += ` (${pallet.dealer.code})`;
+  }
+  doc.text(dealerHeader, pageWidth / 2 + 2, currentY);
   
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
@@ -85,9 +90,12 @@ export async function generatePalletPDF(pallet: any, company: any) {
   let dealerInfoY = currentY + 4;
   const dealerAddressLines = doc.splitTextToSize(pallet.dealer?.address || '', boxWidth / 2 - 5);
   doc.text(dealerAddressLines, pageWidth / 2 + 2, dealerInfoY);
-  doc.text(`GST No.:- ${pallet.dealer?.gstin || '-'}`, pageWidth / 2 + 2, dealerInfoY + (dealerAddressLines.length * 3.5) + 2);
+  const gstPanY = dealerInfoY + (dealerAddressLines.length * 3.5);
+  doc.text(`GST No. :- ${pallet.dealer?.gstin || '-'}`, pageWidth / 2 + 2, gstPanY + 2);
+  doc.text(`PAN No. :- ${pallet.dealer?.pan || '-'}`, pageWidth / 2 + 2, gstPanY + 6);
+  doc.text(`Dealer Code :- ${pallet.dealer?.code || pallet.partyCode || '-'}`, pageWidth / 2 + 2, gstPanY + 10);
 
-  currentY += 40;
+  currentY += 44;
 
   // 3. Box 2: Challan Metadata Row
   doc.rect(margin, currentY, boxWidth, 8);
@@ -118,10 +126,12 @@ export async function generatePalletPDF(pallet: any, company: any) {
   
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  const consigneeName = pallet.consignee?.name || pallet.companyName || '-';
-  const consigneeAddress = pallet.consignee?.address || pallet.toAddress || '-';
-  const consigneeGstin = pallet.consignee?.gstin || '-';
-  const consigneePan = pallet.consignee?.pan || '-';
+  const consigneeName = pallet.dealer?.name 
+    ? `${pallet.dealer.name}${pallet.dealer.code ? ` (${pallet.dealer.code})` : ''}` 
+    : (pallet.consignee?.name || pallet.companyName || '-');
+  const consigneeAddress = pallet.dealer?.address || pallet.consignee?.address || pallet.toAddress || '-';
+  const consigneeGstin = pallet.dealer?.gstin || pallet.consignee?.gstin || '-';
+  const consigneePan = pallet.dealer?.pan || pallet.consignee?.pan || '-';
 
   // Detail Of Consignee (Left)
   doc.text(consigneeName.toUpperCase(), margin + 2, currentY + 10);
@@ -146,7 +156,7 @@ export async function generatePalletPDF(pallet: any, company: any) {
     head: [['Sr.', 'Description Of Goods', 'Code', 'Qty.', 'UOM', 'Rate', 'Total (Rs.)']],
     body: (pallet.palletDetails || []).map((item: any, idx: number) => [
       idx + 1,
-      item.palletDisplayId || 'PALLET UNIT',
+      `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
       item.code || '-',
       item.boxQty || item.qty || 0,
       item.uom || 'UNIT',
@@ -171,37 +181,45 @@ export async function generatePalletPDF(pallet: any, company: any) {
   currentY = (doc as any).lastAutoTable.finalY + 5;
 
   // 6. Box 4: Totals & Summary
-  doc.rect(margin, currentY, boxWidth, 25);
-  const subtotal = pallet.subtotal / 100;
-  const totalAmount = pallet.totalAmount / 100;
+  const hasGst = (Number(pallet.cgstAmount) > 0 || Number(pallet.sgstAmount) > 0 || Number(pallet.igstAmount) > 0);
+  const summaryBoxHeight = hasGst ? 25 : 15;
+  doc.rect(margin, currentY, boxWidth, summaryBoxHeight);
+  const subtotal = (Number(pallet.subtotal) || 0) / 100;
+  const totalAmount = (Number(pallet.totalAmount) || 0) / 100;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text(`Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
-  
-  let taxY = currentY + 9;
-  if (pallet.cgstAmount > 0) {
-    doc.text(`CGST (${pallet.cgstPct}%): ${(pallet.cgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
-  if (pallet.sgstAmount > 0) {
-    doc.text(`SGST (${pallet.sgstPct}%): ${(pallet.sgstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
-  if (pallet.igstAmount > 0) {
-    doc.text(`IGST (${pallet.igstPct}%): ${(pallet.igstAmount / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
-    taxY += 4;
-  }
 
-  doc.setFontSize(9);
-  doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 22, { align: 'right' });
+  if (hasGst) {
+    doc.text(`Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
+    
+    let taxY = currentY + 9;
+    if (Number(pallet.cgstAmount) > 0) {
+      doc.text(`CGST (${Number(pallet.cgstPct)}%): ${(Number(pallet.cgstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+      taxY += 4;
+    }
+    if (Number(pallet.sgstAmount) > 0) {
+      doc.text(`SGST (${Number(pallet.sgstPct)}%): ${(Number(pallet.sgstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+      taxY += 4;
+    }
+    if (Number(pallet.igstAmount) > 0) {
+      doc.text(`IGST (${Number(pallet.igstPct)}%): ${(Number(pallet.igstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+      taxY += 4;
+    }
+
+    doc.setFontSize(9);
+    doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 22, { align: 'right' });
+  } else {
+    doc.setFontSize(9);
+    doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 11, { align: 'right' });
+  }
   
   doc.setFontSize(8);
   doc.text(`Total Invoice Amount in Words : ${numberToWords(Math.floor(totalAmount))} only`, margin + 2, currentY + 5);
   doc.setFont('helvetica', 'normal');
   doc.text('Return Of returnable packing matearial', margin + 2, currentY + 10);
 
-  currentY += 30;
+  currentY += summaryBoxHeight + 5;
 
   // 7. Box 5: Transport Info
   doc.rect(margin, currentY, boxWidth, 22);

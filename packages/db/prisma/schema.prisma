@@ -496,6 +496,7 @@ model Dealer {
   gstin        String? @db.VarChar(15)
   serviceTaxNo String? @map("service_tax_no") @db.VarChar(50)
   dealerType   String? @map("dealer_type") @db.VarChar(50)
+  isPalletReturn Boolean @default(false) @map("is_pallet_return")
 
   // Bank Details
   bankName   String? @map("bank_name") @db.VarChar(255)

@@ -9,7 +9,7 @@ export const DealerSchema = z.object({
   address: z.string().min(5, 'Full address is required'),
   pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits').optional().nullable().or(z.literal('')),
   area: z.string().optional().nullable().or(z.literal('')),
-  phone: z.string().regex(/^\d{10}$/, 'Phone must be exactly 10 digits'),
+  phone: z.string().regex(/^\d{10}$/, 'Phone must be exactly 10 digits').optional().nullable().or(z.literal('')),
   email: z.string().email('Invalid email format').optional().nullable().or(z.literal('')),
   pan: z.string().regex(/^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/, 'Invalid PAN format').optional().nullable().or(z.literal('')),
   gstin: z.string().regex(/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}Z[0-9A-Za-z]{1}$/, 'Invalid GSTIN format').optional().nullable().or(z.literal('')),
@@ -36,6 +36,7 @@ export const DealerSchema = z.object({
   bankProofUrl: z.string().optional().nullable().or(z.literal('')),
 
   isActive: z.boolean().default(true),
+  isPalletReturn: z.boolean().default(false).optional(),
 });
 
 export type Dealer = z.infer<typeof DealerSchema>;
@@ -120,7 +121,7 @@ export const ConsigneeSchema = z.object({
   companyName: z.string().min(2, 'Sub-name must be at least 2 characters').optional().nullable().or(z.literal('')),
   address: z.string().min(5, 'Full address is required (min 5 chars)'),
   email: z.string().email('Invalid email address').optional().nullable().or(z.literal('')),
-  phone: z.string().regex(/^\d{10}$/, 'Phone must be exactly 10 digits'),
+  phone: z.string().regex(/^\d{10}$/, 'Phone must be exactly 10 digits').optional().nullable().or(z.literal('')),
   gstin: z.string().regex(/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}Z[0-9A-Za-z]{1}$/, 'Invalid GSTIN format').optional().nullable().or(z.literal('')),
   pan: z.string().regex(/^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/, 'Invalid PAN format').optional().nullable().or(z.literal('')),
   
