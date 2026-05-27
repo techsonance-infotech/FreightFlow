@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { formatUtcDate } from '../utils';
 
 export async function generateConsolidatedInvoicePDF(data: any, company: any) {
   const doc = new jsPDF('p', 'mm', 'a4');
@@ -29,7 +29,11 @@ export async function generateConsolidatedInvoicePDF(data: any, company: any) {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(`Invoice Cycle: ${data.period}`, margin, 35);
-  doc.text(`Generated on: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, margin, 40);
+  const padZero = (n: number) => String(n).padStart(2, '0');
+  const now = new Date();
+  const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const generatedOn = `${padZero(istDate.getDate())}/${padZero(istDate.getMonth() + 1)}/${istDate.getFullYear()} ${padZero(istDate.getHours())}:${padZero(istDate.getMinutes())}`;
+  doc.text(`Generated on: ${generatedOn}`, margin, 40);
 
   // Company Info
   doc.setFontSize(14);
@@ -88,7 +92,7 @@ export async function generateConsolidatedInvoicePDF(data: any, company: any) {
     startY: currentY,
     head: [['Date', 'Order #', 'Type', 'Qty', 'Weight', 'Freight Value']],
     body: data.items.map((item: any) => [
-      format(new Date(item.date), 'dd/MM/yyyy'),
+      formatUtcDate(item.date, 'dd/MM/yyyy'),
       item.orderNo,
       item.type,
       item.qty,

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { QrCode, Building2 } from 'lucide-react';
 
 interface PalletReceiptTemplateProps {
@@ -56,7 +56,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
           </div>
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Pallet Manifest #</p>
           <p className="text-2xl font-black tracking-tighter" style={{ color: primaryColor }}>LR-{data.lrNo || '0000'}</p>
-          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase">{new Date(data.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase">{formatUtcDate(data.date, 'dd MMMM yyyy')}</p>
         </div>
       </div>
 

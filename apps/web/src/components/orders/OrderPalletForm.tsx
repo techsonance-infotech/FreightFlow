@@ -166,6 +166,19 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   }, []);
 
   useEffect(() => {
+    if (!initialData?.id) {
+      fetch('/api/v1/system-date')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.date) {
+            setValue('date', data.date);
+          }
+        })
+        .catch((err) => console.error('Failed to load server date:', err));
+    }
+  }, [initialData, setValue]);
+
+  useEffect(() => {
     if (initialData?.id) return;
 
     const fetchNextLr = async () => {

@@ -103,6 +103,13 @@ export async function getDealerRecords(
       cgstPct: Number(r.cgstPct || 0),
       sgstPct: Number(r.sgstPct || 0),
       igstPct: Number(r.igstPct || 0),
+      cgstAmount: Number(r.cgstAmount || 0) / 100,
+      sgstAmount: Number(r.sgstAmount || 0) / 100,
+      igstAmount: Number(r.igstAmount || 0) / 100,
+      subtotal: Number(r.subtotal || 0) / 100,
+      totalAmount: Number(r.totalAmount || 0) / 100,
+      freight: Number(r.freight || 0) / 100,
+      hamali: Number(r.hamali || 0) / 100,
       totalWeight: Number(r.totalWeight || 0),
       rate: Number(r.rate || 0) / 100, // Convert paise to rupees
       details: (r.details || []).map((d: any) => ({
@@ -119,6 +126,13 @@ export async function getDealerRecords(
       cgstPct: Number(r.cgstPct || 0),
       sgstPct: Number(r.sgstPct || 0),
       igstPct: Number(r.igstPct || 0),
+      cgstAmount: Number(r.cgstAmount || 0) / 100,
+      sgstAmount: Number(r.sgstAmount || 0) / 100,
+      igstAmount: Number(r.igstAmount || 0) / 100,
+      subtotal: Number(r.subtotal || 0) / 100,
+      totalAmount: Number(r.totalAmount || 0) / 100,
+      freight: Number(r.freight || 0) / 100,
+      hamali: Number(r.hamali || 0) / 100,
       totalWeight: Number(r.totalWeight || 0),
       rate: Number(r.rate || 0) / 100, // Convert paise to rupees
       gstPct: Number(r.gstPct || 0),

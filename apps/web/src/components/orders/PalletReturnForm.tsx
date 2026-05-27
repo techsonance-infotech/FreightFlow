@@ -156,10 +156,23 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
 
         if (initialData?.dealerId) {
           const match = loadedDealers.find((d: any) => d.id === initialData.dealerId);
-          if (match?.isPalletReturn) {
-            setSelectedPalletDealerId(initialData.dealerId);
-          } else {
+          const meta = initialData.metadata as any;
+          if (meta?.palletReturnDealerId) {
             setSelectedDealerId(initialData.dealerId);
+            setDealerSearch(match?.name || '');
+            
+            const rMatch = loadedDealers.find((d: any) => d.id === meta.palletReturnDealerId);
+            setSelectedPalletDealerId(meta.palletReturnDealerId);
+            setPalletDealerSearch(rMatch?.name || '');
+          } else {
+            // Legacy fallback
+            if (match?.isPalletReturn) {
+              setSelectedPalletDealerId(initialData.dealerId);
+              setPalletDealerSearch(match.name);
+            } else {
+              setSelectedDealerId(initialData.dealerId);
+              setDealerSearch(match?.name || '');
+            }
           }
         }
       } catch (error) {
@@ -170,6 +183,19 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
     }
     loadMasters();
   }, []);
+
+  useEffect(() => {
+    if (!initialData?.id) {
+      fetch('/api/v1/system-date')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.date) {
+            setValue('date', data.date);
+          }
+        })
+        .catch((err) => console.error('Failed to load server date:', err));
+    }
+  }, [initialData, setValue]);
 
   useEffect(() => {
     if (initialData?.id) return;
@@ -243,10 +269,22 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
 
   const onSubmit = async (data: Pallet) => {
     try {
-      const finalDealerId = selectedPalletDealerId || selectedDealerId || data.dealerId;
+      const finalDealerId = selectedDealerId || data.dealerId;
+      const returnDealer = dealers.find(d => d.id === selectedPalletDealerId);
       const payload = {
         ...data,
         dealerId: finalDealerId,
+        companyName: returnDealer?.name || data.companyName || '',
+        toAddress: returnDealer?.address || data.toAddress || '',
+        toLocation: returnDealer?.area || (returnDealer as any)?.location || data.toLocation || '',
+        metadata: {
+          palletReturnDealerId: selectedPalletDealerId || '',
+          palletReturnDealerName: returnDealer?.name || '',
+          palletReturnDealerAddress: returnDealer?.address || '',
+          palletReturnDealerGstin: returnDealer?.gstin || '',
+          palletReturnDealerPan: returnDealer?.pan || '',
+          palletReturnDealerCode: returnDealer?.code || '',
+        },
         freight: Math.round(parseFloat((data.freight || 0) as any) * 100),
         hamali: Math.round(parseFloat((data.hamali || 0) as any) * 100),
         rate: Math.round(parseFloat((data.rate || 0) as any) * 100),
@@ -451,7 +489,6 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                           setPalletDealerSearch(e.target.value);
                           if (!e.target.value) {
                             setSelectedPalletDealerId('');
-                            setValue('dealerId', '');
                           }
                         }}
                         className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none"
@@ -470,11 +507,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 setSelectedPalletDealerId(d.id);
-                                setValue('dealerId', d.id, { shouldValidate: true });
                                 setPalletDealerSearch(d.name);
-                                if (d.code) {
-                                  setValue('partyCode', d.code, { shouldDirty: true });
-                                }
                                 if (d.address) {
                                   setValue('fromAddress', d.address, { shouldDirty: true });
                                   setValue('toAddress', d.address, { shouldDirty: true });

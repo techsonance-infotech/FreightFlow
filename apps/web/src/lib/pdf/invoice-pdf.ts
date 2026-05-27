@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { formatUtcDate } from '../utils';
 
 export async function generateInvoicePDF(invoice: any, company: any) {
   const doc = new jsPDF();
@@ -74,12 +74,12 @@ export async function generateInvoicePDF(invoice: any, company: any) {
   doc.setFont('helvetica', 'bold');
   doc.text('INVOICE DATE', pageWidth - 20, currentY, { align: 'right' });
   doc.setTextColor(0, 0, 0);
-  doc.text(format(new Date(invoice.date), 'dd MMMM yyyy'), pageWidth - 20, currentY + 5, { align: 'right' });
+  doc.text(formatUtcDate(invoice.date, 'dd MMMM yyyy'), pageWidth - 20, currentY + 5, { align: 'right' });
 
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.text('DUE DATE', pageWidth - 20, currentY + 15, { align: 'right' });
   doc.setTextColor(0, 0, 0);
-  doc.text(format(new Date(invoice.dueDate || invoice.date), 'dd MMMM yyyy'), pageWidth - 20, currentY + 20, { align: 'right' });
+  doc.text(formatUtcDate(invoice.dueDate || invoice.date, 'dd MMMM yyyy'), pageWidth - 20, currentY + 20, { align: 'right' });
 
   currentY += 45;
 

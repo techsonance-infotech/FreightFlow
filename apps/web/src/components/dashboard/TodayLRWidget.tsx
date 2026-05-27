@@ -5,9 +5,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Package, FileText, Edit, Trash2, Inbox, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { LRInvoiceDownloader } from '@/components/orders/LRInvoiceDownloader';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 export function TodayLRWidget() {
@@ -98,7 +97,7 @@ export function TodayLRWidget() {
                      </div>
                   </td>
                   <td className="px-4 py-4 text-[10px] font-black text-slate-700">
-                    {format(new Date(item.date), 'dd MMM')}
+                    {formatUtcDate(item.date, 'dd MMM')}
                   </td>
                   <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                      <div className="flex items-center justify-center gap-1">

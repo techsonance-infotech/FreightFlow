@@ -36,6 +36,7 @@ export const PalletForm: React.FC<PalletFormProps> = ({ initialData, isEditing }
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<any>({
     resolver: zodResolver(PalletSchema),
@@ -86,6 +87,19 @@ export const PalletForm: React.FC<PalletFormProps> = ({ initialData, isEditing }
     };
     fetchMasters();
   }, []);
+
+  useEffect(() => {
+    if (!isEditing && !initialData?.date) {
+      fetch('/api/v1/system-date')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.date) {
+            setValue('date', data.date);
+          }
+        })
+        .catch((err) => console.error('Failed to load server date:', err));
+    }
+  }, [isEditing, initialData, setValue]);
 
   useEffect(() => {
     const totalPallets = watchedPallets.reduce((sum: number, p: any) => sum + (Number(p.qty) || 0), 0);
