@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { formatUtcDate } from '../utils';
 
 export async function generateSOAPDF(dealer: any, transactions: any[], dateRange: { from: Date; to: Date }) {
   const doc = new jsPDF('p', 'mm', 'a4');
@@ -20,8 +20,12 @@ export async function generateSOAPDF(dealer: any, transactions: any[], dateRange
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Period: ${format(dateRange.from, 'dd MMM yyyy')} to ${format(dateRange.to, 'dd MMM yyyy')}`, margin, 35);
-  doc.text(`Generated on: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, margin, 40);
+  doc.text(`Period: ${formatUtcDate(dateRange.from, 'dd MMM yyyy')} to ${formatUtcDate(dateRange.to, 'dd MMM yyyy')}`, margin, 35);
+  const padZero = (n: number) => String(n).padStart(2, '0');
+  const now = new Date();
+  const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const generatedOn = `${padZero(istDate.getDate())}/${padZero(istDate.getMonth() + 1)}/${istDate.getFullYear()} ${padZero(istDate.getHours())}:${padZero(istDate.getMinutes())}`;
+  doc.text(`Generated on: ${generatedOn}`, margin, 40);
 
   currentY = 60;
   
@@ -75,7 +79,7 @@ export async function generateSOAPDF(dealer: any, transactions: any[], dateRange
     startY: currentY,
     head: [['Date', 'Particulars', 'Voucher Type', 'Ref No', 'Debit', 'Credit', 'Balance']],
     body: transactions.map(t => [
-      format(new Date(t.date), 'dd/MM/yyyy'),
+      formatUtcDate(t.date, 'dd/MM/yyyy'),
       t.particulars || '',
       t.voucherType || '',
       t.voucherNo || t.refNo || '',

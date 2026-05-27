@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { formatUtcDate } from '../utils';
 import { numberToWords } from '../utils/number-to-words';
 
 // Helper to convert Image URL to Base64 with dimension metadata
@@ -77,7 +77,7 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   doc.setFontSize(8);
   doc.text(`Mo: ${company?.phone || '-'}`, pageWidth - margin - 2, brandY, { align: 'right' });
   doc.text(`LR No: ${order.lrNo || '-'}`, pageWidth - margin - 2, brandY + 5, { align: 'right' });
-  doc.text(`Date: ${format(new Date(order.date), 'dd/MM/yyyy')}`, pageWidth - margin - 2, brandY + 10, { align: 'right' });
+  doc.text(`Date: ${formatUtcDate(order.date, 'dd/MM/yyyy')}`, pageWidth - margin - 2, brandY + 10, { align: 'right' });
 
   // Horizontal Divider 1
   doc.setDrawColor(230);

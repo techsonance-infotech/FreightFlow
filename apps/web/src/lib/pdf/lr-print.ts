@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { formatUtcDate } from '../utils';
+
 
 // Helper to convert Image URL to Base64 with dimension metadata
 async function getBase64Image(imgUrl: string): Promise<{ data: string; width: number; height: number } | null> {
@@ -102,7 +103,7 @@ export async function generateLRPrintPDF(order: any, company: any) {
   doc.setFont('helvetica', 'bold');
   doc.text('LORRY RECEIPT (LR)', margin + 2, currentY + 5.5);
   doc.text(`LR No :- ${order.lrNo || '-'}`, margin + 50, currentY + 5.5);
-  doc.text(`Date :- ${format(new Date(order.date), 'dd/MM/yyyy')}`, pageWidth - margin - 2, currentY + 5.5, { align: 'right' });
+  doc.text(`Date :- ${formatUtcDate(order.date, 'dd/MM/yyyy')}`, pageWidth - margin - 2, currentY + 5.5, { align: 'right' });
 
   currentY += 11; // Reduced space
 

@@ -102,8 +102,7 @@ export async function PATCH(
         igstAmount,
         totalAmount: body.totalAmount || 0,
         gstPct: validatedData.gstPct,
-        type: validatedData.type,
-        status: validatedData.status,
+        metadata: validatedData.metadata as any,
         palletDetails: {
           deleteMany: {},
           create: (validatedData.palletDetails || []).map((d) => ({

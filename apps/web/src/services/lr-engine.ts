@@ -77,14 +77,16 @@ export class LREngine {
     const totalBoxes = params.details.reduce((sum, d) => sum + Number(d.boxCount || 0), 0);
 
     let subtotal = 0;
-    if (params.rateOn === 'weight') {
-      subtotal = Math.round(totalWeight * params.rate);
+    if (params.rate > 0) {
+      if (params.rateOn === 'weight') {
+        subtotal = Math.round(totalWeight * params.rate);
+      } else {
+        subtotal = totalBoxes * params.rate;
+      }
+      subtotal += params.hamali;
     } else {
-      subtotal = totalBoxes * params.rate;
+      subtotal = params.freight + params.hamali;
     }
-
-    // Add fixed components
-    subtotal += params.freight + params.hamali;
 
     let cgstAmount = 0;
     let sgstAmount = 0;

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { formatUtcDate } from '../utils';
 import { numberToWords } from '../utils/number-to-words';
 
 // Helper to convert Image URL to Base64 with dimension metadata
@@ -76,7 +76,7 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   doc.setFontSize(8);
   doc.text(`Mo: ${company?.phone || '-'}`, pageWidth - margin - 2, brandY, { align: 'right' });
   doc.text(`Challan No: ${pallet.lrNo || '-'}`, pageWidth - margin - 2, brandY + 5, { align: 'right' });
-  doc.text(`Date: ${format(new Date(pallet.date), 'dd/MM/yyyy')}`, pageWidth - margin - 2, brandY + 10, { align: 'right' });
+  doc.text(`Date: ${formatUtcDate(pallet.date, 'dd/MM/yyyy')}`, pageWidth - margin - 2, brandY + 10, { align: 'right' });
 
   // Horizontal Divider 1
   doc.setDrawColor(230);
@@ -89,42 +89,72 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   doc.text('CONSIGNOR (DEALER)', margin + 2, partyY);
   doc.text('CONSIGNEE', pageWidth / 2 + 2, partyY);
   
-  // Dealer Name & Bold Code
+  // Left Column (Consignor / Dealer)
   doc.setFont('helvetica', 'normal');
   const dName = pallet.dealer?.name?.toUpperCase() || '-';
   doc.text(dName, margin + 2, partyY + 3.5);
-  const codeVal = pallet.dealer?.code || pallet.partyCode;
-  if (codeVal) {
+  
+  const dCode = pallet.dealer?.code || pallet.partyCode || '';
+  if (dCode) {
     const dNameWidth = doc.getTextWidth(dName);
     doc.setFont('helvetica', 'bold');
-    doc.text(` - ${codeVal}`, margin + 2 + dNameWidth, partyY + 3.5);
+    doc.text(` - ${dCode}`, margin + 2 + dNameWidth, partyY + 3.5);
     doc.setFont('helvetica', 'normal');
   }
 
-  // Consignee Name
-  const cName = pallet.dealer?.name 
-    ? `${pallet.dealer.name}${codeVal ? ` (${codeVal})` : ''}` 
-    : (pallet.consignee?.name || pallet.companyName || '-');
-  doc.text(cName.toUpperCase(), pageWidth / 2 + 2, partyY + 3.5);
-  
-  // Wrapped Address Lines
-  const dAddr = doc.splitTextToSize(pallet.dealer?.address || '-', (boxWidth / 2) - 8);
-  const cAddr = doc.splitTextToSize(pallet.dealer?.address || pallet.consignee?.address || pallet.toAddress || '-', (boxWidth / 2) - 8);
+  const dAddrVal = pallet.dealer?.address || '-';
+  const dAddr = doc.splitTextToSize(dAddrVal, (boxWidth / 2) - 8);
   doc.text(dAddr, margin + 2, partyY + 7);
+
+  // Right Column (Consignee / Shipping Address)
+  let cName = '-';
+  let cAddrVal = '-';
+  let cGST = '';
+  let cPAN = '';
+  let cCode = '';
+
+  if (pallet.type === 'RETURN') {
+    const meta = pallet.metadata as any;
+    cName = meta?.palletReturnDealerName || pallet.companyName || '-';
+    cAddrVal = meta?.palletReturnDealerAddress || pallet.toAddress || '-';
+    cGST = meta?.palletReturnDealerGstin || '';
+    cPAN = meta?.palletReturnDealerPan || '';
+    cCode = meta?.palletReturnDealerCode || '';
+  } else {
+    cName = pallet.consignee?.name || pallet.companyName || '-';
+    cAddrVal = pallet.consignee?.address || pallet.toAddress || '-';
+    cGST = pallet.consignee?.gstin || '';
+    cPAN = pallet.consignee?.pan || '';
+  }
+
+  doc.text(cName.toUpperCase(), pageWidth / 2 + 2, partyY + 3.5);
+  if (cCode) {
+    const cNameWidth = doc.getTextWidth(cName.toUpperCase());
+    doc.setFont('helvetica', 'bold');
+    doc.text(` - ${cCode}`, pageWidth / 2 + 2 + cNameWidth, partyY + 3.5);
+    doc.setFont('helvetica', 'normal');
+  }
+
+  const cAddr = doc.splitTextToSize(cAddrVal, (boxWidth / 2) - 8);
   doc.text(cAddr, pageWidth / 2 + 2, partyY + 7);
 
   // Calculate wrapped address height offset
   const addrHeight = Math.max(dAddr.length, cAddr.length) * 3;
   let taxY = partyY + 7 + addrHeight + 1.5;
 
-  // GST & PAN Info
-  const dGST = pallet.dealer?.gstin || '-';
-  const dPAN = pallet.dealer?.pan || '-';
-  doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, taxY);
+  // Left Column GST & PAN Info (Conditional)
+  const dGST = pallet.dealer?.gstin || '';
+  const dPAN = pallet.dealer?.pan || '';
+  const dTaxParts: string[] = [];
+  if (dGST) dTaxParts.push(`GST: ${dGST}`);
+  if (dPAN) dTaxParts.push(`PAN: ${dPAN}`);
+  doc.text(dTaxParts.join(' | ') || '-', margin + 2, taxY);
 
-  const cGST = pallet.dealer?.gstin || pallet.consignee?.gstin || '-';
-  const cPAN = pallet.dealer?.pan || pallet.consignee?.pan || '-';
-  doc.text(`GST: ${cGST} | PAN: ${cPAN}`, pageWidth / 2 + 2, taxY);
+  // Right Column GST & PAN Info (Conditional)
+  const cTaxParts: string[] = [];
+  if (cGST) cTaxParts.push(`GST: ${cGST}`);
+  if (cPAN) cTaxParts.push(`PAN: ${cPAN}`);
+  doc.text(cTaxParts.join(' | ') || '-', pageWidth / 2 + 2, taxY);
 
   // Horizontal Divider 2
   const divider2Y = taxY + 4;

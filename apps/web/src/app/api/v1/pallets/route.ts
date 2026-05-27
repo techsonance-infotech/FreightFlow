@@ -156,7 +156,7 @@ export async function POST(request: Request) {
         totalAmount: body.totalAmount || 0,
         gstPct: validatedData.gstPct,
         type: validatedData.type,
-        status: validatedData.status,
+        metadata: validatedData.metadata as any,
         palletDetails: {
           create: (validatedData.palletDetails || []).map((d) => ({
             companyId: user.companyId!,
