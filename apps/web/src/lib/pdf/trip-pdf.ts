@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { formatUtcDate } from '../utils';
 
 // Helper to convert Image URL to Base64 with dimension metadata
 async function getBase64Image(imgUrl: string): Promise<{ data: string; width: number; height: number } | null> {
@@ -66,7 +66,11 @@ export async function generateTripPDF(trip: any, company: any) {
   doc.setTextColor(30, 41, 59);
   doc.text(`#${trip.id.slice(0, 8).toUpperCase()}`, margin, currentY);
   doc.text(trip.status.toUpperCase().replace('_', ' '), pageWidth / 2, currentY, { align: 'center' });
-  doc.text(format(new Date(), 'dd MMM yyyy, HH:mm'), pageWidth - margin, currentY, { align: 'right' });
+  const padZero = (n: number) => String(n).padStart(2, '0');
+  const now = new Date();
+  const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const generatedOn = `${padZero(istDate.getDate())} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][istDate.getMonth()]} ${istDate.getFullYear()}, ${padZero(istDate.getHours())}:${padZero(istDate.getMinutes())}`;
+  doc.text(generatedOn, pageWidth - margin, currentY, { align: 'right' });
 
   currentY += 15;
 
@@ -104,7 +108,7 @@ export async function generateTripPDF(trip: any, company: any) {
   doc.setFontSize(10);
   doc.setTextColor(30, 41, 59);
   doc.text(trip.vehicle?.type || 'N/A', col2, detailY + 6);
-  doc.text(trip.departureAt ? format(new Date(trip.departureAt), 'PPP p') : 'PENDING DISPATCH', col2, detailY + 21);
+  doc.text(trip.departureAt ? new Date(trip.departureAt).toLocaleString('en-US', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : 'PENDING DISPATCH', col2, detailY + 21);
   doc.text(trip.toLocation || 'N/A', col2, detailY + 36);
 
   currentY += 60;
@@ -120,7 +124,7 @@ export async function generateTripPDF(trip: any, company: any) {
     head: [['LR #', 'DATE', 'PARTY / CUSTOMER', 'WEIGHT', 'AMOUNT']],
     body: (trip.orders || []).map((o: any) => [
       `#${o.lrNo}`,
-      format(new Date(o.date), 'dd MMM yyyy'),
+      formatUtcDate(o.date, 'dd MMM yyyy'),
       o.dealer?.name || 'N/A',
       `${o.totalWeight} KG`,
       `INR ${(o.totalAmount / 100).toLocaleString()}`
@@ -145,7 +149,7 @@ export async function generateTripPDF(trip: any, company: any) {
       body: (trip.expenses || []).map((e: any) => [
         e.type.toUpperCase().replace('_', ' '),
         e.description || '-',
-        format(new Date(e.recordedAt), 'dd MMM, HH:mm'),
+        e.recordedAt ? new Date(e.recordedAt).toLocaleString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '-',
         `INR ${(e.amount / 100).toLocaleString()}`
       ]),
       theme: 'grid',
@@ -192,5 +196,5 @@ export async function generateTripPDF(trip: any, company: any) {
   doc.text('This is a computer-generated mission report and does not require a physical signature.', pageWidth / 2, pageHeight - 10, { align: 'center' });
   doc.text(`FreightFlow Digital Logistics System | Trip #${trip.id.slice(0, 8).toUpperCase()}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
 
-  doc.save(`Trip_Report_${trip.id.slice(0, 8).toUpperCase()}_${format(new Date(), 'yyyyMMdd')}.pdf`);
+  doc.save(`Trip_Report_${trip.id.slice(0, 8).toUpperCase()}_${formatUtcDate(new Date(), 'yyyyMMdd')}.pdf`);
 }

@@ -81,6 +81,7 @@ export const PalletSchema = z.object({
   isGstRequired: z.boolean().default(false),
   palletDetails: z.array(PalletDetailSchema).min(0),
   consigneeDetails: z.array(PalletConsigneeDetailSchema).optional(),
+  metadata: z.record(z.any()).optional().nullable(),
 });
 
 export type Order = z.infer<typeof OrderSchema>;

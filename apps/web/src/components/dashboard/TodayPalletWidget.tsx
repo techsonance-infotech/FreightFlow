@@ -6,8 +6,7 @@ import { toast } from 'sonner';
 import { ArrowDownToLine, Inbox, Package, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 export function TodayPalletWidget() {
@@ -87,7 +86,7 @@ export function TodayPalletWidget() {
                    </div>
                 </td>
                 <td className="px-4 py-4 text-[10px] font-black text-slate-700">
-                  {format(new Date(item.date), 'dd MMM')}
+                  {formatUtcDate(item.date, 'dd MMM')}
                 </td>
                 <td className="px-4 py-4">
                   <p className="text-[10px] font-bold text-slate-700 uppercase truncate max-w-[120px]">{item.dealer?.name || 'Retail Client'}</p>

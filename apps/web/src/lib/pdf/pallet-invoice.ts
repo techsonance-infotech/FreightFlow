@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { formatUtcDate } from '../utils';
 import { numberToWords } from '../utils/number-to-words';
 
 // Helper to convert Image URL to Base64 with dimension metadata
@@ -90,10 +90,20 @@ export async function generatePalletPDF(pallet: any, company: any) {
   let dealerInfoY = currentY + 4;
   const dealerAddressLines = doc.splitTextToSize(pallet.dealer?.address || '', boxWidth / 2 - 5);
   doc.text(dealerAddressLines, pageWidth / 2 + 2, dealerInfoY);
-  const gstPanY = dealerInfoY + (dealerAddressLines.length * 3.5);
-  doc.text(`GST No. :- ${pallet.dealer?.gstin || '-'}`, pageWidth / 2 + 2, gstPanY + 2);
-  doc.text(`PAN No. :- ${pallet.dealer?.pan || '-'}`, pageWidth / 2 + 2, gstPanY + 6);
-  doc.text(`Dealer Code :- ${pallet.dealer?.code || pallet.partyCode || '-'}`, pageWidth / 2 + 2, gstPanY + 10);
+  let gstPanY = dealerInfoY + (dealerAddressLines.length * 3.5);
+  
+  if (pallet.dealer?.gstin) {
+    doc.text(`GST No. :- ${pallet.dealer.gstin}`, pageWidth / 2 + 2, gstPanY + 2);
+    gstPanY += 4;
+  }
+  if (pallet.dealer?.pan) {
+    doc.text(`PAN No. :- ${pallet.dealer.pan}`, pageWidth / 2 + 2, gstPanY + 2);
+    gstPanY += 4;
+  }
+  const dCode = pallet.dealer?.code || pallet.partyCode;
+  if (dCode) {
+    doc.text(`Dealer Code :- ${dCode}`, pageWidth / 2 + 2, gstPanY + 2);
+  }
 
   currentY += 44;
 
@@ -109,7 +119,7 @@ export async function generatePalletPDF(pallet: any, company: any) {
   doc.text(`Delivery Challan No :- ${pallet.lrNo || '-'}`, pageWidth / 2, currentY + 5.5, { align: 'center' });
   
   // Right: Date
-  doc.text(`Date :- ${format(new Date(pallet.date), 'dd/MM/yyyy')}`, pageWidth - margin - 2, currentY + 5.5, { align: 'right' });
+  doc.text(`Date :- ${formatUtcDate(pallet.date, 'dd/MM/yyyy')}`, pageWidth - margin - 2, currentY + 5.5, { align: 'right' });
 
   currentY += 13;
 
@@ -126,27 +136,53 @@ export async function generatePalletPDF(pallet: any, company: any) {
   
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  const consigneeName = pallet.dealer?.name 
-    ? `${pallet.dealer.name}${pallet.dealer.code ? ` (${pallet.dealer.code})` : ''}` 
-    : (pallet.consignee?.name || pallet.companyName || '-');
-  const consigneeAddress = pallet.dealer?.address || pallet.consignee?.address || pallet.toAddress || '-';
-  const consigneeGstin = pallet.dealer?.gstin || pallet.consignee?.gstin || '-';
-  const consigneePan = pallet.dealer?.pan || pallet.consignee?.pan || '-';
+  
+  let consigneeName = '-';
+  let consigneeAddress = '-';
+  let consigneeGstin = '';
+  let consigneePan = '';
+  
+  if (pallet.type === 'RETURN') {
+    const meta = pallet.metadata as any;
+    const cNameVal = meta?.palletReturnDealerName || pallet.companyName || '-';
+    const cCodeVal = meta?.palletReturnDealerCode || '';
+    consigneeName = cCodeVal ? `${cNameVal} (${cCodeVal})` : cNameVal;
+    consigneeAddress = meta?.palletReturnDealerAddress || pallet.toAddress || '-';
+    consigneeGstin = meta?.palletReturnDealerGstin || '';
+    consigneePan = meta?.palletReturnDealerPan || '';
+  } else {
+    consigneeName = pallet.consignee?.name || pallet.companyName || '-';
+    consigneeAddress = pallet.consignee?.address || pallet.toAddress || '-';
+    consigneeGstin = pallet.consignee?.gstin || '';
+    consigneePan = pallet.consignee?.pan || '';
+  }
 
   // Detail Of Consignee (Left)
   doc.text(consigneeName.toUpperCase(), margin + 2, currentY + 10);
   const consigneeAddrLines = doc.splitTextToSize(consigneeAddress, boxWidth / 2 - 5);
   doc.text(consigneeAddrLines, margin + 2, currentY + 14);
   
-  const detailsY = currentY + 14 + (Math.min(consigneeAddrLines.length, 3) * 3.5) + 2;
-  doc.text(`GST No : ${consigneeGstin}`, margin + 2, detailsY);
-  doc.text(`Pan No : ${consigneePan}`, margin + 2, detailsY + 4);
+  let detailsY = currentY + 14 + (Math.min(consigneeAddrLines.length, 3) * 3.5) + 2;
+  if (consigneeGstin) {
+    doc.text(`GST No : ${consigneeGstin}`, margin + 2, detailsY);
+    detailsY += 4;
+  }
+  if (consigneePan) {
+    doc.text(`Pan No : ${consigneePan}`, margin + 2, detailsY);
+  }
 
   // Shipped To (Right)
   doc.text(consigneeName.toUpperCase(), pageWidth / 2 + 2, currentY + 10);
   doc.text(consigneeAddrLines, pageWidth / 2 + 2, currentY + 14);
-  doc.text(`GST No : ${consigneeGstin}`, pageWidth / 2 + 2, detailsY);
-  doc.text(`Pan No : ${consigneePan}`, pageWidth / 2 + 2, detailsY + 4);
+  
+  let rightDetailsY = currentY + 14 + (Math.min(consigneeAddrLines.length, 3) * 3.5) + 2;
+  if (consigneeGstin) {
+    doc.text(`GST No : ${consigneeGstin}`, pageWidth / 2 + 2, rightDetailsY);
+    rightDetailsY += 4;
+  }
+  if (consigneePan) {
+    doc.text(`Pan No : ${consigneePan}`, pageWidth / 2 + 2, rightDetailsY);
+  }
 
   currentY += 43;
 
@@ -227,7 +263,7 @@ export async function generatePalletPDF(pallet: any, company: any) {
   doc.text(`Recipient's Order No :- ${pallet.orderNo || '-'}`, margin + 2, currentY + 5);
   doc.text(`Mode Of transport: By road`, margin + 2, currentY + 9);
   doc.text(`Transporter Name: ${pallet.vehicle?.transporterName || 'SELF'}`, margin + 2, currentY + 13);
-  doc.text(`Consignment Note No/Date: ${pallet.lrNo || '-'} / ${format(new Date(pallet.date), 'dd/MM/yyyy')}`, margin + 2, currentY + 17);
+  doc.text(`Consignment Note No/Date: ${pallet.lrNo || '-'} / ${formatUtcDate(pallet.date, 'dd/MM/yyyy')}`, margin + 2, currentY + 17);
   doc.text(`Vehical No :- ${pallet.vehicle?.regNo || pallet.vehicle?.plateNumber || '-'}`, margin + 2, currentY + 21);
   
   doc.setFontSize(12);

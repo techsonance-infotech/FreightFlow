@@ -100,9 +100,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
       freight: initialData?.freight !== undefined ? initialData.freight : 0,
       hamali: initialData?.hamali !== undefined ? initialData.hamali : 0,
       rate: initialData?.rate !== undefined ? initialData.rate : 0,
-      cgstPct: initialData?.cgstPct !== undefined ? Number(initialData.cgstPct) : 2.5,
-      sgstPct: initialData?.sgstPct !== undefined ? Number(initialData.sgstPct) : 2.5,
-      igstPct: initialData?.igstPct !== undefined ? Number(initialData.igstPct) : 5.0,
+      cgstPct: initialData?.cgstPct !== undefined ? Number(initialData.cgstPct) : 0,
+      sgstPct: initialData?.sgstPct !== undefined ? Number(initialData.sgstPct) : 0,
+      igstPct: initialData?.igstPct !== undefined ? Number(initialData.igstPct) : 0,
       isGstRequired: initialData?.isGstRequired ?? (
         Number(initialData?.cgstPct) > 0 || 
         Number(initialData?.sgstPct) > 0 || 
@@ -191,6 +191,19 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   }, [watchedConsigneeId, masters.consignees, isEditing]);
 
   useEffect(() => {
+    if (!isEditing && !initialData?.date) {
+      fetch('/api/v1/system-date')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.date) {
+            setValue('date', data.date);
+          }
+        })
+        .catch((err) => console.error('Failed to load server date:', err));
+    }
+  }, [isEditing, initialData, setValue]);
+
+  useEffect(() => {
     const fetchMasters = async () => {
       try {
         setLoadingMasters(true);
@@ -235,20 +248,30 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     fetchNextLr();
   }, [watchedDate, isEditing]);
 
+  // Sync freight value automatically when rate, basis, or items change
+  useEffect(() => {
+    const totalWeight = watchedDetails.reduce((sum, d) => sum + (Number(d.weight) || 0), 0);
+    const totalBoxes = watchedDetails.reduce((sum, d) => sum + (Number(d.boxCount) || 0), 0);
+
+    if (Number(watchedRate || 0) > 0) {
+      const calculatedFreight = watchedRateOn === 'weight'
+        ? totalWeight * Number(watchedRate || 0)
+        : totalBoxes * Number(watchedRate || 0);
+      
+      const currentFreight = Number(watchedFreight || 0);
+      if (Math.abs(currentFreight - calculatedFreight) > 0.01) {
+        setValue('freight', Number(calculatedFreight.toFixed(2)), { shouldDirty: true });
+      }
+    }
+  }, [watchedDetails, watchedRate, watchedRateOn, setValue, watchedFreight]);
+
   useEffect(() => {
     const totalWeight = watchedDetails.reduce((sum, d) => sum + (Number(d.weight) || 0), 0);
     const totalBoxes = watchedDetails.reduce((sum, d) => sum + (Number(d.boxCount) || 0), 0);
     
-    // Financial calculations in standard units (Rupees/KG)
-    let calculatedSubtotal = 0;
-    if (watchedRateOn === 'weight') {
-      calculatedSubtotal = totalWeight * Number(watchedRate || 0);
-    } else {
-      calculatedSubtotal = totalBoxes * Number(watchedRate || 0);
-    }
-    
-    // Add other charges
-    calculatedSubtotal += Number(watchedFreight || 0) + Number(watchedHamali || 0);
+    // Financial calculations: subtotal is simply freight + hamali
+    // freight already automatically captures the rate calculation if a rate is specified
+    const calculatedSubtotal = Number(watchedFreight || 0) + Number(watchedHamali || 0);
     
     let cgstAmount = 0;
     let sgstAmount = 0;
@@ -270,11 +293,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
       subtotal: calculatedSubtotal, 
       cgstAmount, 
       sgstAmount, 
-      igstAmount, // Added to totals state
+      igstAmount, 
       totalAmount, 
       margin 
     });
-  }, [watchedDetails, watchedFreight, watchedHamali, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedRate, watchedRateOn, watchedGstType, watchedIsGstRequired]);
+  }, [watchedDetails, watchedFreight, watchedHamali, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedGstType, watchedIsGstRequired]);
 
   const onSubmit = async (data: Order) => {
     try {

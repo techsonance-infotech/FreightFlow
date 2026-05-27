@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { format } from 'date-fns';
+import { formatUtcDate } from '@/lib/utils';
 import { Download, X, Package, Truck, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -31,7 +31,7 @@ export function LorryReceiptTemplate({ order, orders, company, copyType, onClose
       doc.text('FREIGHTFLOW LOGISTICS', 14, 20);
       doc.setFontSize(10);
       doc.text('Lorry Receipt No: #' + item.lrNo, 140, 20);
-      doc.text('Date: ' + format(new Date(item.date), 'dd/MM/yyyy'), 140, 25);
+      doc.text('Date: ' + formatUtcDate(item.date, 'dd/MM/yyyy'), 140, 25);
       
       doc.line(14, 30, 196, 30);
       
@@ -129,7 +129,7 @@ export function LorryReceiptTemplate({ order, orders, company, copyType, onClose
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-slate-400 uppercase">Date</p>
-                      <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">{format(new Date(item.date), 'dd MMMM yyyy')}</p>
+                      <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">{formatUtcDate(item.date, 'dd MMMM yyyy')}</p>
                     </div>
                   </div>
                 </div>

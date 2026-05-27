@@ -61,14 +61,15 @@ interface OrderRecord {
   loadType: string;
   totalWeight: any;
   totalBoxes: number;
+  rateOn?: string;
   details: any[];
 }
 
 export default function DealerBillingPage() {
   const [loadType, setLoadType] = useState<'BOX' | 'PALLET' | 'BOTH' | 'PALLET_RETURN'>('BOTH');
-  const [isGstRequired, setIsGstRequired] = useState(true);
+  const [isGstRequired, setIsGstRequired] = useState(false);
   const [gstType, setGstType] = useState<'intra' | 'inter'>('intra');
-  const [gstRate, setGstRate] = useState<number>(12);
+  const [gstRate, setGstRate] = useState<number>(0);
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [selectedDealerId, setSelectedDealerId] = useState<string>('');
   const [periodType, setPeriodType] = useState<'month' | 'range'>('month');
@@ -96,14 +97,29 @@ export default function DealerBillingPage() {
 
     const consolidatedItem = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey);
     const price = consolidatedItem?.unitPrice || 0;
-    const multiplier = isPallet ? (record.totalBoxes || 0) : Number(record.totalWeight || 0);
+    const rateOn = record.rateOn || 'weight';
+    const multiplier = isPallet 
+      ? (record.totalBoxes || 0) 
+      : (rateOn === 'box' ? (record.totalBoxes || 0) : Number(record.totalWeight || 0));
 
     return acc + (multiplier * price);
   }, 0);
 
-  const cgst = isGstRequired && gstType === 'intra' ? subtotal * (gstRate / 200) : 0;
-  const sgst = isGstRequired && gstType === 'intra' ? subtotal * (gstRate / 200) : 0;
-  const igst = isGstRequired && gstType === 'inter' ? subtotal * (gstRate / 100) : 0;
+  // Check if database records have any GST
+  const hasStoredGst = records.some(r => Number((r as any).cgstAmount || 0) > 0 || Number((r as any).sgstAmount || 0) > 0 || Number((r as any).igstAmount || 0) > 0);
+
+  const cgst = isGstRequired 
+    ? (gstType === 'intra' ? subtotal * (gstRate / 200) : 0)
+    : (hasStoredGst ? records.reduce((acc, r) => acc + Number((r as any).cgstAmount || 0), 0) : 0);
+
+  const sgst = isGstRequired 
+    ? (gstType === 'intra' ? subtotal * (gstRate / 200) : 0)
+    : (hasStoredGst ? records.reduce((acc, r) => acc + Number((r as any).sgstAmount || 0), 0) : 0);
+
+  const igst = isGstRequired 
+    ? (gstType === 'inter' ? subtotal * (gstRate / 100) : 0)
+    : (hasStoredGst ? records.reduce((acc, r) => acc + Number((r as any).igstAmount || 0), 0) : 0);
+
   const rawTotal = subtotal + cgst + sgst + igst;
   const grandTotal = Math.round(rawTotal);
   const roundOff = grandTotal - rawTotal;
@@ -335,14 +351,19 @@ export default function DealerBillingPage() {
         const itemKey = `${prodName}-${packType}`;
 
         const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
-        const multiplier = isPallet ? (record.totalBoxes || 0) : Number(record.totalWeight || 0);
+        const rateOn = record.rateOn || 'weight';
+        const multiplier = isPallet 
+          ? (record.totalBoxes || 0) 
+          : (rateOn === 'box' ? (record.totalBoxes || 0) : Number(record.totalWeight || 0));
         const amount = multiplier * price;
 
         return [
           (index + 1).toString(),
           prodName,
           packType,
-          isPallet ? `${record.totalBoxes} Nos` : `${Number(record.totalWeight).toFixed(2)} KG`,
+          isPallet 
+            ? `${record.totalBoxes} Nos` 
+            : (rateOn === 'box' ? `${record.totalBoxes} Boxes` : `${Number(record.totalWeight).toFixed(2)} KG`),
           price.toFixed(2),
           amount.toFixed(2)
         ];
@@ -412,12 +433,12 @@ export default function DealerBillingPage() {
       startY: currentY,
       body: [
         ['Subtotal:', subtotal.toFixed(2)],
-        ...(isGstRequired && gstType === 'intra' ? [
-          [`CGST (${gstRate / 2}%):`, cgst.toFixed(2)],
-          [`SGST (${gstRate / 2}%):`, sgst.toFixed(2)],
+        ...((isGstRequired && gstType === 'intra') || (!isGstRequired && hasStoredGst && (cgst > 0 || sgst > 0)) ? [
+          [`CGST ${isGstRequired ? `(${gstRate / 2}%)` : ''}:`, cgst.toFixed(2)],
+          [`SGST ${isGstRequired ? `(${gstRate / 2}%)` : ''}:`, sgst.toFixed(2)],
         ] : []),
-        ...(isGstRequired && gstType === 'inter' ? [
-          [`IGST (${gstRate}%):`, igst.toFixed(2)],
+        ...((isGstRequired && gstType === 'inter') || (!isGstRequired && hasStoredGst && igst > 0) ? [
+          [`IGST ${isGstRequired ? `(${gstRate}%)` : ''}:`, igst.toFixed(2)],
         ] : []),
         ['Round Off:', roundOff.toFixed(2)],
         ['GRAND TOTAL:', `Rs. ${grandTotal.toFixed(2)}`]
@@ -707,6 +728,7 @@ export default function DealerBillingPage() {
                       <SelectValue placeholder="Select Rate" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-100">
+                      <SelectItem value="0" className="text-xs font-bold">0% Exempted</SelectItem>
                       <SelectItem value="5" className="text-xs font-bold">5% GST</SelectItem>
                       <SelectItem value="12" className="text-xs font-bold">12% GST</SelectItem>
                       <SelectItem value="18" className="text-xs font-bold">18% GST</SelectItem>
@@ -823,7 +845,10 @@ export default function DealerBillingPage() {
                             <td className="px-6 py-4 text-xs font-black text-slate-900">
                               {(() => {
                                 const isPallet = record.loadType === 'PALLET' || record.loadType === 'PALLET_RETURN';
-                                return isPallet ? `${record.totalBoxes || 0} Nos` : `${record.totalWeight || 0} Kg`;
+                                const rateOn = record.rateOn || 'weight';
+                                return isPallet 
+                                  ? `${record.totalBoxes || 0} Nos` 
+                                  : (rateOn === 'box' ? `${record.totalBoxes || 0} Boxes` : `${record.totalWeight || 0} Kg`);
                               })()}
                             </td>
                             <td className="px-6 py-4 text-xs font-black text-slate-900 text-right">
@@ -834,7 +859,10 @@ export default function DealerBillingPage() {
                                 const itemKey = `${prodName}-${packType}`;
 
                                 const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
-                                const multiplier = isPallet ? (record.totalBoxes || 0) : Number(record.totalWeight || 0);
+                                const rateOn = record.rateOn || 'weight';
+                                const multiplier = isPallet 
+                                  ? (record.totalBoxes || 0) 
+                                  : (rateOn === 'box' ? (record.totalBoxes || 0) : Number(record.totalWeight || 0));
                                 return (multiplier * price).toFixed(2);
                               })()}
                             </td>
@@ -947,16 +975,16 @@ export default function DealerBillingPage() {
                       </span>
                     </div>
 
-                    {isGstRequired && gstType === 'intra' && (
+                    {((isGstRequired && gstType === 'intra') || (!isGstRequired && hasStoredGst && (cgst > 0 || sgst > 0))) && (
                       <>
                         <div className="flex items-center gap-10">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">CGST ({gstRate / 2}%)</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">CGST {isGstRequired ? `(${gstRate / 2}%)` : ''}</span>
                           <span className="text-lg font-black text-blue-600">
                             + ₹ {cgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                         <div className="flex items-center gap-10">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">SGST ({gstRate / 2}%)</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">SGST {isGstRequired ? `(${gstRate / 2}%)` : ''}</span>
                           <span className="text-lg font-black text-blue-600">
                             + ₹ {sgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
@@ -964,9 +992,9 @@ export default function DealerBillingPage() {
                       </>
                     )}
 
-                    {isGstRequired && gstType === 'inter' && (
+                    {((isGstRequired && gstType === 'inter') || (!isGstRequired && hasStoredGst && igst > 0)) && (
                       <div className="flex items-center gap-10">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">IGST ({gstRate}%)</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">IGST {isGstRequired ? `(${gstRate}%)` : ''}</span>
                         <span className="text-lg font-black text-indigo-600">
                           + ₹ {igst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
@@ -1067,31 +1095,31 @@ export default function DealerBillingPage() {
                         ₹ {subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                    {isGstRequired && gstType === 'intra' && (
+                    {((isGstRequired && gstType === 'intra') || (!isGstRequired && hasStoredGst && (cgst > 0 || sgst > 0))) && (
                       <>
                         <div className="flex items-center gap-10">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-brand-900">CGST ({gstRate / 2}%)</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-brand-900">CGST {isGstRequired ? `(${gstRate / 2}%)` : ''}</span>
                           <span className="text-lg font-black text-brand-900">
                             + ₹ {cgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                         <div className="flex items-center gap-10">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-brand-900">SGST ({gstRate / 2}%)</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-brand-900">SGST {isGstRequired ? `(${gstRate / 2}%)` : ''}</span>
                           <span className="text-lg font-black text-brand-900">
                             + ₹ {sgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       </>
                     )}
-                    {isGstRequired && gstType === 'inter' && (
+                    {((isGstRequired && gstType === 'inter') || (!isGstRequired && hasStoredGst && igst > 0)) && (
                       <div className="flex items-center gap-10">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-900">IGST ({gstRate}%)</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-900">IGST {isGstRequired ? `(${gstRate}%)` : ''}</span>
                         <span className="text-lg font-black text-brand-900">
                           + ₹ {igst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     )}
-                    {isGstRequired && (
+                    {(isGstRequired || (hasStoredGst && (cgst > 0 || sgst > 0 || igst > 0))) && (
                       <div className="flex items-center gap-10">
                         <span className="text-[10px] font-black uppercase tracking-widest text-brand-900">Total GST</span>
                         <span className="text-lg font-black text-brand-900">
