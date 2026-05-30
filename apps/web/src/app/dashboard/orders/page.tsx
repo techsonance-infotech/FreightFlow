@@ -95,7 +95,7 @@ export default function OrderListPage() {
         'Vehicle': order.vehicle?.plateNumber || order.vehicle?.regNo || 'Self Service',
         'From': order.fromLocation || 'N/A',
         'To': order.toLocation || 'N/A',
-        'Weight': `${Number(order.totalWeight || 0).toFixed(2)} KG`,
+        'Weight': `${Number(Number(order.totalWeight || 0).toFixed(4))} KG`,
         'Boxes': order.totalBoxes || 0,
         'Amount': (order.totalAmount || 0) / 100,
         'Status': order.status.toUpperCase().replace('_', ' ')
@@ -506,6 +506,129 @@ export default function OrderListPage() {
                                       </tbody>
                                 </table>
                               </div>
+
+                              {/* Financial Summary & Breakdown */}
+                              <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm space-y-6">
+                                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                                  <div className="flex items-center gap-2">
+                                    <IndianRupee className="h-4 w-4 text-emerald-600" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Financial Summary</h4>
+                                  </div>
+                                  <span className={cn(
+                                    "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border",
+                                    order.cgstAmount > 0 || order.sgstAmount > 0 || order.igstAmount > 0 
+                                      ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                                      : "bg-slate-50 border-slate-100 text-slate-500"
+                                  )}>
+                                    {order.cgstAmount > 0 || order.sgstAmount > 0 || order.igstAmount > 0 ? "GST Billed" : "Non-GST Billed"}
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  {/* Left: Calculation Logic */}
+                                  <div className="space-y-4">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Calculation Method</p>
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100/50 space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold text-slate-500">Pricing Mode:</span>
+                                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-wide">
+                                          {order.rate > 0 
+                                            ? `Rate per ${order.rateOn === 'weight' ? 'KG' : 'Box'}` 
+                                            : "Fixed Freight"}
+                                        </span>
+                                      </div>
+                                      {order.rate > 0 && (
+                                        <>
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-slate-500">Base Rate:</span>
+                                            <span className="text-[10px] font-black text-slate-700">₹{(order.rate / 100).toFixed(2)}</span>
+                                          </div>
+                                          <div className="pt-2 border-t border-slate-200/50 flex flex-col gap-1">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Formula</span>
+                                            <span className="text-xs font-black text-blue-600 tracking-tighter">
+                                              {order.rateOn === 'weight' 
+                                                ? `${Number(Number(order.totalWeight || 0).toFixed(4))} KG × ₹${(order.rate / 100).toFixed(2)}`
+                                                : `${order.totalBoxes || 0} Boxes × ₹${(order.rate / 100).toFixed(2)}`
+                                              }
+                                              {" = "}
+                                              ₹{(order.freight / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                          </div>
+                                        </>
+                                      )}
+                                      {!order.rate && (
+                                        <div className="text-[10px] font-medium text-slate-500 leading-relaxed pt-1">
+                                          Freight is set at a flat fixed rate, bypassing weight/box multiplication.
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Additional Identifiers */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">GST Bill #</p>
+                                        <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 truncate block text-center border border-slate-200/30">
+                                          {order.gstBillNo || 'None'}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">E-Way Bill #</p>
+                                        <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 truncate block text-center border border-slate-200/30">
+                                          {order.ewayBillNo || 'None'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Right: Detailed Ledger */}
+                                  <div className="space-y-3">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Detailed Ledger</p>
+                                    <div className="space-y-2.5">
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-slate-500">Base Freight</span>
+                                        <span className="font-black text-slate-700">₹{(order.freight / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-slate-500">Hamali Charges</span>
+                                        <span className="font-black text-slate-700">+ ₹{(order.hamali / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+                                      <div className="h-px bg-slate-100 my-1" />
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-slate-600">Subtotal</span>
+                                        <span className="font-black text-slate-800">₹{(order.subtotal / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+
+                                      {/* GST Breakdown */}
+                                      {(order.cgstAmount > 0 || order.sgstAmount > 0 || order.igstAmount > 0) && (
+                                        <div className="bg-emerald-50/30 p-3 rounded-2xl border border-emerald-100/50 space-y-2 mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                                          {order.gstType === 'intra' ? (
+                                            <>
+                                              <div className="flex justify-between items-center text-[11px]">
+                                                <span className="font-bold text-emerald-700">CGST ({order.cgstPct || 0}%)</span>
+                                                <span className="font-black text-emerald-800">+ ₹{(order.cgstAmount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                              </div>
+                                              <div className="flex justify-between items-center text-[11px]">
+                                                <span className="font-bold text-emerald-700">SGST ({order.sgstPct || 0}%)</span>
+                                                <span className="font-black text-emerald-800">+ ₹{(order.sgstAmount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <div className="flex justify-between items-center text-[11px]">
+                                              <span className="font-bold text-emerald-700">IGST ({order.igstPct || 0}%)</span>
+                                              <span className="font-black text-emerald-800">+ ₹{(order.igstAmount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                                        <span className="text-xs font-black uppercase tracking-wider text-slate-800">Grand Settlement</span>
+                                        <span className="text-xl font-black text-slate-900 tracking-tight">₹{(order.totalAmount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
 
                             {/* Order Context & Extras */}
@@ -528,7 +651,7 @@ export default function OrderListPage() {
                                     <div>
                                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tonnage</p>
                                       <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
-                                        {Number(order.totalWeight || 0).toFixed(2)} <span className="text-[10px] text-slate-400 uppercase ml-1">KG</span>
+                                        {Number(Number(order.totalWeight || 0).toFixed(4))} <span className="text-[10px] text-slate-400 uppercase ml-1">KG</span>
                                       </p>
                                     </div>
                                     <div className="text-right">

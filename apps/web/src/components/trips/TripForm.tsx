@@ -501,14 +501,14 @@ export const TripForm = () => {
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-blue-200/60 uppercase tracking-wider">Total Payload</span>
                     <span className="font-black text-blue-400">
-                      {(
+                      {Number((
                         masters.unassignedOrders
                           .filter((o: any) => watchedOrderIds.includes(o.id))
                           .reduce((sum, o: any) => sum + Number(o.totalWeight || 0), 0) +
                         masters.unassignedPallets
                           .filter((p: any) => watchedPalletIds.includes(p.id))
                           .reduce((sum, p: any) => sum + Number(p.totalWeight || 0), 0)
-                      ).toFixed(2)} KG
+                      ).toFixed(4)).toString()} KG
                     </span>
                   </div>
                   <div className="pt-4 border-t border-white/10">

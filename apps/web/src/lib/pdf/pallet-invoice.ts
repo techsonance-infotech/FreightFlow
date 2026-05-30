@@ -189,27 +189,36 @@ export async function generatePalletPDF(pallet: any, company: any) {
   // 5. Main Goods Table
   autoTable(doc, {
     startY: currentY,
-    head: [['Sr.', 'Description Of Goods', 'Code', 'Qty.', 'UOM', 'Rate', 'Total (Rs.)']],
-    body: (pallet.palletDetails || []).map((item: any, idx: number) => [
-      idx + 1,
-      `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
-      item.code || '-',
-      item.boxQty || item.qty || 0,
-      item.uom || 'UNIT',
-      (item.rate / 100).toFixed(2),
-      ((item.qty * item.rate) / 100).toFixed(2)
-    ]),
+    head: [['Sr.', 'Description Of Goods', 'Code', 'Weight (KG)', 'Qty.', 'UOM', 'Rate', 'Total (Rs.)']],
+    body: (pallet.palletDetails || []).map((item: any, idx: number) => {
+      const unitRate = (pallet.rate || item.rate || 0);
+      const qty = item.boxQty || item.qty || 0;
+      const weight = item.weight || 0;
+      const rowTotalPaise = pallet.rateOn === 'weight' ? (weight * unitRate) : (qty * unitRate);
+      const rowTotal = rowTotalPaise / 100;
+      return [
+        idx + 1,
+        `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
+        item.code || '-',
+        weight.toFixed(2),
+        qty,
+        item.uom || 'UNIT',
+        (unitRate / 100).toFixed(2),
+        rowTotal.toFixed(2)
+      ];
+    }),
     theme: 'grid',
     headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
     bodyStyles: { fontSize: 8 },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 75 },
-      2: { cellWidth: 20, halign: 'center' },
-      3: { cellWidth: 15, halign: 'center' },
+      1: { cellWidth: 65 },
+      2: { cellWidth: 15, halign: 'center' },
+      3: { cellWidth: 20, halign: 'center' },
       4: { cellWidth: 15, halign: 'center' },
-      5: { cellWidth: 25, halign: 'right' },
-      6: { cellWidth: 30, halign: 'right' },
+      5: { cellWidth: 15, halign: 'center' },
+      6: { cellWidth: 25, halign: 'right' },
+      7: { cellWidth: 25, halign: 'right' },
     },
     margin: { left: margin, right: margin }
   });

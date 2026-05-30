@@ -43,7 +43,9 @@ export const PalletDetailSchema = z.object({
   palletDisplayId: z.string().default(''),
   code: z.string().optional().nullable().or(z.literal('')),
   qty: z.number().int().min(1, 'Quantity is required'),
-  rate: z.number().int().min(0), // in paise
+  rate: z.number().int().min(0).default(0), // in paise
+  weight: z.coerce.number().min(0).default(0),
+  boxQty: z.number().int().optional(),
   consigneeName: z.string().default(''),
 });
 
