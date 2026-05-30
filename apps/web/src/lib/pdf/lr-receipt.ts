@@ -37,7 +37,7 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
 
   // 1. Merged Master Box: Company + Consignor/Consignee + Logistics (Fixed position, Height: 38mm)
   const masterBoxY = startY + 5;
-  const masterBoxHeight = 38;
+  const masterBoxHeight = 48;
   doc.setDrawColor(200);
   doc.rect(margin, masterBoxY, boxWidth, masterBoxHeight);
 
@@ -112,20 +112,28 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
     doc.setFont('helvetica', 'normal');
   }
   
+  // Address Lines (Max 2 lines to fit perfectly inside the expanded master box)
+  const dAddr = order.fromAddress || order.dealer?.address || '-';
+  const cAddr = order.toAddress || order.consignee?.address || '-';
+  const dAddrLines = doc.splitTextToSize(dAddr, (boxWidth / 2) - 8);
+  const cAddrLines = doc.splitTextToSize(cAddr, (boxWidth / 2) - 8);
+  doc.text(dAddrLines.slice(0, 2), margin + 2, partyY + 7);
+  doc.text(cAddrLines.slice(0, 2), pageWidth / 2 + 2, partyY + 7);
+
   // Dynamic GST/PAN (Single line to prevent layout drift)
   const dGST = order.dealer?.gstin || '-';
   const dPAN = order.dealer?.pan || '-';
-  doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, partyY + 7);
+  doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, partyY + 15);
 
   const cGST = order.consignee?.gstin || '-';
   const cPAN = order.consignee?.pan || '-';
-  doc.text(`GST: ${cGST} | PAN: ${cPAN}`, pageWidth / 2 + 2, partyY + 7);
+  doc.text(`GST: ${cGST} | PAN: ${cPAN}`, pageWidth / 2 + 2, partyY + 15);
 
   // Horizontal Divider 2
-  doc.line(margin, masterBoxY + 32, pageWidth - margin, masterBoxY + 32);
+  doc.line(margin, masterBoxY + 42, pageWidth - margin, masterBoxY + 42);
 
   // Section C: Logistics Row
-  let logY = masterBoxY + 35.5;
+  let logY = masterBoxY + 45;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.text(`Veh No: ${order.vehicle?.plateNumber || order.vehicle?.regNo || '-'}`, margin + 2, logY);
@@ -134,9 +142,9 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   doc.text(`From: ${order.fromLocation || '-'}`, margin + 95, logY);
   doc.text(`To: ${order.toLocation || '-'}`, pageWidth / 2 + 50, logY);
 
-  // 4. Goods Table (Compact & starts exactly at startY + 45)
+  // 4. Goods Table (Compact & starts exactly at startY + 55)
   autoTable(doc, {
-    startY: startY + 45,
+    startY: startY + 55,
     head: [['Sr.', 'Good', 'Box', 'Packing', 'Weight', 'DCPI No']],
     body: (order.details || []).map((item: any, idx: number) => [
       idx + 1,
