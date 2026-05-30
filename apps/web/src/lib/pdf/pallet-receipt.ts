@@ -37,7 +37,7 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
 
   // 1. Merged Master Box: Company + Consignor/Consignee + Logistics (Fixed position, Height: 38mm)
   const masterBoxY = startY + 5;
-  const masterBoxHeight = 38;
+  const masterBoxHeight = 48;
   doc.setDrawColor(200);
   doc.rect(margin, masterBoxY, boxWidth, masterBoxHeight);
 
@@ -109,6 +109,7 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   let cGST = '';
   let cPAN = '';
   let cCode = '';
+  let cAddress = '';
 
   if (pallet.type === 'RETURN') {
     const meta = pallet.metadata as any;
@@ -116,10 +117,12 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
     cGST = meta?.palletReturnDealerGstin || '';
     cPAN = meta?.palletReturnDealerPan || '';
     cCode = meta?.palletReturnDealerCode || '';
+    cAddress = meta?.palletReturnDealerAddress || pallet.toAddress || '-';
   } else {
     cName = pallet.consignee?.name || pallet.companyName || '-';
     cGST = pallet.consignee?.gstin || '';
     cPAN = pallet.consignee?.pan || '';
+    cAddress = pallet.consignee?.address || pallet.toAddress || '-';
   }
 
   doc.text(cName.toUpperCase(), pageWidth / 2 + 2, partyY + 3.5);
@@ -130,18 +133,25 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
     doc.setFont('helvetica', 'normal');
   }
 
+  // Address Lines (Max 2 lines to fit perfectly inside the expanded master box)
+  const dAddr = pallet.dealer?.address || '-';
+  const dAddrLines = doc.splitTextToSize(dAddr, (boxWidth / 2) - 8);
+  const cAddrLines = doc.splitTextToSize(cAddress, (boxWidth / 2) - 8);
+  doc.text(dAddrLines.slice(0, 2), margin + 2, partyY + 7);
+  doc.text(cAddrLines.slice(0, 2), pageWidth / 2 + 2, partyY + 7);
+
   // GST & PAN Info (Single line to prevent layout drift)
   const dGST = pallet.dealer?.gstin || '-';
   const dPAN = pallet.dealer?.pan || '-';
-  doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, partyY + 7);
+  doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, partyY + 15);
 
-  doc.text(`GST: ${cGST || '-'} | PAN: ${cPAN || '-'}`, pageWidth / 2 + 2, partyY + 7);
+  doc.text(`GST: ${cGST || '-'} | PAN: ${cPAN || '-'}`, pageWidth / 2 + 2, partyY + 15);
 
   // Horizontal Divider 2
-  doc.line(margin, masterBoxY + 32, pageWidth - margin, masterBoxY + 32);
+  doc.line(margin, masterBoxY + 42, pageWidth - margin, masterBoxY + 42);
 
   // Section C: Logistics Row
-  let logY = masterBoxY + 35.5;
+  let logY = masterBoxY + 45;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.text(`Veh No: ${pallet.vehicle?.plateNumber || pallet.vehicle?.regNo || '-'}`, margin + 2, logY);
@@ -150,9 +160,9 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   doc.text(`From: ${pallet.fromLocation || '-'}`, margin + 95, logY);
   doc.text(`To: ${pallet.toLocation || pallet.toAddress || '-'}`, pageWidth / 2 + 50, logY);
 
-  // 4. Goods Table (Compact & starts exactly at startY + 45)
+  // 4. Goods Table (Compact & starts exactly at startY + 55)
   autoTable(doc, {
-    startY: startY + 45,
+    startY: startY + 55,
     head: [['Sr.', 'Description of Goods', 'Code', 'Weight (KG)', 'Qty', 'UOM']],
     body: (pallet.palletDetails || []).map((item: any, idx: number) => [
       idx + 1,
