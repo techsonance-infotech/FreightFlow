@@ -1,24 +1,264 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Download, ArrowLeft, Loader2 } from 'lucide-react';
+import { Download, ArrowLeft, Loader2, Building2, User, MapPin, Truck } from 'lucide-react';
 import { generateLRPrintPDF } from '@/lib/pdf/lr-print';
 import { toast } from 'sonner';
+import Link from 'next/link';
+
+interface LorryReceiptPrintTemplateProps {
+  order: any;
+  company: any;
+  copyType: string;
+}
+
+export function LorryReceiptPrintTemplate({ order, company, copyType }: LorryReceiptPrintTemplateProps) {
+  const primaryColor = company?.primaryColor || '#1e3a8a';
+
+  const formatCurrency = (paise: number) => {
+    return (paise / 100).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const hasGst = Number(order.cgstPct) > 0 || Number(order.sgstPct) > 0 || Number(order.igstPct) > 0;
+  const items = order.details || [];
+  const itemCount = items.length;
+  const isHighItemCount = itemCount >= 4;
+
+  // Dynamic spacing classes
+  const containerPadding = isHighItemCount ? 'p-4 print:p-2' : 'p-6 md:p-8 print:p-4';
+  const headerSpacing = isHighItemCount ? 'pb-2 mb-2 print:pb-1 print:mb-1' : 'pb-4 mb-4 print:pb-2 print:mb-2';
+  const sectionSpacing = isHighItemCount ? 'mb-2 print:mb-1' : 'mb-4 print:mb-2';
+  const tableCellPadding = isHighItemCount ? 'p-1 print:p-0.5 text-[10px] print:text-[9px]' : 'p-1.5 md:p-2';
+  const rowHeight = isHighItemCount ? 'h-5 print:h-4' : 'h-6 print:h-5';
+  const footerSpacing = isHighItemCount ? 'mb-2 print:mb-1' : 'mb-4 print:mb-2';
+
+  return (
+    <div className={`bg-white border-2 border-slate-900 text-slate-900 font-sans leading-tight min-h-[480px] print:min-h-[48.5vh] print:max-h-[48.5vh] ${containerPadding} print:border-none print:shadow-none print:rounded-none flex flex-col relative overflow-hidden`}>
+      {/* Watermark */}
+      {company?.enableWatermark && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none rotate-[-45deg] z-0">
+          <span className="text-[120px] print:text-[80px] font-black uppercase whitespace-nowrap">{company.watermarkText || 'ORIGINAL'}</span>
+        </div>
+      )}
+
+      {/* Header Section */}
+      <div className={`flex justify-between items-start border-b-4 ${headerSpacing} relative z-10`} style={{ borderColor: primaryColor }}>
+        <div className="flex gap-4 items-center">
+          <div className="h-16 w-16 md:h-20 md:w-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 shadow-inner print:h-12 print:w-12 print:rounded-xl">
+            {company?.logoUrl ? (
+              <img src={company.logoUrl} alt="Company Logo" className="h-full w-full object-contain p-1.5" />
+            ) : (
+              <Building2 className="h-8 w-8 text-slate-200" />
+            )}
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter print:text-xl" style={{ color: primaryColor }}>
+              {company?.name || 'Company Name'}
+            </h1>
+            <p className="text-[9px] md:text-xs font-black uppercase tracking-[0.2em] opacity-60 mb-1 italic print:hidden">{company?.printHeader || 'Specialists in Road Logistics'}</p>
+            <p className="text-[9px] md:text-[10px] font-bold text-slate-500 max-w-[450px] leading-tight print:hidden">
+              {company?.address || 'Registered Office Address'}
+            </p>
+            <div className="flex gap-4 mt-1.5">
+              <p className="text-[10px] font-black uppercase">GSTIN: <span style={{ color: primaryColor }}>{company?.gstin || '-'}</span></p>
+              {company?.whatsappNo && (
+                <p className="text-[10px] font-black uppercase print:hidden">Support: {company.whatsappNo}</p>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-right flex flex-col items-end">
+          <div className="bg-slate-900 text-white px-3 py-1.5 rounded-lg mb-2 text-[9px] font-black uppercase tracking-widest print:py-1">
+            {copyType}
+          </div>
+          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Lorry Receipt #</p>
+          <p className="text-xl md:text-2xl font-black tracking-tighter" style={{ color: primaryColor }}>LR-{order.lrNo || '0000'}</p>
+          <p className="text-[9px] font-bold text-slate-500 mt-0.5 uppercase">{format(new Date(order.date), 'dd MMMM yyyy')}</p>
+        </div>
+      </div>
+
+      {/* Consignment Mapping */}
+      <div className={`grid grid-cols-2 gap-4 ${sectionSpacing} relative z-10`}>
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50 print:p-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <User className="h-3.5 w-3.5 text-blue-600 print:h-3 print:w-3" />
+            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Consignor (Dealer)</p>
+          </div>
+          <p className="text-[10px] md:text-xs font-black uppercase text-slate-900 line-clamp-1">{order.dealer?.name || order.companyName}</p>
+          <p className="text-[8.5px] font-bold text-slate-500 mt-0.5 leading-tight line-clamp-2">{order.dealer?.address || 'Address not registered'}</p>
+          <p className="text-[8.5px] font-black text-slate-700 mt-1 uppercase">GSTIN: {order.dealer?.gstin || 'URD'}</p>
+        </div>
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50 print:p-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <MapPin className="h-3.5 w-3.5 text-emerald-600 print:h-3 print:w-3" />
+            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Consignee (Shipping Address)</p>
+          </div>
+          <p className="text-[10px] md:text-xs font-black uppercase text-slate-900 line-clamp-1">{order.consignee?.name || order.companyName}</p>
+          <p className="text-[8.5px] font-bold text-slate-500 mt-0.5 leading-tight line-clamp-2">{order.consignee?.address || order.toAddress || 'Address not registered'}</p>
+          <p className="text-[8.5px] font-black text-slate-700 mt-1 uppercase">GSTIN: {order.consignee?.gstin || 'URD'}</p>
+        </div>
+      </div>
+
+      {/* Logistics Meta (Route & Vehicle) */}
+      <div className={`grid grid-cols-3 gap-4 ${sectionSpacing} bg-slate-50/50 rounded-xl border border-slate-100 p-2.5 print:p-2 relative z-10`}>
+        <div>
+          <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Route / Path</p>
+          <p className="text-[10px] font-black text-slate-900 uppercase truncate">{order.fromLocation} to {order.toLocation}</p>
+        </div>
+        <div>
+          <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Vehicle Fleet No</p>
+          <div className="flex items-center gap-1">
+            <Truck className="h-3 w-3 text-slate-400 shrink-0 print:hidden" />
+            <p className="text-[10px] font-black text-slate-900 uppercase truncate">{order.vehicle?.regNo || order.vehicle?.plateNumber || 'Direct'}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest mb-0.5">E-Way Bill Details</p>
+          <p className="text-[10px] font-black text-slate-900 truncate">{order.ewayBillNo || '-'}</p>
+        </div>
+      </div>
+
+      {/* The Master Items Table */}
+      <table className={`w-full text-left border-collapse ${sectionSpacing} relative z-10`}>
+        <thead>
+          <tr className="bg-slate-900 text-white">
+            <th className="p-2 text-[9px] font-black uppercase tracking-widest border-r border-white/10 w-10 text-center">Sr.</th>
+            <th className="p-2 text-[9px] font-black uppercase tracking-widest border-r border-white/10">Description of Goods</th>
+            <th className="p-2 text-[9px] font-black uppercase tracking-widest border-r border-white/10 text-center">Packages</th>
+            <th className="p-2 text-[9px] font-black uppercase tracking-widest border-r border-white/10 text-center">Packing</th>
+            <th className="p-2 text-[9px] font-black uppercase tracking-widest text-right">Weight (KG)</th>
+          </tr>
+        </thead>
+        <tbody className="border-b-2 border-slate-900">
+          {items.map((item: any, i: number) => (
+            <tr key={i} className={`border-b border-slate-100 font-bold ${rowHeight}`}>
+              <td className={`border-r border-slate-100 text-center text-slate-400 ${tableCellPadding}`}>{i + 1}</td>
+              <td className={`border-r border-slate-100 uppercase tracking-wider ${tableCellPadding}`}>{item.productName || 'GOODS'}</td>
+              <td className={`border-r border-slate-100 text-center ${tableCellPadding}`}>{item.boxCount}</td>
+              <td className={`border-r border-slate-100 text-center uppercase ${tableCellPadding}`}>{item.packingType || '-'}</td>
+              <td className={`text-right ${tableCellPadding}`}>{item.weight}</td>
+            </tr>
+          ))}
+          {/* Pad with empty rows to fill page, reduced height and count for high items count */}
+          {Array(Math.max(0, 4 - itemCount)).fill(0).map((_, i) => (
+            <tr key={`empty-${i}`} className={`border-b border-slate-50 ${rowHeight}`}>
+               <td className="border-r border-slate-50"></td>
+               <td className="border-r border-slate-50"></td>
+               <td className="border-r border-slate-50"></td>
+               <td className="border-r border-slate-50"></td>
+               <td></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Manifest Summary Footer */}
+      <div className="flex-1 flex flex-col justify-end relative z-10 print:mt-auto">
+        <div className={`grid grid-cols-12 gap-6 items-end ${footerSpacing}`}>
+          {/* T&C / Details */}
+          <div className="col-span-6 space-y-3 print:space-y-1">
+            <div className="space-y-1">
+               <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Logistics & Service Terms</p>
+               <ol className="text-[7px] print:text-[6.5px] font-medium text-slate-500 leading-normal italic pl-2.5 list-decimal space-y-0.5">
+                 <li>Goods carried at owner's absolute risk.</li>
+                 <li>Subject to Mumbai jurisdiction only.</li>
+                 <li>Not liable for minor leaks/breakages in transit.</li>
+               </ol>
+            </div>
+            {order.gstBillNo && (
+              <p className="text-[8.5px] font-black text-slate-700 uppercase">GST Bill Ref: {order.gstBillNo}</p>
+            )}
+          </div>
+
+          {/* Billing & Grand Settlement */}
+          <div className="col-span-6 space-y-2 border-l border-slate-100 pl-4 print:pl-3">
+            <div className="space-y-1 text-right text-[10px] print:text-[9px]">
+              <div className="flex justify-between font-bold">
+                <span className="text-slate-400 uppercase tracking-wider text-[8px]">Base Freight</span>
+                <span>₹ {formatCurrency(order.freight)}</span>
+              </div>
+              <div className="flex justify-between font-bold">
+                <span className="text-slate-400 uppercase tracking-wider text-[8px]">Hamali</span>
+                <span>₹ {formatCurrency(order.hamali)}</span>
+              </div>
+              {hasGst && (
+                <>
+                  <div className="flex justify-between font-bold border-t border-slate-50 pt-0.5 mt-0.5">
+                    <span className="text-slate-400 uppercase tracking-wider text-[8px]">Subtotal</span>
+                    <span>₹ {formatCurrency(order.subtotal)}</span>
+                  </div>
+                  {order.gstType === 'intra' ? (
+                    <>
+                      <div className="flex justify-between text-slate-600 font-bold">
+                        <span className="text-slate-400 uppercase tracking-wider text-[8px]">CGST ({order.cgstPct}%)</span>
+                        <span>₹ {formatCurrency(order.cgstAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600 font-bold">
+                        <span className="text-slate-400 uppercase tracking-wider text-[8px]">SGST ({order.sgstPct}%)</span>
+                        <span>₹ {formatCurrency(order.sgstAmount)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between text-slate-600 font-bold">
+                      <span className="text-slate-400 uppercase tracking-wider text-[8px]">IGST ({order.igstPct}%)</span>
+                      <span>₹ {formatCurrency(order.igstAmount)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="flex justify-between items-center bg-slate-900 text-white px-2 py-1 rounded-md font-black mt-1.5 print:mt-0.5">
+                <span className="uppercase text-[8px] tracking-wider">Grand Total</span>
+                <span className="text-xs md:text-sm print:text-xs">₹ {formatCurrency(order.totalAmount)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footnotes & Signatures */}
+        <div className="border-t border-slate-100 pt-3 print:pt-1.5 flex justify-between items-end">
+          <div className="space-y-1">
+            <p className="text-[7px] font-black uppercase tracking-[0.2em] opacity-30">FreightFlow Logistics Engine</p>
+            <p className="text-[6.5px] font-bold text-slate-400">Carrier not liable for transit damages.</p>
+          </div>
+          
+          <div className="flex gap-8 print:gap-4 text-right">
+            <div className="border-t border-slate-900 pt-1 w-20 text-center">
+              <p className="text-[7.5px] font-black uppercase text-slate-400">Consignor Sig</p>
+            </div>
+            <div className="border-t border-slate-900 pt-1 w-20 text-center">
+              <p className="text-[7.5px] font-black uppercase text-slate-400">Receiver Sig</p>
+            </div>
+            <div className="border-t border-slate-900 pt-1 w-32 text-center relative">
+              {company?.signatureUrl && (
+                <img src={company.signatureUrl} alt="Signature" className="h-6 w-20 object-contain absolute bottom-3 right-6 z-10 print:h-5 print:w-16" />
+              )}
+              <p className="text-[7.5px] font-black text-slate-900 uppercase">Auth Signatory</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LRPrintPage() {
   const { id } = useParams();
+  const router = useRouter();
   const [order, setOrder] = useState<any>(null);
+  const [company, setCompany] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
   const handleDownloadPDF = async () => {
     setDownloading(true);
     try {
-      const configRes = await fetch('/api/v1/companies/branding');
-      const config = await configRes.json();
-      const doc = await generateLRPrintPDF(order, config.data);
+      const doc = await generateLRPrintPDF(order, company);
       doc.save(`LR_${order.lrNo}_${format(new Date(), 'yyyyMMdd')}.pdf`);
       toast.success('LR PDF Generated');
     } catch (err) {
@@ -29,44 +269,55 @@ export default function LRPrintPage() {
   };
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`/api/v1/orders/${id}`);
-        const data = await res.json();
-        setOrder(data);
+        const [orderRes, companyRes] = await Promise.all([
+          fetch(`/api/v1/orders/${id}`),
+          fetch('/api/v1/companies/branding')
+        ]);
+        
+        if (!orderRes.ok) throw new Error('Order not found');
+        const orderData = await orderRes.json();
+        const companyData = await companyRes.json();
+        
+        setOrder(orderData);
+        setCompany(companyData?.data || null);
       } catch (error) {
-        console.error('Failed to fetch order for print', error);
+        console.error('Failed to fetch data for print', error);
+        toast.error('Failed to load document');
+        router.push('/dashboard/orders');
       } finally {
         setLoading(false);
       }
     };
-    fetchOrder();
-  }, [id]);
+    fetchData();
+  }, [id, router]);
 
-  if (loading) return <div className="p-20 text-center">Loading LR Details...</div>;
-  if (!order) return <div className="p-20 text-center">Order not found.</div>;
-
-  const formatCurrency = (paise: number) => {
-    return (paise / 100).toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const hasGst = Number(order.cgstPct) > 0 || Number(order.sgstPct) > 0 || Number(order.igstPct) > 0;
+  if (loading) return <div className="h-screen flex items-center justify-center animate-pulse font-black text-slate-400">LOADING LORRY RECEIPT...</div>;
+  if (!order) return null;
 
   return (
-    <div className="min-h-screen bg-muted/50 p-8">
+    <div className="min-h-screen bg-slate-50 p-8 print:p-0 print:bg-white">
       {/* Control Bar - Hidden during print */}
-      <div className="max-w-4xl mx-auto mb-6 flex justify-between items-center">
-        <button onClick={() => window.history.back()} className="flex items-center gap-2 text-sm font-medium hover:underline">
-          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-        </button>
-        <div className="flex gap-3">
+      <div className="max-w-5xl mx-auto flex items-center justify-between mb-8 no-print">
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/dashboard/orders"
+            className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400 hover:text-blue-600 transition-all border border-slate-100"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">LR Document Preview</h1>
+            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">LR #{order.lrNo} - {order.dealer?.name}</p>
+          </div>
+        </div>
+        
+        <div className="flex gap-4">
           <button 
             onClick={handleDownloadPDF}
             disabled={downloading}
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold shadow-lg shadow-blue-600/20 disabled:opacity-50"
+            className="h-14 px-8 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-3 border-none disabled:opacity-50 cursor-pointer"
           >
             {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Download Professional PDF
@@ -74,167 +325,24 @@ export default function LRPrintPage() {
         </div>
       </div>
 
-      {/* LR Document */}
-      <div className="max-w-4xl mx-auto bg-white border border-black shadow-2xl p-8 font-serif text-black">
-        {/* Header */}
-        <div className="flex justify-between items-start border-b-2 border-black pb-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black uppercase tracking-tighter">Shree Shivay Roadlines</h1>
-            <p className="text-sm font-bold">Transport Nagar, Mumbai, Maharashtra - 400001</p>
-            <p className="text-xs">GSTIN: 27AADCS1234A1Z5 | Phone: +91 98765 43210</p>
-            <p className="text-xs">Email: billing@shreeshivay.com</p>
-          </div>
-          <div className="text-right">
-            <div className="inline-block border-2 border-black px-4 py-2 mb-2">
-              <h2 className="text-xl font-black">LORRY RECEIPT</h2>
-            </div>
-            <p className="text-lg font-bold">LR No: <span className="text-red-600">#{order.lrNo}</span></p>
-            <p className="text-sm">Date: {format(new Date(order.date), 'dd-MM-yyyy')}</p>
-          </div>
+      {/* Main Print Container */}
+      <div className="max-w-5xl mx-auto space-y-12 print:space-y-0 print:max-w-none print:p-0">
+        <div className="shadow-2xl bg-white print:shadow-none print:bg-transparent">
+          <LorryReceiptPrintTemplate 
+            order={order} 
+            company={company} 
+            copyType="CONSIGNEE COPY" 
+          />
         </div>
-
-        {/* Party Details */}
-        <div className="grid grid-cols-2 border-b-2 border-black">
-          <div className="border-r-2 border-black p-4 space-y-2">
-            <p className="text-[10px] font-bold uppercase text-gray-500">Consignor (From)</p>
-            <p className="text-base font-black">{order.dealer?.name}</p>
-            <p className="text-xs whitespace-pre-wrap">{order.dealer?.address || 'N/A'}</p>
-            <p className="text-xs font-bold">GSTIN: {order.dealer?.gstin || 'URD'}</p>
-          </div>
-          <div className="p-4 space-y-2">
-            <p className="text-[10px] font-bold uppercase text-gray-500">Consignee (To)</p>
-            <p className="text-base font-black">{order.consignee?.name}</p>
-            <p className="text-xs whitespace-pre-wrap">{order.consignee?.address || 'N/A'}</p>
-            <p className="text-xs font-bold">GSTIN: {order.consignee?.gstin || 'URD'}</p>
-          </div>
-        </div>
-
-        {/* Route & Vehicle */}
-        <div className="grid grid-cols-3 border-b-2 border-black divide-x-2 divide-black text-sm">
-          <div className="p-3">
-            <p className="text-[10px] font-bold text-gray-500">FROM</p>
-            <p className="font-bold">{order.fromLocation}</p>
-          </div>
-          <div className="p-3">
-            <p className="text-[10px] font-bold text-gray-500">TO</p>
-            <p className="font-bold">{order.toLocation}</p>
-          </div>
-          <div className="p-3">
-            <p className="text-[10px] font-bold text-gray-500">VEHICLE NO</p>
-            <p className="font-bold">{order.vehicle?.regNo || 'Direct'}</p>
-          </div>
-        </div>
-
-        {/* Items Table */}
-        <div className="min-h-[300px] border-b-2 border-black">
-          <table className="w-full text-sm">
-            <thead className="border-b-2 border-black font-bold text-xs uppercase">
-              <tr>
-                <th className="px-3 py-2 text-left border-r-2 border-black w-12">Sr.</th>
-                <th className="px-3 py-2 text-left border-r-2 border-black">Description of Goods</th>
-                <th className="px-3 py-2 text-center border-r-2 border-black w-24">No. of Pkgs</th>
-                <th className="px-3 py-2 text-center border-r-2 border-black w-24">Packing</th>
-                <th className="px-3 py-2 text-right w-32">Weight (KG)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/10">
-              {order.details?.map((item: any, idx: number) => (
-                <tr key={item.id} className="h-10">
-                  <td className="px-3 py-2 border-r-2 border-black text-center">{idx + 1}</td>
-                  <td className="px-3 py-2 border-r-2 border-black font-medium">{item.productName}</td>
-                  <td className="px-3 py-2 border-r-2 border-black text-center">{item.boxCount}</td>
-                  <td className="px-3 py-2 border-r-2 border-black text-center">{item.packingType || '-'}</td>
-                  <td className="px-3 py-2 text-right font-bold">{item.weight}</td>
-                </tr>
-              ))}
-              {/* Fill remaining space */}
-              {Array.from({ length: Math.max(0, 8 - (order.details?.length || 0)) }).map((_, i) => (
-                <tr key={`empty-${i}`} className="h-10">
-                  <td className="px-3 py-2 border-r-2 border-black"></td>
-                  <td className="px-3 py-2 border-r-2 border-black"></td>
-                  <td className="px-3 py-2 border-r-2 border-black"></td>
-                  <td className="px-3 py-2 border-r-2 border-black"></td>
-                  <td className="px-3 py-2"></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Billing & Footer */}
-        <div className="grid grid-cols-2">
-          <div className="p-4 space-y-4 border-r-2 border-black">
-            <div className="space-y-1">
-              <p className="text-[10px] font-bold text-gray-500 uppercase">E-Way Bill Details</p>
-              <p className="text-xs font-bold">{order.ewayBillNo || 'NO E-WAY BILL PROVIDED'}</p>
-            </div>
-            <div className="pt-4 space-y-1">
-              <p className="text-[10px] font-bold text-gray-500 uppercase">Terms & Conditions</p>
-              <ol className="text-[9px] list-decimal pl-3 space-y-1">
-                <li>Goods carried at owner's risk.</li>
-                <li>Not responsible for leakage/damage during transit.</li>
-                <li>Subject to Mumbai Jurisdiction.</li>
-                <li>Consignment must be collected within 7 days.</li>
-              </ol>
-            </div>
-          </div>
-          
-          <div className="divide-y-2 divide-black">
-            <div className="p-3 space-y-2">
-              <div className="flex justify-between text-xs font-bold">
-                <span>Freight Charges</span>
-                <span>{formatCurrency(order.freight)}</span>
-              </div>
-              <div className="flex justify-between text-xs font-bold">
-                <span>Hamali Charges</span>
-                <span>{formatCurrency(order.hamali)}</span>
-              </div>
-              {hasGst && (
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Sub-Total</span>
-                  <span>{formatCurrency(order.subtotal)}</span>
-                </div>
-              )}
-            </div>
-            {hasGst && (
-              <div className="p-3 space-y-2 bg-gray-50">
-                {order.gstType === 'intra' ? (
-                  <>
-                    <div className="flex justify-between text-xs">
-                      <span>CGST ({order.cgstPct}%)</span>
-                      <span>{formatCurrency(order.cgstAmount)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span>SGST ({order.sgstPct}%)</span>
-                      <span>{formatCurrency(order.sgstAmount)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex justify-between text-xs">
-                    <span>IGST ({order.igstPct}%)</span>
-                    <span>{formatCurrency(order.igstAmount)}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="p-3 flex justify-between items-center bg-black text-white">
-              <span className="text-sm font-black uppercase">Grand Total</span>
-              <span className="text-lg font-black">₹ {formatCurrency(order.totalAmount)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Signatures */}
-        <div className="grid grid-cols-3 mt-12 pt-8 text-center text-[10px] font-bold uppercase">
-          <div className="space-y-12">
-            <div className="border-t border-black pt-2 mx-4">Consignor Signature</div>
-          </div>
-          <div className="space-y-12">
-            <div className="border-t border-black pt-2 mx-4">Receiver Signature</div>
-          </div>
-          <div className="space-y-12">
-            <div className="border-t border-black pt-2 mx-4">For Shree Shivay Roadlines</div>
-          </div>
+        
+        <div className="border-t-2 border-dashed border-slate-200 my-12 print:my-0 print:border-slate-400 print:h-0" />
+        
+        <div className="shadow-2xl bg-white print:shadow-none print:bg-transparent">
+          <LorryReceiptPrintTemplate 
+            order={order} 
+            company={company} 
+            copyType="OFFICE/DRIVER COPY" 
+          />
         </div>
       </div>
     </div>

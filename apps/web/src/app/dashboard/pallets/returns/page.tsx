@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { 
   Plus, Search, Calendar, Edit, Trash2, 
   Download, Package, Inbox, Scale, BarChart3,
-  RefreshCw, CheckCircle2, AlertCircle, Box, Truck
+  RefreshCw, CheckCircle2, AlertCircle, Box, Truck,
+  IndianRupee, Users, FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -248,7 +249,7 @@ export default function PalletReturnListPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <th className="px-6 py-5 w-16">
                   <input 
                     type="checkbox" 
                     className="rounded-lg border-slate-200" 
@@ -259,10 +260,11 @@ export default function PalletReturnListPage() {
                     }}
                   />
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Return ID</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Logistics Context</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Return Details</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Dealer Reference</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Consignees</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-blue-600">Return Payload</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Tax (%)</th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Grand Settlement</th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Action</th>
               </tr>
             </thead>
@@ -270,12 +272,12 @@ export default function PalletReturnListPage() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-6 py-6"><div className="h-12 bg-slate-50 rounded-2xl" /></td>
+                    <td colSpan={7} className="px-6 py-6"><div className="h-12 bg-slate-50 rounded-2xl" /></td>
                   </tr>
                 ))
               ) : pallets.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
+                  <td colSpan={7} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <Inbox className="h-12 w-12 text-slate-100" />
                       <p className="text-xs font-black text-slate-300 uppercase tracking-widest">No return records found</p>
@@ -320,24 +322,58 @@ export default function PalletReturnListPage() {
                       <td className="px-6 py-6">
                         <div className="font-black text-slate-700 uppercase text-xs">{pallet.dealer?.name || pallet.companyName}</div>
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                          Vehicle: {pallet.vehicle?.regNo || 'N/A'}
+                          Ref: {pallet.partyCode || 'N/A'}
                         </div>
+                      </td>
+                      <td className="px-6 py-6">
+                        {(() => {
+                          const names: string[] = [];
+                          if (pallet.consignee?.name) names.push(pallet.consignee.name);
+                          (pallet.palletDetails || []).forEach((d: any) => { if (d.consigneeName) names.push(d.consigneeName); });
+                          (pallet.consigneeDetails || []).forEach((d: any) => { if (d.consigneeName) names.push(d.consigneeName); });
+                          const consignees = [...new Set(names)];
+                          return consignees.length > 0 ? (
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Users className="h-3 w-3 text-blue-500" />
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{consignees.length} Consignee{consignees.length > 1 ? 's' : ''}</span>
+                              </div>
+                              {consignees.map((name: string, ci: number) => (
+                                <div key={ci} className="text-[10px] font-bold text-slate-700 uppercase truncate max-w-[200px]" title={name}>
+                                  {name}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-300 uppercase">-</span>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-2 mb-1">
                           <Box className="h-3 w-3 text-blue-500" />
                           <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter">
-                            {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).reduce((acc: number, d: any) => acc + d.qty, 0)} Units Returned
+                            {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).reduce((acc: number, d: any) => acc + (parseInt(d.qty as any) || 0), 0)} Units
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Package className="h-3 w-3 text-slate-300" />
                           <span className="text-[10px] font-bold text-slate-400 uppercase">
-                            {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).length} Consignees
+                            {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).length} Destinations
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-6 text-right font-black text-slate-900">{pallet.gstPct}%</td>
+                      <td className="px-6 py-6 text-right">
+                        <div className="font-black text-slate-900">₹{((pallet.totalAmount || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                        <div className="text-[9px] font-black text-blue-500 uppercase tracking-tighter mt-1">
+                          {pallet.cgstAmount > 0 || pallet.sgstAmount > 0 || pallet.igstAmount > 0 ? "With GST" : "No GST"}
+                        </div>
+                        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                          {pallet.rate > 0 
+                            ? `By ${pallet.rateOn === 'weight' ? 'KG' : 'Unit'}` 
+                            : 'Fixed'}
+                        </div>
+                      </td>
                       <td className="px-6 py-6" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-2">
                           <PalletInvoiceDownloader 
@@ -345,14 +381,14 @@ export default function PalletReturnListPage() {
                             lrNo={pallet.lrNo}
                             variant="invoice"
                             label="Invoice"
-                            className="h-9 px-4 rounded-full bg-white border border-slate-100 text-slate-600 hover:bg-slate-50 transition-all shadow-sm font-black text-[10px] uppercase flex items-center gap-2"
+                            className="h-9 px-3 rounded-xl bg-white border border-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white shadow-sm font-black text-[10px] uppercase"
                           />
                           <PalletInvoiceDownloader 
                             palletId={pallet.id} 
                             lrNo={pallet.lrNo}
                             variant="receipt"
                             label="Receipt"
-                            className="h-9 px-4 rounded-full bg-white border border-slate-100 text-slate-600 hover:bg-slate-50 transition-all shadow-sm font-black text-[10px] uppercase flex items-center gap-2"
+                            className="h-9 px-3 rounded-xl bg-white border border-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white shadow-sm font-black text-[10px] uppercase"
                           />
                           <Link href={`/dashboard/pallets/returns/${pallet.id}`} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-amber-600 hover:text-white transition-all shadow-sm"><Edit className="h-4 w-4" /></Link>
                         </div>
@@ -360,13 +396,13 @@ export default function PalletReturnListPage() {
                     </tr>
                     {expandedPalletId === pallet.id && (
                       <tr className="bg-blue-50/20">
-                        <td colSpan={5} className="px-12 py-8 border-l-4 border-blue-500">
+                        <td colSpan={7} className="px-12 py-8 border-l-4 border-blue-500">
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             {/* Return Breakdown */}
-                            <div className="lg:col-span-2 space-y-4">
-                              <div className="flex items-center gap-2 mb-4">
+                            <div className="lg:col-span-2 space-y-6">
+                              <div className="flex items-center gap-2 mb-2">
                                 <Box className="h-4 w-4 text-blue-600" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Return Consignees</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Return Consignee Breakdown</h4>
                               </div>
                               <div className="bg-white rounded-3xl border border-blue-100 overflow-hidden shadow-sm">
                                 <table className="w-full text-left">
@@ -374,52 +410,225 @@ export default function PalletReturnListPage() {
                                     <tr>
                                       <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Consignee</th>
                                       <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Qty</th>
-                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Rate (₹)</th>
+                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Weight</th>
+                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Unit Rate</th>
+                                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Amount</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-50">
-                                    {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).map((detail: any, dIdx: number) => (
-                                      <tr key={dIdx}>
-                                        <td className="px-6 py-4 text-xs font-bold text-slate-700">
-                                          {detail.consigneeName}
-                                          {detail.palletDisplayId && (
-                                            <span className="ml-2 px-1.5 py-0.5 bg-slate-100 rounded text-[9px] text-slate-400 font-black">
-                                              {detail.palletDisplayId}
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.qty}</td>
-                                        <td className="px-4 py-4 text-xs font-black text-slate-900 text-right">{(detail.rate / 100).toLocaleString()}</td>
-                                      </tr>
-                                    ))}
+                                    {(pallet.palletDetails?.length > 0 ? pallet.palletDetails : (pallet.consigneeDetails || [])).map((detail: any, dIdx: number) => {
+                                      const unitPrice = (pallet.rate || 0) / 100;
+                                      const rowAmount = pallet.rateOn === 'weight'
+                                        ? (parseFloat(detail.weight as any) || 0) * unitPrice
+                                        : (parseInt(detail.qty as any) || 0) * unitPrice;
+                                      return (
+                                        <tr key={dIdx}>
+                                          <td className="px-6 py-4 text-xs font-bold text-slate-700">
+                                            {detail.consigneeName}
+                                            {detail.palletDisplayId && (
+                                              <span className="ml-2 px-1.5 py-0.5 bg-slate-100 rounded text-[9px] text-slate-400 font-black">
+                                                {detail.palletDisplayId}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.qty} <span className="text-[9px] text-slate-400">Nodes</span></td>
+                                          <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.weight || 0} <span className="text-[9px] text-slate-400">KG</span></td>
+                                          <td className="px-4 py-4 text-xs font-black text-slate-600 text-right">₹{unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                          <td className="px-4 py-4 text-xs font-black text-blue-600 text-right">₹{rowAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        </tr>
+                                      );
+                                    })}
                                   </tbody>
                                 </table>
                               </div>
-                            </div>
 
-                            {/* Financial Summary */}
-                            <div className="space-y-6">
-                                  <div className="flex gap-2">
-                                    <PalletInvoiceDownloader 
-                                      palletId={pallet.id} 
-                                      lrNo={pallet.lrNo}
-                                      variant="receipt"
-                                      label="Download Challan"
-                                      className="flex-1 h-12 rounded-2xl bg-slate-800 hover:bg-black text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-slate-200"
-                                    />
-                                    <PalletInvoiceDownloader 
-                                      palletId={pallet.id} 
-                                      lrNo={pallet.lrNo}
-                                      variant="invoice"
-                                      label="Download Invoice"
-                                      className="flex-1 h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-200"
-                                    />
+                              {/* Financial Summary & Breakdown */}
+                              <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm space-y-6">
+                                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                                  <div className="flex items-center gap-2">
+                                    <IndianRupee className="h-4 w-4 text-emerald-600" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Financial Summary</h4>
+                                  </div>
+                                  <span className={cn(
+                                    "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border",
+                                    pallet.cgstAmount > 0 || pallet.sgstAmount > 0 || pallet.igstAmount > 0 
+                                      ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                                      : "bg-slate-50 border-slate-100 text-slate-500"
+                                  )}>
+                                    {pallet.cgstAmount > 0 || pallet.sgstAmount > 0 || pallet.igstAmount > 0 ? "GST Billed" : "Non-GST Billed"}
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  {/* Left: Calculation Logic */}
+                                  <div className="space-y-4">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Calculation Method</p>
+                                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100/50 space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold text-slate-500">Pricing Mode:</span>
+                                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-wide">
+                                          {pallet.rate > 0 
+                                            ? `Rate per ${pallet.rateOn === 'weight' ? 'KG' : 'Unit'}` 
+                                            : "Fixed Freight"}
+                                        </span>
+                                      </div>
+                                      {pallet.rate > 0 && (
+                                        <>
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-slate-500">Base Rate:</span>
+                                            <span className="text-[10px] font-black text-slate-700">₹{(pallet.rate / 100).toFixed(2)}</span>
+                                          </div>
+                                          <div className="pt-2 border-t border-slate-200/50 flex flex-col gap-1">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Formula</span>
+                                            <span className="text-xs font-black text-blue-600 tracking-tighter">
+                                              {pallet.rateOn === 'weight' 
+                                                ? `${Number(Number(pallet.totalWeight || 0).toFixed(4))} KG × ₹${(pallet.rate / 100).toFixed(2)}`
+                                                : `${pallet.totalBoxes || 0} Units × ₹${(pallet.rate / 100).toFixed(2)}`
+                                              }
+                                              {" = "}
+                                              ₹{(pallet.freight / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                          </div>
+                                        </>
+                                      )}
+                                      {!pallet.rate && (
+                                        <div className="text-[10px] font-medium text-slate-500 leading-relaxed pt-1">
+                                          Freight is set at a flat fixed rate, bypassing weight/quantity multiplication.
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Right: Detailed Ledger */}
+                                  <div className="space-y-3">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Detailed Ledger</p>
+                                    <div className="space-y-2.5">
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-slate-500">Base Freight</span>
+                                        <span className="font-black text-slate-700">₹{(pallet.freight / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-slate-500">Hamali Charges</span>
+                                        <span className="font-black text-slate-700">+ ₹{(pallet.hamali / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+                                      <div className="h-px bg-slate-100 my-1" />
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-slate-600">Subtotal</span>
+                                        <span className="font-black text-slate-800">₹{(pallet.subtotal / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+
+                                      {/* GST Breakdown */}
+                                      {(pallet.cgstAmount > 0 || pallet.sgstAmount > 0 || pallet.igstAmount > 0) && (
+                                        <div className="bg-emerald-50/30 p-3 rounded-2xl border border-emerald-100/50 space-y-2 mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                                          {pallet.gstType === 'intra' ? (
+                                            <>
+                                              <div className="flex justify-between items-center text-[11px]">
+                                                <span className="font-bold text-emerald-700">CGST ({pallet.cgstPct || 0}%)</span>
+                                                <span className="font-black text-emerald-800">+ ₹{(pallet.cgstAmount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                              </div>
+                                              <div className="flex justify-between items-center text-[11px]">
+                                                <span className="font-bold text-emerald-700">SGST ({pallet.sgstPct || 0}%)</span>
+                                                <span className="font-black text-emerald-800">+ ₹{(pallet.sgstAmount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <div className="flex justify-between items-center text-[11px]">
+                                              <span className="font-bold text-emerald-700">IGST ({pallet.igstPct || 0}%)</span>
+                                              <span className="font-black text-emerald-800">+ ₹{(pallet.igstAmount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                                        <span className="text-xs font-black uppercase tracking-wider text-slate-800">Grand Settlement</span>
+                                        <span className="text-xl font-black text-slate-900 tracking-tight">₹{(pallet.totalAmount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </td>
-                          </tr>
-                        )}
+                            </div>
+
+                            {/* Logistics Summary */}
+                            <div className="space-y-6">
+                              <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm space-y-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Truck className="h-4 w-4 text-blue-600" />
+                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Logistics Context</h4>
+                                </div>
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Dealer / Payer</p>
+                                    <p className="text-xs font-black text-slate-700 mt-1">{pallet.dealer?.name || pallet.companyName}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Assigned Vehicle</p>
+                                    <p className="text-xs font-black text-slate-700 mt-1">{pallet.vehicle?.plateNumber || pallet.vehicle?.regNo || 'Self Service'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Expected Net Margin</p>
+                                    {(() => {
+                                      const marginVal = ((pallet.freight || 0) - (pallet.hamali || 0)) / 100;
+                                      return (
+                                        <div className={cn(
+                                          "px-3 py-2 rounded-xl mt-1 text-xs font-black uppercase tracking-wider text-center border inline-block",
+                                          marginVal > 0 
+                                            ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
+                                            : marginVal < 0 
+                                              ? "bg-rose-50 border-rose-100 text-rose-700" 
+                                              : "bg-slate-50 border-slate-100 text-slate-600"
+                                        )}>
+                                          ₹{marginVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                  <div className="pt-3 border-t border-slate-50 flex justify-between items-end">
+                                    <div>
+                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Load</p>
+                                      <p className="text-xl font-black text-slate-900 tracking-tighter">
+                                        {Number(pallet.totalWeight || 0).toFixed(2)} KG
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Revenue (Base)</p>
+                                      <p className="text-xl font-black text-slate-900 tracking-tighter">
+                                        ₹{(pallet.freight / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <Button 
+                                onClick={() => router.push(`/dashboard/pallets/returns/${pallet.id}`)}
+                                className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"
+                              >
+                                <FileText className="h-4 w-4" /> Edit Manifest Details
+                              </Button>
+
+                              <div className="flex gap-2">
+                                <PalletInvoiceDownloader 
+                                  palletId={pallet.id} 
+                                  lrNo={pallet.lrNo}
+                                  variant="receipt"
+                                  label="Challan"
+                                  className="flex-1 h-12 rounded-2xl bg-slate-800 hover:bg-black text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-slate-200"
+                                />
+                                <PalletInvoiceDownloader 
+                                  palletId={pallet.id} 
+                                  lrNo={pallet.lrNo}
+                                  variant="invoice"
+                                  label="Invoice"
+                                  className="flex-1 h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-200"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </React.Fragment>
                 ))
               )}

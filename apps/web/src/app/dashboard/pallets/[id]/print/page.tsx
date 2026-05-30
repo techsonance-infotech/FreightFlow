@@ -44,9 +44,9 @@ export default function PalletPrintPage() {
   if (!pallet) return null;
  
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-slate-50 p-8 print:p-0 print:bg-white">
       {/* Action Bar */}
-      <div className="max-w-5xl mx-auto flex items-center justify-between mb-8">
+      <div className="max-w-5xl mx-auto flex items-center justify-between mb-8 no-print">
         <div className="flex items-center gap-4">
           <Link 
             href="/dashboard/pallets"
@@ -79,8 +79,8 @@ export default function PalletPrintPage() {
       </div>
  
       {/* Main Print Container */}
-      <div className="max-w-5xl mx-auto space-y-12">
-        <div className="shadow-2xl bg-white">
+      <div className="max-w-5xl mx-auto space-y-12 print:space-y-0 print:max-w-none print:p-0">
+        <div className="shadow-2xl bg-white print:shadow-none print:bg-transparent">
           <PalletReceiptTemplate 
             data={pallet} 
             company={company} 
@@ -88,9 +88,9 @@ export default function PalletPrintPage() {
           />
         </div>
         
-        <div className="border-t-2 border-dashed border-slate-200 my-12" />
+        <div className="border-t-2 border-dashed border-slate-200 my-12 print:my-0 print:border-slate-400 print:h-0" />
         
-        <div className="shadow-2xl bg-white">
+        <div className="shadow-2xl bg-white print:shadow-none print:bg-transparent">
           <PalletReceiptTemplate 
             data={pallet} 
             company={company} 

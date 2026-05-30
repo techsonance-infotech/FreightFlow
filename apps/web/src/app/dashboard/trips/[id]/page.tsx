@@ -593,7 +593,7 @@ export default function TripDetailPage() {
                                     <div className="pt-4 border-t border-slate-50 grid grid-cols-2 gap-4">
                                       <div>
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tonnage</p>
-                                        <p className="text-lg font-black text-slate-900 tracking-tighter mt-1">{Number(order.totalWeight || 0).toFixed(2)} <span className="text-[9px] text-slate-400 uppercase ml-1">KG</span></p>
+                                        <p className="text-lg font-black text-slate-900 tracking-tighter mt-1">{Number(Number(order.totalWeight || 0).toFixed(4))} <span className="text-[9px] text-slate-400 uppercase ml-1">KG</span></p>
                                       </div>
                                       <div className="text-right">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Units</p>

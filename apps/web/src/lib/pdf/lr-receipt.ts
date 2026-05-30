@@ -29,113 +29,103 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 10;
   const boxWidth = pageWidth - (margin * 2);
-  let currentY = startY;
 
   // 0. Top Header Text
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('|| Shree Ganeshay Namah ||', pageWidth / 2, currentY, { align: 'center' });
-  currentY += 4;
+  doc.text('|| Shree Ganeshay Namah ||', pageWidth / 2, startY + 3, { align: 'center' });
 
-  // 1. Merged Master Box: Company + Consignor/Consignee + Logistics
+  // 1. Merged Master Box: Company + Consignor/Consignee + Logistics (Fixed position, Height: 38mm)
+  const masterBoxY = startY + 5;
+  const masterBoxHeight = 38;
   doc.setDrawColor(200);
-  
+  doc.rect(margin, masterBoxY, boxWidth, masterBoxHeight);
+
   // Header bar (Blue-ish background for Copy Title)
   doc.setFontSize(8);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'bold');
   doc.setFillColor(245, 248, 252);
-  doc.rect(margin + 0.1, currentY + 0.1, boxWidth - 0.2, 5, 'F');
-  doc.text(copyTitle.toUpperCase(), pageWidth / 2, currentY + 3.5, { align: 'center' });
+  doc.rect(margin + 0.1, masterBoxY + 0.1, boxWidth - 0.2, 5, 'F');
+  doc.text(copyTitle.toUpperCase(), pageWidth / 2, masterBoxY + 3.8, { align: 'center' });
   
   // Section A: Company Branding (Compact & Premium)
-  let brandY = currentY + 10;
+  let brandY = masterBoxY + 11;
   let textStartX = margin + 20; // Default fallback if no logo
   
   if (company?.logoUrl) {
     try {
       const logoData = await getBase64Image(company.logoUrl);
       if (logoData) {
-        const targetHeight = 14; // Increased for a highly prominent, beautiful display
-        const targetWidth = Math.min(25, targetHeight * (logoData.width / logoData.height));
+        const targetHeight = 10;
+        const targetWidth = Math.min(22, targetHeight * (logoData.width / logoData.height));
         doc.addImage(logoData.data, 'PNG', margin + 2, brandY - 4, targetWidth, targetHeight);
-        textStartX = margin + 2 + targetWidth + 3; // Dynamic padding of 3mm after the logo
+        textStartX = margin + 2 + targetWidth + 3;
       }
     } catch (e) {}
   }
 
   doc.setFontSize(9);
-  doc.text(company?.name?.toUpperCase() || 'COMPANY NAME', textStartX, brandY);
+  doc.text(company?.name?.toUpperCase() || 'COMPANY NAME', textStartX, brandY - 1);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   const supplierLines = doc.splitTextToSize(company?.address || '', boxWidth - (textStartX - margin) - 65);
-  doc.text(supplierLines, textStartX, brandY + 3.5);
+  doc.text(supplierLines, textStartX, brandY + 2);
   doc.setFont('helvetica', 'bold');
-  doc.text(`GST No: ${company?.gstin?.toUpperCase() || '-'}`, textStartX, brandY + 10);
+  doc.text(`GST No: ${company?.gstin?.toUpperCase() || '-'}`, textStartX, brandY + 8);
 
   // Metadata (Right side stacked)
   doc.setFontSize(8);
-  doc.text(`Mo: ${company?.phone || '-'}`, pageWidth - margin - 2, brandY, { align: 'right' });
-  doc.text(`LR No: ${order.lrNo || '-'}`, pageWidth - margin - 2, brandY + 5, { align: 'right' });
-  doc.text(`Date: ${formatUtcDate(order.date, 'dd/MM/yyyy')}`, pageWidth - margin - 2, brandY + 10, { align: 'right' });
+  doc.text(`Mo: ${company?.phone || '-'}`, pageWidth - margin - 2, brandY - 1, { align: 'right' });
+  doc.text(`LR No: ${order.lrNo || '-'}`, pageWidth - margin - 2, brandY + 3.5, { align: 'right' });
+  doc.text(`Date: ${formatUtcDate(order.date, 'dd/MM/yyyy')}`, pageWidth - margin - 2, brandY + 8, { align: 'right' });
 
   // Horizontal Divider 1
   doc.setDrawColor(230);
-  doc.line(margin, currentY + 25, pageWidth - margin, currentY + 25);
+  doc.line(margin, masterBoxY + 20, pageWidth - margin, masterBoxY + 20);
 
-  // Section B: Consignor & Consignee (Dynamic Address, GST, PAN & Code)
-  let partyY = currentY + 29;
+  // Section B: Consignor & Consignee
+  let partyY = masterBoxY + 23.5;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.text('CONSIGNOR (DEALER)', margin + 2, partyY);
   doc.text('CONSIGNEE', pageWidth / 2 + 2, partyY);
   
-  // Dealer Name & Bold Code
+  // Dealer Name & Code
   doc.setFont('helvetica', 'normal');
   const dName = order.dealer?.name?.toUpperCase() || '-';
-  doc.text(dName, margin + 2, partyY + 3.5);
+  doc.text(doc.splitTextToSize(dName, (boxWidth / 2) - 8)[0] || '-', margin + 2, partyY + 3.5);
   if (order.dealer?.code) {
     const dNameWidth = doc.getTextWidth(dName);
     doc.setFont('helvetica', 'bold');
-    doc.text(` - ${order.dealer.code}`, margin + 2 + dNameWidth, partyY + 3.5);
+    doc.text(` - ${order.dealer.code}`, Math.min(margin + 2 + dNameWidth, pageWidth / 2 - 10), partyY + 3.5);
     doc.setFont('helvetica', 'normal');
   }
 
   // Consignee Name
   const cName = order.consignee?.name?.toUpperCase() || '-';
-  doc.text(cName, pageWidth / 2 + 2, partyY + 3.5);
+  doc.text(doc.splitTextToSize(cName, (boxWidth / 2) - 8)[0] || '-', pageWidth / 2 + 2, partyY + 3.5);
   if (order.consignee?.code) {
     const cNameWidth = doc.getTextWidth(cName);
     doc.setFont('helvetica', 'bold');
-    doc.text(` - ${order.consignee.code}`, pageWidth / 2 + 2 + cNameWidth, partyY + 3.5);
+    doc.text(` - ${order.consignee.code}`, Math.min(pageWidth / 2 + 2 + cNameWidth, pageWidth - margin - 10), partyY + 3.5);
     doc.setFont('helvetica', 'normal');
   }
   
-  // Wrapped Address Lines
-  const dAddr = doc.splitTextToSize(order.dealer?.address || '-', (boxWidth / 2) - 8);
-  const cAddr = doc.splitTextToSize(order.consignee?.address || order.toAddress || '-', (boxWidth / 2) - 8);
-  doc.text(dAddr, margin + 2, partyY + 7);
-  doc.text(cAddr, pageWidth / 2 + 2, partyY + 7);
-
-  // Calculate wrapped address height offset
-  const addrHeight = Math.max(dAddr.length, cAddr.length) * 3;
-  let taxY = partyY + 7 + addrHeight + 1.5;
-
-  // GST & PAN Info
+  // Dynamic GST/PAN (Single line to prevent layout drift)
   const dGST = order.dealer?.gstin || '-';
   const dPAN = order.dealer?.pan || '-';
-  doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, taxY);
+  doc.text(`GST: ${dGST} | PAN: ${dPAN}`, margin + 2, partyY + 7);
 
   const cGST = order.consignee?.gstin || '-';
   const cPAN = order.consignee?.pan || '-';
-  doc.text(`GST: ${cGST} | PAN: ${cPAN}`, pageWidth / 2 + 2, taxY);
+  doc.text(`GST: ${cGST} | PAN: ${cPAN}`, pageWidth / 2 + 2, partyY + 7);
 
   // Horizontal Divider 2
-  const divider2Y = taxY + 4;
-  doc.line(margin, divider2Y, pageWidth - margin, divider2Y);
+  doc.line(margin, masterBoxY + 32, pageWidth - margin, masterBoxY + 32);
 
-  // Section C: Logistics Row (Includes E-Way Bill)
-  let logY = divider2Y + 4;
+  // Section C: Logistics Row
+  let logY = masterBoxY + 35.5;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.text(`Veh No: ${order.vehicle?.plateNumber || order.vehicle?.regNo || '-'}`, margin + 2, logY);
@@ -144,15 +134,9 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   doc.text(`From: ${order.fromLocation || '-'}`, margin + 95, logY);
   doc.text(`To: ${order.toLocation || '-'}`, pageWidth / 2 + 50, logY);
 
-  const masterBoxHeight = (logY + 4) - currentY;
-  doc.setDrawColor(200);
-  doc.rect(margin, currentY, boxWidth, masterBoxHeight);
-
-  currentY += masterBoxHeight + 2;
-
-  // 4. Goods Table
+  // 4. Goods Table (Compact & starts exactly at startY + 45)
   autoTable(doc, {
-    startY: currentY,
+    startY: startY + 45,
     head: [['Sr.', 'Good', 'Box', 'Packing', 'Weight', 'DCPI No']],
     body: (order.details || []).map((item: any, idx: number) => [
       idx + 1,
@@ -163,8 +147,8 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
       item.dcpiNo || '-'
     ]),
     theme: 'grid',
-    headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },
-    bodyStyles: { fontSize: 7 },
+    headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 6.5, fontStyle: 'bold', halign: 'center' },
+    bodyStyles: { fontSize: 6.5, cellPadding: 1 },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 80 },
@@ -176,75 +160,66 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
     margin: { left: margin, right: margin }
   });
 
-  // Update currentY to the end of the table
-  currentY = (doc as any).lastAutoTable.finalY + 5;
+  // 5. Fixed Footer Box (Starts exactly at startY + 97, Height: 35)
+  const footerY = startY + 97;
+  const footerHeight = 35;
+  doc.setDrawColor(200);
+  doc.rect(margin, footerY, boxWidth, footerHeight);
 
-  // 5. Merged Footer Box (Guaranteed Signature Gap)
+  // Terms & Conditions (Compact & Fixed)
   const termsText = company?.printTerms || '';
   const termLines = doc.splitTextToSize(termsText, boxWidth - 10);
-  const termsContentHeight = (termLines.length * 3);
-  const footerHeight = Math.max(45, termsContentHeight + 30); // Increased significantly for digital signature space
-
-  doc.rect(margin, currentY, boxWidth, footerHeight);
-  
-  // Terms & Conditions
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'bold');
-  doc.text('Terms & Condition:', margin + 2, currentY + 4);
+  doc.text('Terms & Condition:', margin + 2, footerY + 4);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  doc.text(termLines, margin + 2, currentY + 7);
+  doc.setFontSize(5.5);
+  doc.text(termLines.slice(0, 3), margin + 2, footerY + 7); // Show max 3 lines to fit
 
-  // Dynamic Divider line (Tightened)
-  const dividerY = currentY + termsContentHeight + 6;
+  // Divider
   doc.setDrawColor(230);
-  doc.line(margin, dividerY, pageWidth - margin, dividerY);
+  doc.line(margin, footerY + 16, pageWidth - margin, footerY + 16);
   doc.setDrawColor(200);
 
   // Bottom Section (Signatures & Tax)
-  const footerContentY = dividerY + 4;
+  const footerContentY = footerY + 20;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   
-  // Left: Service Tax (Higher up)
+  // Left: Service Tax
   doc.text('Service Tax to be Born By:', margin + 2, footerContentY);
   doc.setFont('helvetica', 'normal');
   doc.text('____________________', margin + 2, footerContentY + 4);
 
-  // Center: Receiver's Signature (Higher up)
+  // Center: Receiver's Signature
   doc.setFont('helvetica', 'bold');
   doc.text('Receiver\'s Signature', pageWidth / 2 - 20, footerContentY);
   doc.setFontSize(6);
   doc.text('With Stamp:', pageWidth / 2 - 20, footerContentY + 4);
 
   // Right Side: Disclaimer & Signature
-  const boxBottomY = currentY + footerHeight;
-  doc.setFontSize(6);
+  doc.setFontSize(5.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('Carriers are not responsible', pageWidth - margin - 2, footerContentY, { align: 'right' });
-  doc.text('for breakage and leakage', pageWidth - margin - 2, footerContentY + 3, { align: 'right' });
+  doc.text('Carriers are not responsible', pageWidth - margin - 2, footerContentY - 1, { align: 'right' });
+  doc.text('for breakage and leakage', pageWidth - margin - 2, footerContentY + 2, { align: 'right' });
   
   // Render Digital Signature if available
   if (company?.signatureUrl) {
     try {
       const sigData = await getBase64Image(company.signatureUrl);
       if (sigData) {
-        // Moved further upward and slightly to the right to account for image padding
-        // footerContentY + 1 centers it better if the image has white space at the top
-        doc.addImage(sigData.data, 'PNG', pageWidth - margin - 30, footerContentY + 1, 30, 15);
+        doc.addImage(sigData.data, 'PNG', pageWidth - margin - 32, footerContentY + 3, 25, 8);
       }
-    } catch (e) {
-      console.error('Failed to add signature to PDF:', e);
-    }
+    } catch (e) {}
   }
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('For ' + company?.name?.toUpperCase(), pageWidth - margin - 2, boxBottomY - 6, { align: 'right' });
-  doc.setFontSize(7);
-  doc.text('Authorised Signatory', pageWidth - margin - 2, boxBottomY - 2, { align: 'right' });
+  doc.text('For ' + company?.name?.toUpperCase(), pageWidth - margin - 2, footerY + 30, { align: 'right' });
+  doc.setFontSize(6.5);
+  doc.text('Authorised Signatory', pageWidth - margin - 2, footerY + 33, { align: 'right' });
 
-  return currentY + footerHeight;
+  return footerY + footerHeight;
 }
 
 export async function generateLRReceiptPDF(order: any, company: any) {
