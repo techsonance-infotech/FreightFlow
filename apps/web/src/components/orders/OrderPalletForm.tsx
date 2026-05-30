@@ -96,9 +96,10 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
       palletDetails: initialData?.palletDetails?.length > 0 
         ? initialData.palletDetails.map((p: any) => ({
             ...p,
-            rate: p.rate / 100 
+            rate: p.rate / 100,
+            weight: p.weight !== undefined ? Number(p.weight) : 0
           }))
-        : [{ palletDisplayId: '', qty: 1, rate: 0, consigneeName: '' }],
+        : [{ palletDisplayId: '', qty: 1, rate: 0, weight: 0, consigneeName: '' }],
       isGstRequired: initialData?.isGstRequired ?? (
         Number(initialData?.cgstPct) > 0 || 
         Number(initialData?.sgstPct) > 0 || 
@@ -123,7 +124,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   const watchedFreight = useWatch({ control, name: 'freight' }) || 0;
   const watchedHamali = useWatch({ control, name: 'hamali' }) || 0;
   const watchedRate = useWatch({ control, name: 'rate' }) || 0;
-  const watchedRateOn = useWatch({ control, name: 'rateOn' });
+  const watchedRateOn = useWatch({ control, name: 'rateOn' }) || 'qty';
   const watchedGstType = useWatch({ control, name: 'gstType' });
   const watchedCgstPct = useWatch({ control, name: 'cgstPct' }) || 0;
   const watchedSgstPct = useWatch({ control, name: 'sgstPct' }) || 0;
@@ -134,6 +135,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   const [totals, setTotals] = useState({
     totalQty: 0,
     totalPallets: 0,
+    totalWeight: 0,
     baseFreight: 0,
     subtotal: 0,
     cgstAmount: 0,
@@ -237,42 +239,62 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
     }
   }, [watchedConsigneeId, consignees, initialData?.id]);
 
+  // Sync freight value automatically when rate, basis, or items change
+  useEffect(() => {
+    const totalWeight = watchedPallets.reduce((sum, p) => sum + (Number(p.weight) || 0), 0);
+    const totalQty = watchedPallets.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+
+    const rateVal = Number(watchedRate);
+    if (!isNaN(rateVal) && rateVal > 0) {
+      const calculatedFreight = watchedRateOn === 'weight'
+        ? totalWeight * rateVal
+        : totalQty * rateVal;
+      
+      const currentFreight = Number(watchedFreight);
+      if (!isNaN(currentFreight) && Math.abs(currentFreight - calculatedFreight) > 0.01) {
+        setValue('freight', Number(calculatedFreight.toFixed(2)), { shouldDirty: true });
+      }
+    }
+  }, [watchedPallets, watchedRate, watchedRateOn, setValue, watchedFreight]);
+
   // Calculation Logic
   useEffect(() => {
     const totalQty = watchedPallets.reduce((acc, curr) => acc + (parseInt(curr.qty as any) || 0), 0);
     const totalPallets = watchedPallets.length;
+    const totalWeight = watchedPallets.reduce((acc, curr) => acc + (parseFloat(curr.weight as any) || 0), 0);
     
-    // Total value calculated directly from the payload table
-    const subtotalFromTable = watchedPallets.reduce((acc, curr) => {
-      const q = parseInt(curr.qty as any) || 0;
-      const r = parseFloat(curr.rate as any) || 0;
-      return acc + (q * r);
-    }, 0);
-
-    const subtotal = subtotalFromTable + (parseFloat(watchedFreight as any) || 0) + (parseFloat(watchedHamali as any) || 0);
+    const freightVal = isNaN(Number(watchedFreight)) ? 0 : Number(watchedFreight);
+    const hamaliVal = isNaN(Number(watchedHamali)) ? 0 : Number(watchedHamali);
+    const calculatedSubtotal = freightVal + hamaliVal;
     
     let cgst = 0, sgst = 0, igst = 0;
+    const cgstPctVal = isNaN(Number(watchedCgstPct)) ? 0 : Number(watchedCgstPct);
+    const sgstPctVal = isNaN(Number(watchedSgstPct)) ? 0 : Number(watchedSgstPct);
+    const igstPctVal = isNaN(Number(watchedIgstPct)) ? 0 : Number(watchedIgstPct);
+
     if (watchedIsGstRequired) {
       if (watchedGstType === 'intra') {
-        cgst = (subtotal * watchedCgstPct) / 100;
-        sgst = (subtotal * watchedSgstPct) / 100;
+        cgst = (calculatedSubtotal * cgstPctVal) / 100;
+        sgst = (calculatedSubtotal * sgstPctVal) / 100;
       } else {
-        igst = (subtotal * watchedIgstPct) / 100;
+        igst = (calculatedSubtotal * igstPctVal) / 100;
       }
     }
 
-    const totalAmount = subtotal + cgst + sgst + igst;
+    const totalAmount = calculatedSubtotal + cgst + sgst + igst;
+    const margin = freightVal - hamaliVal;
 
     setTotals({
       totalQty,
       totalPallets,
-      baseFreight: subtotalFromTable,
-      subtotal,
+      totalWeight,
+      baseFreight: freightVal,
+      subtotal: calculatedSubtotal,
       cgstAmount: cgst,
       sgstAmount: sgst,
       igstAmount: igst,
       totalAmount,
-      margin: subtotalFromTable
+      margin
     });
   }, [watchedPallets, watchedFreight, watchedHamali, watchedGstType, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedIsGstRequired]);
 
@@ -282,20 +304,22 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
         ...data,
         freight: Math.round(parseFloat(data.freight as any) * 100),
         hamali: Math.round(parseFloat(data.hamali as any) * 100),
-        rate: 0,
+        rate: Math.round(parseFloat(data.rate as any) * 100),
         subtotal: Math.round(totals.subtotal * 100),
         cgstAmount: Math.round(totals.cgstAmount * 100),
         sgstAmount: Math.round(totals.sgstAmount * 100),
         igstAmount: Math.round(totals.igstAmount * 100),
         totalAmount: Math.round(totals.totalAmount * 100),
-        totalWeight: 0,
+        totalWeight: totals.totalWeight,
         totalBoxes: totals.totalQty,
         totalQty: totals.totalQty,
         type: 'OUTWARD',
         palletDetails: data.palletDetails.map((p: any) => ({
           ...p,
           qty: parseInt(p.qty as any) || 0,
-          rate: p.rate ? Math.round(parseFloat(p.rate as any) * 100) : 0,
+          boxQty: parseInt(p.qty as any) || 0,
+          weight: parseFloat(p.weight as any) || 0,
+          rate: Math.round(parseFloat(data.rate as any) * 100),
         })),
       };
 
@@ -687,7 +711,34 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
 
             <div className="space-y-8">
               <div className="grid grid-cols-2 gap-4">
-                <FormInputWrapper label="Freight" dark>
+                <FormInputWrapper label="Rate Per *" error={errors.rate?.message} dark>
+                  <div className="relative group/fin">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 group-focus-within/fin:text-blue-400 transition-colors">₹</div>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      {...register('rate', { valueAsNumber: true })} 
+                      onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                      className="w-full h-12 pl-8 pr-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-sm font-bold text-white focus:bg-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none" 
+                    />
+                  </div>
+                </FormInputWrapper>
+
+                <FormInputWrapper label="Rate Basis *" dark>
+                  <Select value={watch('rateOn')} onValueChange={(val) => setValue('rateOn', val as any)}>
+                    <SelectTrigger className="w-full h-12 px-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-sm font-bold text-white focus:bg-slate-800 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none">
+                      <SelectValue placeholder="Basis" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-800 text-white">
+                      <SelectItem value="weight">Per KG</SelectItem>
+                      <SelectItem value="qty">Per Unit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormInputWrapper>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormInputWrapper label="Base Freight *" error={errors.freight?.message} dark>
                   <div className="relative group/fin">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500 group-focus-within/fin:text-blue-400 transition-colors">₹</div>
                     <input 
@@ -814,7 +865,14 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
           </div>
 
           {/* Margin Insights */}
-          <div className={cn("rounded-[2.5rem] p-8 text-white shadow-xl transition-all duration-500 relative overflow-hidden group", totals.margin > 0 ? "bg-emerald-600" : "bg-rose-600")}>
+          <div className={cn(
+            "rounded-[2.5rem] p-8 text-white shadow-xl transition-all duration-500 relative overflow-hidden group border border-white/5",
+            totals.margin > 0 
+              ? "bg-emerald-600 shadow-emerald-900/10" 
+              : totals.margin < 0 
+                ? "bg-rose-600 shadow-rose-900/10" 
+                : "bg-slate-800 border-slate-700/50 shadow-slate-900/10"
+          )}>
             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
               <TrendingUp className="h-32 w-32" />
             </div>
@@ -822,7 +880,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-1">Expected Net Margin</h4>
               <p className="text-3xl font-black tracking-tighter mb-4">₹{totals.margin.toFixed(2)}</p>
               <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full bg-white w-2/3" />
+                <div className="h-full bg-white transition-all duration-500" style={{ width: totals.margin > 0 ? '66.6%' : totals.margin < 0 ? '10%' : '0%' }} />
               </div>
               <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-white/70 flex items-center gap-2">
                 <ShieldCheck className="h-3 w-3" /> Basic Ops Shield
@@ -906,7 +964,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             </div>
             <Button 
               type="button" 
-              onClick={() => appendPallet({ palletDisplayId: '', code: '', qty: 1, rate: 0, consigneeName: '' })}
+              onClick={() => appendPallet({ palletDisplayId: '', code: '', qty: 1, rate: 0, weight: 0, consigneeName: '' })}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-8 py-4 h-auto text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 flex items-center gap-3 transition-all hover:-translate-y-0.5"
             >
               <Plus className="h-4 w-4" /> Add Row
@@ -919,9 +977,9 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                 <tr>
                   <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest w-20">Sr.</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[350px]">Pallet Identification *</th>
-                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[250px]">Code</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[200px]">Code</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-32 text-center">Weight (KG) *</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-32 text-center">Qty *</th>
-                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-center">Unit Rate *</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-right">Amount</th>
                   <th className="px-8 py-6 w-20"></th>
                 </tr>
@@ -1006,6 +1064,22 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                     <td className="px-4 py-8 align-top">
                       <div className={cn(
                         "bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-2",
+                        errors.palletDetails?.[index]?.weight && "border-rose-300 ring-4 ring-rose-50"
+                      )}>
+                        <input 
+                          type="number" 
+                          step="0.0001"
+                          {...register(`palletDetails.${index}.weight` as const, { valueAsNumber: true })} 
+                          className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
+                          min="0"
+                          onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                        />
+                      </div>
+                      {errors.palletDetails?.[index]?.weight && <p className="text-[9px] font-bold text-rose-500 mt-1 text-center">{(errors.palletDetails[index] as any)?.weight?.message}</p>}
+                    </td>
+                    <td className="px-4 py-8 align-top">
+                      <div className={cn(
+                        "bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-2",
                         errors.palletDetails?.[index]?.qty && "border-rose-300 ring-4 ring-rose-50"
                       )}>
                         <input 
@@ -1018,27 +1092,12 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                       </div>
                       {errors.palletDetails?.[index]?.qty && <p className="text-[9px] font-bold text-rose-500 mt-1 text-center">{errors.palletDetails[index]?.qty?.message}</p>}
                     </td>
-                    <td className="px-4 py-8 align-top">
-                      <div className={cn(
-                        "bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-4",
-                        errors.palletDetails?.[index]?.rate && "border-rose-300 ring-4 ring-rose-50"
-                      )}>
-                        <span className="text-xs font-black text-slate-400 mr-2">₹</span>
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          {...register(`palletDetails.${index}.rate` as const, { valueAsNumber: true })} 
-                          className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
-                          min="0"
-                          onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                        />
-                      </div>
-                      {errors.palletDetails?.[index]?.rate && <p className="text-[9px] font-bold text-rose-500 mt-1 text-center">{errors.palletDetails[index]?.rate?.message}</p>}
-                    </td>
                     <td className="px-4 py-8 align-top text-right">
                       <div className="h-12 flex items-center justify-end pr-4">
                         <span className="text-base font-black text-slate-800 tracking-tight">
-                          ₹{((parseInt(watchedPallets[index]?.qty as any) || 0) * (parseFloat(watchedPallets[index]?.rate as any) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ₹{((watchedRateOn === 'weight' 
+                            ? (parseFloat(watchedPallets[index]?.weight as any) || 0) 
+                            : (parseInt(watchedPallets[index]?.qty as any) || 0)) * (parseFloat(watchedRate as any) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     </td>
@@ -1072,9 +1131,15 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Amount</p>
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Weight</p>
+                  <p className="text-4xl font-black text-slate-900 tracking-tighter">
+                    {Number(totals.totalWeight.toFixed(4))} <span className="text-sm text-slate-400 font-bold ml-1 uppercase">KG</span>
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Base Freight</p>
                   <p className="text-4xl font-black text-blue-600 tracking-tighter">
-                    ₹{totals.baseFreight.toFixed(2)}
+                    ₹{totals.baseFreight.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>

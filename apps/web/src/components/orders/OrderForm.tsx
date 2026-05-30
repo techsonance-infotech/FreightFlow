@@ -18,6 +18,7 @@ import { Modal } from '@/components/ui/modal';
 import { DealerForm } from '@/components/masters/dealer-form';
 import { ConsigneeForm } from '@/components/masters/consignee-form';
 import { VehicleForm } from '@/components/masters/vehicle-form';
+import { ProductForm } from '@/components/masters/product-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -62,6 +63,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   const [isDealerModalOpen, setIsDealerModalOpen] = useState(false);
   const [isConsigneeModalOpen, setIsConsigneeModalOpen] = useState(false);
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+  const [activeProductIndex, setActiveProductIndex] = useState<number | null>(null);
 
   const [dealerSearch, setDealerSearch] = useState('');
   const [consigneeSearch, setConsigneeSearch] = useState('');
@@ -253,13 +255,14 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     const totalWeight = watchedDetails.reduce((sum, d) => sum + (Number(d.weight) || 0), 0);
     const totalBoxes = watchedDetails.reduce((sum, d) => sum + (Number(d.boxCount) || 0), 0);
 
-    if (Number(watchedRate || 0) > 0) {
+    const rateVal = Number(watchedRate);
+    if (!isNaN(rateVal) && rateVal > 0) {
       const calculatedFreight = watchedRateOn === 'weight'
-        ? totalWeight * Number(watchedRate || 0)
-        : totalBoxes * Number(watchedRate || 0);
+        ? totalWeight * rateVal
+        : totalBoxes * rateVal;
       
-      const currentFreight = Number(watchedFreight || 0);
-      if (Math.abs(currentFreight - calculatedFreight) > 0.01) {
+      const currentFreight = Number(watchedFreight);
+      if (!isNaN(currentFreight) && Math.abs(currentFreight - calculatedFreight) > 0.01) {
         setValue('freight', Number(calculatedFreight.toFixed(2)), { shouldDirty: true });
       }
     }
@@ -271,21 +274,27 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     
     // Financial calculations: subtotal is simply freight + hamali
     // freight already automatically captures the rate calculation if a rate is specified
-    const calculatedSubtotal = Number(watchedFreight || 0) + Number(watchedHamali || 0);
+    const freightVal = isNaN(Number(watchedFreight)) ? 0 : Number(watchedFreight);
+    const hamaliVal = isNaN(Number(watchedHamali)) ? 0 : Number(watchedHamali);
+    const calculatedSubtotal = freightVal + hamaliVal;
     
     let cgstAmount = 0;
     let sgstAmount = 0;
     let igstAmount = 0;
     
+    const cgstPctVal = isNaN(Number(watchedCgstPct)) ? 0 : Number(watchedCgstPct);
+    const sgstPctVal = isNaN(Number(watchedSgstPct)) ? 0 : Number(watchedSgstPct);
+    const igstPctVal = isNaN(Number(watchedIgstPct)) ? 0 : Number(watchedIgstPct);
+
     if (watchedGstType === 'intra') {
-      cgstAmount = watchedIsGstRequired ? (calculatedSubtotal * Number(watchedCgstPct || 0)) / 100 : 0;
-      sgstAmount = watchedIsGstRequired ? (calculatedSubtotal * Number(watchedSgstPct || 0)) / 100 : 0;
+      cgstAmount = watchedIsGstRequired ? (calculatedSubtotal * cgstPctVal) / 100 : 0;
+      sgstAmount = watchedIsGstRequired ? (calculatedSubtotal * sgstPctVal) / 100 : 0;
     } else {
-      igstAmount = watchedIsGstRequired ? (calculatedSubtotal * Number(watchedIgstPct || 0)) / 100 : 0;
+      igstAmount = watchedIsGstRequired ? (calculatedSubtotal * igstPctVal) / 100 : 0;
     }
     
     const totalAmount = calculatedSubtotal + cgstAmount + sgstAmount + igstAmount;
-    const margin = Number(watchedFreight || 0) - Number(watchedHamali || 0); 
+    const margin = freightVal - hamaliVal; 
 
     setTotals({ 
       totalWeight, 
@@ -376,7 +385,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
 
   const renderWeightTotal = (weight: number) => {
     const kg = Math.floor(weight);
-    const grams = Math.round((weight - kg) * 1000);
+    const grams = Number(Number((weight - kg) * 1000).toFixed(1));
     return (
       <div className="flex items-baseline gap-1">
         <span className="text-3xl font-black text-slate-900 tracking-tighter">{kg}</span>
@@ -897,7 +906,14 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
           </div>
 
           {/* Margin Insights */}
-          <div className={cn("rounded-[2.5rem] p-8 text-white shadow-xl transition-all duration-500 relative overflow-hidden group", totals.margin > 0 ? "bg-emerald-600" : "bg-rose-600")}>
+          <div className={cn(
+            "rounded-[2.5rem] p-8 text-white shadow-xl transition-all duration-500 relative overflow-hidden group border border-white/5",
+            totals.margin > 0 
+              ? "bg-emerald-600 shadow-emerald-900/10" 
+              : totals.margin < 0 
+                ? "bg-rose-600 shadow-rose-900/10" 
+                : "bg-slate-800 border-slate-700/50 shadow-slate-900/10"
+          )}>
             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
               <TrendingUp className="h-32 w-32" />
             </div>
@@ -905,7 +921,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-1">Expected Net Margin</h4>
               <p className="text-3xl font-black tracking-tighter mb-4">₹{totals.margin.toFixed(2)}</p>
               <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full bg-white w-2/3" />
+                <div className="h-full bg-white transition-all duration-500" style={{ width: totals.margin > 0 ? '66.6%' : totals.margin < 0 ? '10%' : '0%' }} />
               </div>
               <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-white/70 flex items-center gap-2">
                 <ShieldCheck className="h-3 w-3" /> Basic Ops Shield
@@ -990,56 +1006,67 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                       <span className="text-sm font-black text-slate-200 group-hover:text-blue-500 transition-colors">#{index + 1}</span>
                     </td>
                     <td className="px-4 py-8 align-top">
-                      <div className="relative group/field">
-                        <div className="relative">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
-                            <Search className="h-4 w-4" />
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative group/field">
+                          <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within/field:bg-blue-50 group-focus-within/field:text-blue-500 transition-all">
+                              <Search className="h-4 w-4" />
+                            </div>
+                            <input 
+                              {...register(`details.${index}.productName`)} 
+                              autoComplete="off"
+                              placeholder="Search product..." 
+                              onFocus={(e) => {
+                                if (e.target.value === '0') e.target.value = '';
+                                // Trigger dropdown by focusing
+                              }}
+                              className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none" 
+                            />
                           </div>
-                          <input 
-                            {...register(`details.${index}.productName`)} 
-                            autoComplete="off"
-                            placeholder="Search product..." 
-                            onFocus={(e) => {
-                              if (e.target.value === '0') e.target.value = '';
-                              // Trigger dropdown by focusing
-                            }}
-                            className="w-full h-12 pl-14 pr-4 bg-slate-50/50 border border-slate-100 rounded-xl font-bold text-slate-700 focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50/50 transition-all placeholder:text-slate-300 text-sm outline-none" 
-                          />
-                        </div>
-                        
-                        <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
-                          <div className="p-2 space-y-1">
-                            {masters.products.length > 0 ? (
-                              masters.products
-                                .filter(p => !getValues(`details.${index}.productName`) || p.name.toLowerCase().includes(getValues(`details.${index}.productName`).toLowerCase()))
-                                .map(p => (
-                                  <button
-                                    key={p.id}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      setValue(`details.${index}.productName`, p.name);
-                                      if (p.unit?.name) setValue(`details.${index}.packingType`, p.unit.name);
-                                      (document.activeElement as HTMLElement)?.blur();
-                                    }}
-                                    className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
-                                  >
-                                    <div>
-                                      <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{p.name}</p>
-                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.hsnCode || 'NO HSN'}</p>
-                                    </div>
-                                    {p.unit?.name && (
-                                      <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-500">{p.unit.name}</span>
-                                    )}
-                                  </button>
-                                ))
-                            ) : (
-                              <div className="p-4 text-center">
-                                <p className="text-xs font-bold text-slate-400">No products found</p>
-                              </div>
-                            )}
+                          
+                          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-y-auto opacity-0 invisible group-focus-within/field:opacity-100 group-focus-within/field:visible transition-all max-h-[250px] scrollbar-thin scrollbar-thumb-slate-200">
+                            <div className="p-2 space-y-1">
+                              {masters.products.length > 0 ? (
+                                masters.products
+                                  .filter(p => !getValues(`details.${index}.productName`) || p.name.toLowerCase().includes(getValues(`details.${index}.productName`).toLowerCase()))
+                                  .map(p => (
+                                    <button
+                                      key={p.id}
+                                      type="button"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setValue(`details.${index}.productName`, p.name);
+                                        if (p.unit?.name) setValue(`details.${index}.packingType`, p.unit.name);
+                                        (document.activeElement as HTMLElement)?.blur();
+                                      }}
+                                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-50 flex items-center justify-between group/item transition-colors"
+                                    >
+                                      <div>
+                                        <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600">{p.name}</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.hsnCode || 'NO HSN'}</p>
+                                      </div>
+                                      {p.unit?.name && (
+                                        <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-500">{p.unit.name}</span>
+                                      )}
+                                    </button>
+                                  ))
+                              ) : (
+                                <div className="p-4 text-center">
+                                  <p className="text-xs font-bold text-slate-400">No products found</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
+
+                        <button 
+                          type="button" 
+                          onClick={() => setActiveProductIndex(index)} 
+                          className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shrink-0"
+                          title="Quick Add Product"
+                        >
+                          <Plus className="h-5 w-5" />
+                        </button>
                       </div>
                     </td>
                     <td className="px-4 py-8 align-top">
@@ -1073,7 +1100,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
                       <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-2">
                         <input 
                           type="number" 
-                          step="0.01" 
+                          step="0.0001" 
                           min="0"
                           {...register(`details.${index}.weight`, { valueAsNumber: true })} 
                           onFocus={(e) => e.target.value === '0' && (e.target.value = '')}
@@ -1168,6 +1195,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
 
     <Modal isOpen={isVehicleModalOpen} onClose={() => setIsVehicleModalOpen(false)} title="Quick Add Vehicle" size="lg">
       <VehicleForm onSuccess={(v) => { setMasters(m => ({ ...m, vehicles: [v, ...m.vehicles] })); setValue('vehicleId', v.id!); setIsVehicleModalOpen(false); }} onCancel={() => setIsVehicleModalOpen(false)} />
+    </Modal>
+
+    <Modal isOpen={activeProductIndex !== null} onClose={() => setActiveProductIndex(null)} title="Quick Add Product" size="lg">
+      <ProductForm 
+        onSuccess={(p: any) => {
+          setMasters(m => ({ ...m, products: [p, ...m.products] }));
+          if (activeProductIndex !== null) {
+            setValue(`details.${activeProductIndex}.productName`, p.name);
+            if (p.unit?.name) {
+              setValue(`details.${activeProductIndex}.packingType`, p.unit.name);
+            }
+          }
+          setActiveProductIndex(null);
+        }} 
+        onCancel={() => setActiveProductIndex(null)} 
+      />
     </Modal>
     </div>
   );
