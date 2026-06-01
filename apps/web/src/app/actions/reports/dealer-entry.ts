@@ -50,7 +50,10 @@ export async function getDealerEntryRecords(
     // Fetch Pallet Records
     if (loadType === 'PALLET' || loadType === 'BOTH' || loadType === 'EMPTY') {
       palletRecords = await prisma.orderPallet.findMany({
-        where,
+        where: {
+          ...where,
+          type: loadType === 'EMPTY' ? 'RETURN' : 'OUTWARD',
+        },
         include: {
           dealer: true,
           consignee: true,
@@ -60,15 +63,6 @@ export async function getDealerEntryRecords(
           date: 'asc',
         },
       });
-
-      // Filter for empty pallets if requested
-      if (loadType === 'EMPTY') {
-        palletRecords = palletRecords.filter(r => 
-          r.totalBoxes === 0 || 
-          (r.metadata as any)?.isEmpty === true ||
-          r.palletDetails?.every((d: any) => d.boxQty === 0)
-        );
-      }
     }
 
     const unifiedStandard = standardRecords.map(r => ({
@@ -98,16 +92,16 @@ export async function getDealerEntryRecords(
       billNo: (r.metadata as any)?.invoiceNo || '-',
       dealerName: r.dealer?.name || 'Walk-in',
       consigneeName: r.consignee?.name || 'Direct Customer',
-      loadType: 'PALLET',
+      loadType: r.type === 'RETURN' ? 'PALLET_RETURN' : 'PALLET',
       weight: Number(r.totalWeight || 0),
       boxes: r.totalBoxes || 0,
       pallets: r.palletDetails?.length || 0,
       amount: Number(r.totalAmount || 0) / 100,
       details: (r.palletDetails || []).map((d: any) => ({
-        product: d.palletDisplayId || 'Pallet',
-        qty: d.boxQty || 0,
+        product: d.palletDisplayId || (r.type === 'RETURN' ? 'Empty Pallet Return' : 'Pallet'),
+        qty: d.boxQty || d.qty || 0,
         weight: Number(d.weight || 0),
-        type: 'Pallet',
+        type: r.type === 'RETURN' ? 'Pallet Return' : 'Pallet',
       })),
     }));
 

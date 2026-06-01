@@ -193,7 +193,12 @@ export default function DealerEntryReportPage() {
       }
       doc.text(`Period: ${periodLabel}`, pageWidth - margin, currentY, { align: 'right' });
       currentY += 4;
-      doc.text(`Report Type: ${reportOption.replace('BOTH', 'Standard + Pallet')} | Mode: ${isCumulative ? 'Cumulative' : 'Individual'}`, margin, currentY);
+      const reportTypeLabel = 
+        reportOption === 'BOTH' ? 'Standard + Pallet' :
+        reportOption === 'BOX' ? 'Standard Box Only' :
+        reportOption === 'PALLET' ? 'Pallet Only' :
+        'Empty Pallet Returns';
+      doc.text(`Report Type: ${reportTypeLabel} | Mode: ${isCumulative ? 'Cumulative' : 'Individual'}`, margin, currentY);
       currentY += 10;
     };
 
@@ -257,14 +262,14 @@ export default function DealerEntryReportPage() {
         r.dealerName,
         r.consigneeName,
         r.details.map((d: any) => `${d.product} (${d.qty})`).join(', ') || 'Standard Cargo',
-        r.loadType === 'PALLET' ? 'PALLET' : 'BOX',
+        r.loadType === 'PALLET_RETURN' ? 'PALLET RETURN' : r.loadType,
         r.boxes.toString(),
         r.weight.toFixed(2)
       ]);
 
       autoTable(doc, {
         startY: currentY,
-        head: [['SR.', 'DATE', 'LR NO.', 'DEALER', 'CONSIGNEE / CUSTOMER', 'PRODUCT DESCRIPTION', 'TYPE', 'BOX', 'WEIGHT']],
+        head: [['SR.', 'DATE', 'LR NO.', 'DEALER', 'CONSIGNEE / CUSTOMER', 'PRODUCT DESCRIPTION', 'TYPE', 'QUANTITY', 'WEIGHT']],
         body: tableBody,
         theme: 'grid',
         headStyles: { fillColor: [15, 43, 91], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
@@ -458,7 +463,7 @@ export default function DealerEntryReportPage() {
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Consignee / Customer</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Product Description</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Type</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Box</th>
+                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Quantity</th>
                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Weight (KG)</th>
               </tr>
             </thead>
@@ -475,8 +480,10 @@ export default function DealerEntryReportPage() {
                   <td className="px-8 py-6">
                     <span className={cn(
                       "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
-                      r.loadType === 'PALLET' ? "bg-indigo-50 text-indigo-600" : "bg-blue-50 text-blue-600"
-                    )}>{r.loadType}</span>
+                      (r.loadType === 'PALLET' || r.loadType === 'Pallet') ? "bg-indigo-50 text-indigo-600" : 
+                      (r.loadType === 'PALLET_RETURN' || r.loadType === 'Pallet Return') ? "bg-amber-50 text-amber-600" :
+                      "bg-blue-50 text-blue-600"
+                    )}>{r.loadType === 'PALLET_RETURN' ? 'PALLET RETURN' : (r.loadType === 'Pallet Return' ? 'PALLET RETURN' : r.loadType)}</span>
                   </td>
                   <td className="px-8 py-6 text-xs font-black text-slate-900 text-center">{r.boxes}</td>
                   <td className="px-8 py-6 text-xs font-black text-slate-900 text-right">{r.weight.toFixed(2)}</td>

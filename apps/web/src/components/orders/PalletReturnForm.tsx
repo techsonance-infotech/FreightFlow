@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PalletSchema, type Pallet } from '@freightflow/shared';
@@ -62,6 +62,11 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
   const [selectedDealerId, setSelectedDealerId] = useState<string>('');
   const [selectedPalletDealerId, setSelectedPalletDealerId] = useState<string>('');
   const [vehicleSearch, setVehicleSearch] = useState('');
+  const isFirstMountRef = useRef(true);
+
+  useEffect(() => {
+    isFirstMountRef.current = false;
+  }, []);
 
   const { 
     register, 
@@ -215,20 +220,23 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
   }, [watchedDate, initialData?.id, setValue, getValues]);
 
   useEffect(() => {
-    if (!selectedPalletDealerId || initialData?.id) return;
+    if (!selectedPalletDealerId) return;
+    const initialPalletDealerId = (initialData?.metadata as any)?.palletReturnDealerId || initialData?.dealerId || '';
+    const isDealerChanged = !initialData?.id || selectedPalletDealerId !== initialPalletDealerId;
+    if (!isDealerChanged) return;
     const dealer = dealers.find(d => d.id === selectedPalletDealerId);
     if (dealer && dealer.isPalletReturn === true) {
       if (dealer.address) {
-        setValue('fromAddress', dealer.address);
-        setValue('toAddress', dealer.address);
+        setValue('fromAddress', dealer.address, { shouldDirty: true });
+        setValue('toAddress', dealer.address, { shouldDirty: true });
       }
       const dealerLocation = dealer.area || (dealer as any).location || '';
       if (dealerLocation) {
-        setValue('fromLocation', dealerLocation);
-        setValue('toLocation', dealerLocation);
+        setValue('fromLocation', dealerLocation, { shouldDirty: true });
+        setValue('toLocation', dealerLocation, { shouldDirty: true });
       }
     }
-  }, [selectedPalletDealerId, dealers, initialData?.id]);
+  }, [selectedPalletDealerId, dealers, initialData?.id, initialData?.metadata, initialData?.dealerId]);
 
   // Calculation Logic
   useEffect(() => {
