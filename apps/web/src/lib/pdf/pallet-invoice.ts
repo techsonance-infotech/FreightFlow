@@ -48,7 +48,7 @@ export async function generatePalletPDF(pallet: any, company: any) {
   }
 
   // 2. Box 1: Consignor & Dealer Header
-  doc.setDrawColor(200);
+  doc.setDrawColor(0);
   doc.rect(margin, currentY, boxWidth, 48);
   
   doc.setFontSize(10);
@@ -62,13 +62,15 @@ export async function generatePalletPDF(pallet: any, company: any) {
   doc.text('Dealer / Consignee Details', pageWidth / 2 + 2, currentY + 4.5);
   
   currentY += 10;
-  doc.setFontSize(11);
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
   doc.text(company?.name?.toUpperCase() || 'COMPANY NAME', margin + 2, currentY);
   
   let dealerHeader = pallet.dealer?.name?.toUpperCase() || pallet.companyName || '-';
   if (pallet.dealer?.code) {
     dealerHeader += ` (${pallet.dealer.code})`;
   }
+  doc.setFont('helvetica', 'bold');
   doc.text(dealerHeader, pageWidth / 2 + 2, currentY);
   
   doc.setFontSize(8);

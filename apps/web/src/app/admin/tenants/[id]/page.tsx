@@ -17,6 +17,7 @@ import { BillingGovernance } from '@/components/admin/tenants/billing-governance
 import { ApiKeyManager } from '@/components/admin/integrations/api-key-manager';
 import { WebhookManager } from '@/components/admin/integrations/webhook-manager';
 import { SandboxOperations } from '@/components/admin/tenants/sandbox-operations';
+import { ResetOperations } from '@/components/admin/tenants/reset-operations';
 
 export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -133,6 +134,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
           {/* Advanced Multi-Tenancy & Sandboxing */}
           <SandboxOperations tenant={tenant} />
+
+          {/* Ecosystem Hard Reset */}
+          <ResetOperations tenant={tenant} />
 
           {/* Billing & Fiscal Hub */}
           <BillingGovernance tenantId={tenant.id} invoices={tenant.invoices} />

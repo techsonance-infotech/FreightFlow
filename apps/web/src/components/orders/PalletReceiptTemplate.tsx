@@ -24,7 +24,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
   const rowHeight = isHighItemCount ? 'h-5 print:h-4' : 'h-6 print:h-5';
 
   return (
-    <div className={`bg-white border-2 border-slate-900 text-slate-900 font-sans leading-tight min-h-[480px] print:min-h-[48.5vh] print:max-h-[48.5vh] ${containerPadding} print:border-none print:shadow-none print:rounded-none flex flex-col relative overflow-hidden`}>
+    <div className={`bg-white border-4 border-black text-black font-sans leading-tight min-h-[480px] print:min-h-[48.5vh] print:max-h-[48.5vh] ${containerPadding} print:border-none print:shadow-none print:rounded-none flex flex-col relative overflow-hidden`}>
       
       {/* Watermark */}
       {company?.enableWatermark && (
@@ -34,89 +34,89 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
       )}
 
       {/* Header Section */}
-      <div className={`flex justify-between items-start border-b-4 ${headerSpacing} relative z-10`} style={{ borderColor: primaryColor }}>
+      <div className={`flex justify-between items-start border-b-4 ${headerSpacing} relative z-10`} style={{ borderColor: '#000000' }}>
         <div className="flex gap-4 items-center">
-          <div className="h-16 w-16 md:h-20 md:w-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 shadow-inner print:h-12 print:w-12 print:rounded-xl">
+          <div className="h-16 w-16 md:h-20 md:w-20 bg-white rounded-2xl flex items-center justify-center border-2 border-black overflow-hidden shrink-0 shadow-inner print:h-14 print:w-14 print:rounded-xl">
             {company?.logoUrl ? (
-              <img src={company.logoUrl} alt="Company Logo" className="h-full w-full object-contain p-1.5" />
+              <img src={company.logoUrl} alt="Company Logo" className="h-full w-full object-contain p-1" />
             ) : (
-              <Building2 className="h-8 w-8 text-slate-200" />
+              <Building2 className="h-8 w-8 text-black" />
             )}
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter print:text-xl" style={{ color: primaryColor }}>
+            <h1 className="text-3xl md:text-4xl print:text-4xl font-black uppercase tracking-tight text-black" style={{ color: '#000000' }}>
               {company?.name || 'Company Name'}
             </h1>
-            <p className="text-[9px] md:text-xs font-black uppercase tracking-[0.2em] opacity-60 mb-1 italic print:hidden">{company?.printHeader || 'Specialists in Palletized Logistics'}</p>
-            <p className="text-[9px] md:text-[10px] font-bold text-slate-500 max-w-[450px] leading-tight print:hidden">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] mb-1 italic text-black print:text-black">{company?.printHeader || 'Specialists in Palletized Logistics'}</p>
+            <p className="text-[10px] md:text-[11px] font-extrabold text-black max-w-[450px] leading-tight">
               {company?.address || 'Registered Office Address'}
             </p>
-            <div className="flex gap-4 mt-1.5">
-              <p className="text-[10px] font-black uppercase">GSTIN: <span style={{ color: primaryColor }}>{company?.gstin || '-'}</span></p>
+            <div className="flex gap-4 mt-2">
+              <p className="text-[11px] font-black uppercase text-black">GSTIN: <span className="font-black text-black">{company?.gstin || '-'}</span></p>
               {company?.whatsappNo && (
-                <p className="text-[10px] font-black uppercase print:hidden">Support: {company.whatsappNo}</p>
+                <p className="text-[11px] font-black uppercase text-black print:text-black">Support: {company.whatsappNo}</p>
               )}
             </div>
           </div>
         </div>
         
         <div className="text-right flex flex-col items-end">
-          <div className="bg-slate-900 text-white px-3 py-1.5 rounded-lg mb-2 text-[9px] font-black uppercase tracking-widest print:py-1">
+          <div className="bg-black text-white px-3 py-1.5 rounded-lg mb-2 text-[10px] font-black uppercase tracking-widest print:py-1">
             {copyType}
           </div>
-          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Pallet Manifest #</p>
-          <p className="text-xl md:text-2xl font-black tracking-tighter" style={{ color: primaryColor }}>LR-{data.lrNo || '0000'}</p>
-          <p className="text-[9px] font-bold text-slate-500 mt-0.5 uppercase">{formatUtcDate(data.date, 'dd MMMM yyyy')}</p>
+          <p className="text-[10px] font-black uppercase text-black tracking-widest mb-0.5">Pallet Manifest #</p>
+          <p className="text-2xl md:text-3xl font-black tracking-tighter text-black" style={{ color: '#000000' }}>LR-{data.lrNo || '0000'}</p>
+          <p className="text-[10.5px] font-black text-black mt-0.5 uppercase">{formatUtcDate(data.date, 'dd MMMM yyyy')}</p>
         </div>
       </div>
 
       {/* Consignment Mapping */}
       <div className={`grid grid-cols-3 gap-4 ${sectionSpacing} relative z-10`}>
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50 print:p-2.5">
-          <p className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest mb-1">Dealer / Party Info</p>
-          <p className="text-[10px] md:text-xs font-black uppercase text-slate-900 line-clamp-1">{data.dealer?.name || data.companyName}</p>
-          <p className="text-[8.5px] font-bold text-slate-500 mt-0.5 leading-tight line-clamp-2">{data.dealer?.address || 'Address not registered'}</p>
+        <div className="p-3 bg-white rounded-xl border-2 border-black print:p-2.5">
+          <p className="text-[8.5px] font-black uppercase text-black tracking-widest mb-1">Dealer / Party Info</p>
+          <p className="text-[12px] md:text-sm font-black uppercase text-black line-clamp-1">{data.dealer?.name || data.companyName}</p>
+          <p className="text-[10px] font-extrabold text-black mt-1 leading-tight line-clamp-2">{data.dealer?.address || 'Address not registered'}</p>
         </div>
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50 print:p-2.5">
-          <p className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest mb-1">Vehicle / Assets</p>
-          <p className="text-[10px] md:text-xs font-black uppercase text-slate-900">{data.vehicle?.plateNumber || 'TBA'}</p>
-          <p className="text-[8.5px] font-bold text-slate-500 mt-0.5">Ref Code: {data.partyCode || '-'}</p>
+        <div className="p-3 bg-white rounded-xl border-2 border-black print:p-2.5">
+          <p className="text-[8.5px] font-black uppercase text-black tracking-widest mb-1">Vehicle / Assets</p>
+          <p className="text-[12px] md:text-sm font-black uppercase text-black">{data.vehicle?.plateNumber || 'TBA'}</p>
+          <p className="text-[10px] font-black text-black mt-1 uppercase">Ref Code: {data.partyCode || '-'}</p>
         </div>
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50 text-right print:p-2.5">
-          <p className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest mb-1">Movement Type</p>
-          <p className="text-[10px] md:text-xs font-black text-slate-900">DELIVERY CHALLAN ONLY</p>
-          <p className="text-[8.5px] font-bold text-slate-500 mt-0.5 uppercase">SAC: 996511 (Logistics)</p>
+        <div className="p-3 bg-white rounded-xl border-2 border-black text-right print:p-2.5">
+          <p className="text-[8.5px] font-black uppercase text-black tracking-widest mb-1">Movement Type</p>
+          <p className="text-[12px] md:text-sm font-black text-black uppercase">DELIVERY CHALLAN ONLY</p>
+          <p className="text-[10px] font-black text-black mt-1 uppercase">SAC: 996511 (Logistics)</p>
         </div>
       </div>
 
       {/* The Master Pallet Table (Landscape Style) */}
-      <table className={`w-full text-left border-collapse ${sectionSpacing} relative z-10`}>
+      <table className={`w-full text-left border-collapse ${sectionSpacing} relative z-10 border-2 border-black`}>
         <thead>
-          <tr className="bg-slate-900 text-white">
-            <th className="p-2 text-[9px] font-black uppercase tracking-widest border-r border-white/10 w-10 text-center">Sr.</th>
-            <th className="p-2 text-[9px] font-black uppercase tracking-widest border-r border-white/10">Pallet Identifier</th>
-            <th className="p-2 text-[9px] font-black uppercase tracking-widest border-r border-white/10 text-center">Box Qty</th>
-            <th className="p-2 text-[9px] font-black uppercase tracking-widest border-r border-white/10 text-center">Weight (KG)</th>
-            <th className="p-2 text-[9px] font-black uppercase tracking-widest">Consignee Destination</th>
+          <tr className="bg-black text-white">
+            <th className="p-2 text-[10px] font-black uppercase tracking-widest border-r border-white w-10 text-center">Sr.</th>
+            <th className="p-2 text-[10px] font-black uppercase tracking-widest border-r border-white">Pallet Identifier</th>
+            <th className="p-2 text-[10px] font-black uppercase tracking-widest border-r border-white text-center">Box Qty</th>
+            <th className="p-2 text-[10px] font-black uppercase tracking-widest border-r border-white text-center">Weight (KG)</th>
+            <th className="p-2 text-[10px] font-black uppercase tracking-widest">Consignee Destination</th>
           </tr>
         </thead>
-        <tbody className="border-b-2 border-slate-900">
+        <tbody className="border-b-2 border-black">
           {items.map((item: any, i: number) => (
-            <tr key={i} className={`border-b border-slate-100 font-bold ${rowHeight}`}>
-              <td className={`border-r border-slate-100 text-center text-slate-400 ${tableCellPadding}`}>{i + 1}</td>
-              <td className={`border-r border-slate-100 uppercase tracking-wider ${tableCellPadding}`}>{item.palletDisplayId || `PALLET-${i+1}`}</td>
-              <td className={`border-r border-slate-100 text-center ${tableCellPadding}`}>{item.boxQty}</td>
-              <td className={`border-r border-slate-100 text-center ${tableCellPadding}`}>{item.weight}</td>
-              <td className={`uppercase truncate max-w-[120px] ${tableCellPadding}`}>{item.consigneeName || 'Self'}</td>
+            <tr key={i} className={`border-b-2 border-black font-black text-black ${rowHeight}`}>
+              <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{i + 1}</td>
+              <td className={`border-r-2 border-black uppercase tracking-wider text-black font-black ${tableCellPadding}`}>{item.palletDisplayId || `PALLET-${i+1}`}</td>
+              <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{item.boxQty}</td>
+              <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{item.weight}</td>
+              <td className={`uppercase truncate max-w-[120px] text-black font-black ${tableCellPadding}`}>{item.consigneeName || 'Self'}</td>
             </tr>
           ))}
           {/* Pad with empty rows to fill page, reduced height and count for high items count */}
           {Array(Math.max(0, 4 - itemCount)).fill(0).map((_, i) => (
-            <tr key={`empty-${i}`} className={`border-b border-slate-50 ${rowHeight}`}>
-               <td className="border-r border-slate-50"></td>
-               <td className="border-r border-slate-50"></td>
-               <td className="border-r border-slate-50"></td>
-               <td className="border-r border-slate-50"></td>
+            <tr key={`empty-${i}`} className={`border-b-2 border-black ${rowHeight}`}>
+               <td className="border-r-2 border-black"></td>
+               <td className="border-r-2 border-black"></td>
+               <td className="border-r-2 border-black"></td>
+               <td className="border-r-2 border-black"></td>
                <td></td>
             </tr>
           ))}
@@ -131,29 +131,29 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
             <div className="grid grid-cols-2 gap-4 print:hidden">
                {/* Bank Block */}
                {(company?.bankName || company?.accountNo) && (
-                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                    <p className="text-[7.5px] font-black uppercase tracking-widest mb-1" style={{ color: primaryColor }}>Settlement Account</p>
-                    <p className="text-[9px] font-black text-slate-900 uppercase truncate">{company.bankName}</p>
-                    <p className="text-[8px] font-bold text-slate-500 uppercase mt-0.5">A/C: {company.accountNo}</p>
+                 <div className="p-2.5 rounded-xl bg-white border-2 border-black">
+                    <p className="text-[8px] font-black uppercase tracking-widest mb-1 text-black">Settlement Account</p>
+                    <p className="text-[10px] font-black text-black uppercase truncate">{company.bankName}</p>
+                    <p className="text-[9px] font-extrabold text-black uppercase mt-0.5">A/C: {company.accountNo}</p>
                  </div>
                )}
                {/* QR Block */}
                {company?.enableQrCode && (
-                 <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                 <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white border-2 border-black">
                     <div className="h-10 w-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center shrink-0">
-                      <QrCode className="h-6 w-6 text-slate-200" />
+                       <QrCode className="h-6 w-6 text-black" />
                     </div>
                     <div>
-                      <p className="text-[7.5px] font-black uppercase tracking-widest text-slate-900 leading-tight">Smart Manifest</p>
-                      <p className="text-[6.5px] font-bold text-slate-400 uppercase leading-none mt-0.5">Digital Proof</p>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-black leading-tight">Smart Manifest</p>
+                      <p className="text-[7px] font-black text-black uppercase leading-none mt-0.5">Digital Proof</p>
                     </div>
                  </div>
                )}
             </div>
             
             <div className="space-y-1">
-               <p className="text-[8px] font-black uppercase tracking-widest text-slate-300 print:text-slate-400">Challan Terms</p>
-               <p className="text-[7.5px] font-medium text-slate-500 leading-normal italic line-clamp-2">
+               <p className="text-[9px] font-black uppercase tracking-widest text-black print:text-black">Challan Terms</p>
+               <p className="text-[8.5px] font-extrabold text-black leading-normal italic line-clamp-2">
                  {company?.printTerms || 'Standard logistics terms and conditions apply for palletized cargo handling. Subject to jurisdiction.'}
                </p>
             </div>
@@ -162,11 +162,11 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
           {/* Totals & Signature */}
           <div className="col-span-4 space-y-4 text-right print:space-y-3">
             <div className="space-y-0.5">
-               <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Total Net Tonnage</p>
-               <p className="text-xl md:text-2xl font-black tracking-tighter" style={{ color: primaryColor }}>
+               <p className="text-[9px] font-black uppercase tracking-widest text-black">Total Net Tonnage</p>
+               <p className="text-2xl font-black tracking-tighter text-black" style={{ color: '#000000' }}>
                  {Number(data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseFloat(curr.weight) || 0), 0).toFixed(4)).toString()} <span className="text-xs">KG</span>
                </p>
-               <p className="text-[8px] font-black text-slate-400">Total Units: {data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseInt(curr.boxQty) || 0), 0)} Boxes</p>
+               <p className="text-[9px] font-black text-black font-black">Total Units: {data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseInt(curr.boxQty) || 0), 0)} Boxes</p>
             </div>
 
             <div className="space-y-2">
@@ -174,16 +174,16 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
                 {company?.signatureUrl && (
                   <img src={company.signatureUrl} alt="Signature" className="h-8 w-24 object-contain absolute bottom-2 right-0 z-10 print:h-6 print:w-20" />
                 )}
-                <div className="w-full border-t border-slate-900 pt-1 text-[8px] font-black uppercase tracking-widest text-center">For {company?.name || 'Company Name'}</div>
+                <div className="w-full border-t-2 border-black pt-1 text-[9px] font-black uppercase tracking-widest text-center">For {company?.name || 'Company Name'}</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Global Footer Tag */}
-        <div className="pt-3 border-t border-slate-100 flex justify-between items-center opacity-30 print:pt-1.5 print:opacity-40">
-          <p className="text-[7px] font-black uppercase tracking-[0.3em]">FreightFlow Logistics Engine</p>
-          <p className="text-[7px] font-black uppercase">System Generated - {new Date().toISOString()}</p>
+        <div className="pt-3 border-t-2 border-black flex justify-between items-center opacity-60 print:pt-1.5 text-black">
+          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-black">FreightFlow Logistics Engine</p>
+          <p className="text-[8px] font-black uppercase text-black">System Generated - {new Date().toISOString()}</p>
         </div>
       </div>
     </div>
