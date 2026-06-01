@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PalletSchema, type Pallet } from '@freightflow/shared';
@@ -61,6 +61,11 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   const [dealerSearch, setDealerSearch] = useState('');
   const [consigneeSearch, setConsigneeSearch] = useState('');
   const [vehicleSearch, setVehicleSearch] = useState('');
+  const isFirstMountRef = useRef(true);
+
+  useEffect(() => {
+    isFirstMountRef.current = false;
+  }, []);
 
   const { 
     register, 
@@ -218,26 +223,34 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
   }, [watchedDealerId, watchedConsigneeId, initialData?.id]);
 
   useEffect(() => {
-    if (!watchedDealerId || initialData?.id) return;
+    if (!watchedDealerId) return;
+    const isDealerChanged = !initialData?.id || watchedDealerId !== initialData?.dealerId;
+    if (!isDealerChanged) return;
     const dealer = dealers.find(d => d.id === watchedDealerId);
-    if (dealer?.address && !getValues('fromAddress')) {
-      setValue('fromAddress', dealer.address);
+    if (dealer) {
+      if (dealer.address) {
+        setValue('fromAddress', dealer.address, { shouldDirty: true });
+      }
+      if (dealer.location) {
+        setValue('fromLocation', dealer.location, { shouldDirty: true });
+      }
     }
-    if (dealer?.location && !getValues('fromLocation')) {
-      setValue('fromLocation', dealer.location);
-    }
-  }, [watchedDealerId, dealers, initialData?.id]);
+  }, [watchedDealerId, dealers, initialData?.id, initialData?.dealerId]);
 
   useEffect(() => {
-    if (!watchedConsigneeId || initialData?.id) return;
+    if (!watchedConsigneeId) return;
+    const isConsigneeChanged = !initialData?.id || watchedConsigneeId !== initialData?.consigneeId;
+    if (!isConsigneeChanged) return;
     const consignee = consignees.find(c => c.id === watchedConsigneeId);
-    if (consignee?.address && !getValues('toAddress')) {
-      setValue('toAddress', consignee.address);
+    if (consignee) {
+      if (consignee.address) {
+        setValue('toAddress', consignee.address, { shouldDirty: true });
+      }
+      if (consignee.location) {
+        setValue('toLocation', consignee.location, { shouldDirty: true });
+      }
     }
-    if (consignee?.location && !getValues('toLocation')) {
-      setValue('toLocation', consignee.location);
-    }
-  }, [watchedConsigneeId, consignees, initialData?.id]);
+  }, [watchedConsigneeId, consignees, initialData?.id, initialData?.consigneeId]);
 
   // Sync freight value automatically when rate, basis, or items change
   useEffect(() => {

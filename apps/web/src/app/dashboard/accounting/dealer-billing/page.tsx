@@ -99,7 +99,7 @@ export default function DealerBillingPage() {
     const price = consolidatedItem?.unitPrice || 0;
     const rateOn = record.rateOn || 'weight';
     const multiplier = isPallet 
-      ? (record.totalBoxes || 0) 
+      ? (rateOn === 'weight' ? Number(record.totalWeight || 0) : (record.totalBoxes || 0)) 
       : (rateOn === 'box' ? (record.totalBoxes || 0) : Number(record.totalWeight || 0));
 
     return acc + (multiplier * price);
@@ -353,7 +353,7 @@ export default function DealerBillingPage() {
         const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
         const rateOn = record.rateOn || 'weight';
         const multiplier = isPallet 
-          ? (record.totalBoxes || 0) 
+          ? (rateOn === 'weight' ? Number(record.totalWeight || 0) : (record.totalBoxes || 0)) 
           : (rateOn === 'box' ? (record.totalBoxes || 0) : Number(record.totalWeight || 0));
         const amount = multiplier * price;
 
@@ -362,7 +362,7 @@ export default function DealerBillingPage() {
           prodName,
           packType,
           isPallet 
-            ? `${record.totalBoxes} Nos` 
+            ? (rateOn === 'weight' ? `${Number(record.totalWeight).toFixed(2)} KG` : `${record.totalBoxes} Nos`) 
             : (rateOn === 'box' ? `${record.totalBoxes} Boxes` : `${Number(record.totalWeight).toFixed(2)} KG`),
           price.toFixed(2),
           amount.toFixed(2)
@@ -842,12 +842,12 @@ export default function DealerBillingPage() {
                                 <span className="text-[10px] text-slate-400">{record.details?.[0]?.packingType || 'Box'}</span>
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-xs font-black text-slate-900">
+                             <td className="px-6 py-4 text-xs font-black text-slate-900">
                               {(() => {
                                 const isPallet = record.loadType === 'PALLET' || record.loadType === 'PALLET_RETURN';
                                 const rateOn = record.rateOn || 'weight';
                                 return isPallet 
-                                  ? `${record.totalBoxes || 0} Nos` 
+                                  ? (rateOn === 'weight' ? `${record.totalWeight || 0} Kg` : `${record.totalBoxes || 0} Nos`) 
                                   : (rateOn === 'box' ? `${record.totalBoxes || 0} Boxes` : `${record.totalWeight || 0} Kg`);
                               })()}
                             </td>
@@ -861,7 +861,7 @@ export default function DealerBillingPage() {
                                 const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
                                 const rateOn = record.rateOn || 'weight';
                                 const multiplier = isPallet 
-                                  ? (record.totalBoxes || 0) 
+                                  ? (rateOn === 'weight' ? Number(record.totalWeight || 0) : (record.totalBoxes || 0)) 
                                   : (rateOn === 'box' ? (record.totalBoxes || 0) : Number(record.totalWeight || 0));
                                 return (multiplier * price).toFixed(2);
                               })()}
@@ -928,10 +928,10 @@ export default function DealerBillingPage() {
                     <div className="flex flex-wrap gap-12">
                       {records.some(r => r.loadType === 'BOX') && (
                         <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Box Total (Weight)</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Box Total (Weight / Qty)</span>
                           <div className="flex flex-col">
                             <span className="text-xl font-black text-slate-900">
-                              {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => acc + Number(r.totalWeight), 0).toFixed(2)} KG
+                              {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => acc + Number(r.totalWeight), 0).toFixed(2)} KG / {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => acc + (r.totalBoxes || 0), 0)} Boxes
                             </span>
                             <span className="text-base font-black text-blue-600 mt-1">
                               ₹ {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => {
@@ -939,7 +939,9 @@ export default function DealerBillingPage() {
                                 const packType = r.details?.[0]?.packingType || 'Box';
                                 const itemKey = `${prodName}-${packType}`;
                                 const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
-                                return acc + (Number(r.totalWeight) * price);
+                                const rateOn = r.rateOn || 'weight';
+                                const multiplier = rateOn === 'box' ? (r.totalBoxes || 0) : Number(r.totalWeight || 0);
+                                return acc + (multiplier * price);
                               }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                           </div>
@@ -947,10 +949,10 @@ export default function DealerBillingPage() {
                       )}
                       {records.some(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN') && (
                         <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Pallet Total (Qty)</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Pallet Total (Qty / Weight)</span>
                           <div className="flex flex-col">
                             <span className="text-xl font-black text-slate-900">
-                              {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => acc + (r.totalBoxes || 0), 0)} Nos
+                              {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => acc + (r.totalBoxes || 0), 0)} Nos / {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => acc + Number(r.totalWeight), 0).toFixed(2)} KG
                             </span>
                             <span className="text-base font-black text-orange-600 mt-1">
                               ₹ {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => {
@@ -958,7 +960,9 @@ export default function DealerBillingPage() {
                                 const packType = r.loadType === 'PALLET_RETURN' ? 'Pallet Return' : 'Pallet';
                                 const itemKey = `${prodName}-${packType}`;
                                 const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
-                                return acc + ((r.totalBoxes || 0) * price);
+                                const rateOn = r.rateOn || 'weight';
+                                const multiplier = rateOn === 'weight' ? Number(r.totalWeight || 0) : (r.totalBoxes || 0);
+                                return acc + (multiplier * price);
                               }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                           </div>
@@ -1064,23 +1068,39 @@ export default function DealerBillingPage() {
                     <div className="flex flex-wrap gap-12">
                       {consolidatedItems.filter(i => i.loadType === 'BOX').length > 0 && (
                         <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Box Total (Weight)</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Box Total (Weight / Qty)</span>
                           <span className="text-lg font-black text-slate-900 block">
-                            {consolidatedItems.filter(i => i.loadType === 'BOX').reduce((acc, i) => acc + i.totalWeight, 0).toFixed(2)} KG
+                            {consolidatedItems.filter(i => i.loadType === 'BOX').reduce((acc, i) => acc + i.totalWeight, 0).toFixed(2)} KG / {consolidatedItems.filter(i => i.loadType === 'BOX').reduce((acc, i) => acc + i.totalQty, 0)} Boxes
                           </span>
                           <span className="text-sm font-bold text-brand-900 block mt-1">
-                            ₹ {consolidatedItems.filter(i => i.loadType === 'BOX').reduce((acc, i) => acc + (i.totalWeight * i.unitPrice), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            ₹ {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => {
+                              const prodName = r.details?.[0]?.productName || 'Yarn';
+                              const packType = r.details?.[0]?.packingType || 'Box';
+                              const itemKey = `${prodName}-${packType}`;
+                              const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
+                              const rateOn = r.rateOn || 'weight';
+                              const multiplier = rateOn === 'box' ? (r.totalBoxes || 0) : Number(r.totalWeight || 0);
+                              return acc + (multiplier * price);
+                            }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       )}
                       {consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').length > 0 && (
                         <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Pallet Total (Qty)</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Pallet Total (Qty / Weight)</span>
                           <span className="text-lg font-black text-slate-900 block">
-                            {consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').reduce((acc, i) => acc + i.totalQty, 0)} Nos
+                            {consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').reduce((acc, i) => acc + i.totalQty, 0)} Nos / {consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').reduce((acc, i) => acc + i.totalWeight, 0).toFixed(2)} KG
                           </span>
                           <span className="text-sm font-bold text-orange-600 block mt-1">
-                            ₹ {consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').reduce((acc, i) => acc + (i.totalQty * i.unitPrice), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            ₹ {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => {
+                              const prodName = r.details?.[0]?.productName || (r.loadType === 'PALLET_RETURN' ? 'Empty Pallet Return' : 'Pallet');
+                              const packType = r.loadType === 'PALLET_RETURN' ? 'Pallet Return' : 'Pallet';
+                              const itemKey = `${prodName}-${packType}`;
+                              const price = consolidatedItems.find(i => `${i.description}-${i.type}` === itemKey)?.unitPrice || 0;
+                              const rateOn = r.rateOn || 'weight';
+                              const multiplier = rateOn === 'weight' ? Number(r.totalWeight || 0) : (r.totalBoxes || 0);
+                              return acc + (multiplier * price);
+                            }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       )}

@@ -48,7 +48,7 @@ export async function generateLRPrintPDF(order: any, company: any) {
   }
 
   // 2. Box 1: Consignor & Dealer Header
-  doc.setDrawColor(200);
+  doc.setDrawColor(0);
   doc.rect(margin, currentY, boxWidth, 48); // Slightly taller for bank details
   
   doc.setFontSize(10);
@@ -62,8 +62,10 @@ export async function generateLRPrintPDF(order: any, company: any) {
   doc.text('Dealer / Consignee Details', pageWidth / 2 + 2, currentY + 4.5);
   
   currentY += 10;
-  doc.setFontSize(11);
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
   doc.text(company?.name?.toUpperCase() || 'COMPANY NAME', margin + 2, currentY);
+  doc.setFont('helvetica', 'bold');
   doc.text(order.dealer?.name?.toUpperCase() || order.companyName || '-', pageWidth / 2 + 2, currentY);
   
   doc.setFontSize(8);
@@ -277,7 +279,7 @@ export async function generateLRPrintPDF(order: any, company: any) {
   }
 
   // Final Page Border
-  doc.setDrawColor(150);
+  doc.setDrawColor(0);
   doc.rect(2, 2, pageWidth - 4, pageHeight - 4);
 
   return doc;

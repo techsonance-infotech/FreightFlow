@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -68,6 +68,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
   const [dealerSearch, setDealerSearch] = useState('');
   const [consigneeSearch, setConsigneeSearch] = useState('');
   const [vehicleSearch, setVehicleSearch] = useState('');
+  const isFirstMountRef = useRef(true);
+
+  useEffect(() => {
+    isFirstMountRef.current = false;
+  }, []);
 
   const {
     register,
@@ -169,28 +174,35 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
 
     fetchLastRoute();
   }, [watchedDealerId, watchedConsigneeId, isEditing]);
-
   useEffect(() => {
-    if (!watchedDealerId || isEditing) return;
+    if (!watchedDealerId) return;
+    const isDealerChanged = !initialData?.id || watchedDealerId !== initialData?.dealerId;
+    if (!isDealerChanged) return;
     const dealer = masters.dealers.find(d => d.id === watchedDealerId);
-    if (dealer?.address && !getValues('fromAddress')) {
-      setValue('fromAddress', dealer.address);
+    if (dealer) {
+      if (dealer.address) {
+        setValue('fromAddress', dealer.address, { shouldDirty: true });
+      }
+      if (dealer.location) {
+        setValue('fromLocation', dealer.location, { shouldDirty: true });
+      }
     }
-    if (dealer?.location && !getValues('fromLocation')) {
-      setValue('fromLocation', dealer.location);
-    }
-  }, [watchedDealerId, masters.dealers, isEditing]);
+  }, [watchedDealerId, masters.dealers, initialData?.id, initialData?.dealerId]);
 
   useEffect(() => {
-    if (!watchedConsigneeId || isEditing) return;
+    if (!watchedConsigneeId) return;
+    const isConsigneeChanged = !initialData?.id || watchedConsigneeId !== initialData?.consigneeId;
+    if (!isConsigneeChanged) return;
     const consignee = masters.consignees.find(c => c.id === watchedConsigneeId);
-    if (consignee?.address && !getValues('toAddress')) {
-      setValue('toAddress', consignee.address);
+    if (consignee) {
+      if (consignee.address) {
+        setValue('toAddress', consignee.address, { shouldDirty: true });
+      }
+      if (consignee.location) {
+        setValue('toLocation', consignee.location, { shouldDirty: true });
+      }
     }
-    if (consignee?.location && !getValues('toLocation')) {
-      setValue('toLocation', consignee.location);
-    }
-  }, [watchedConsigneeId, masters.consignees, isEditing]);
+  }, [watchedConsigneeId, masters.consignees, initialData?.id, initialData?.consigneeId]);
 
   useEffect(() => {
     if (!isEditing && !initialData?.date) {
