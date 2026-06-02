@@ -35,7 +35,9 @@ export async function GET(req: Request) {
     const fyString = `${fyStart}-${fyEnd.toString().padStart(2, '0')}`;
     const prefix = `LR/${fyString}/`;
 
-    // Get the max sequence for this company and this FY
+    // Get the highest sequence number for this company and this FY.
+    // Sort by lrNo descending — since all records share the same prefix length,
+    // lexicographic order correctly finds the highest sequence number.
     const lastOrder = await prisma.order.findFirst({
       where: {
         companyId: session.user.companyId,
@@ -44,18 +46,19 @@ export async function GET(req: Request) {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        lrNo: 'desc',
       },
       select: {
         lrNo: true,
       },
     });
 
-    let nextSequence = 1001; // Default starting sequence
+    // LR invoices start at 1001 (PL invoices use 5001+) to prevent overlap
+    let nextSequence = 1001;
     if (lastOrder && lastOrder.lrNo) {
       const parts = lastOrder.lrNo.split('/');
       const lastSeq = parseInt(parts[parts.length - 1]);
-      if (!isNaN(lastSeq)) {
+      if (!isNaN(lastSeq) && lastSeq >= 1001) {
         nextSequence = lastSeq + 1;
       }
     }

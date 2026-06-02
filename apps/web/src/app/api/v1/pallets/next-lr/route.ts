@@ -32,7 +32,7 @@ export async function GET(req: Request) {
       fyEnd = currentYear % 100;
     }
     const fyString = `${fyStart}-${fyEnd.toString().padStart(2, '0')}`;
-    const prefix = `PL/${fyString}/`; // Using PL for Pallets
+    const prefix = `PL/${fyString}/`; // Using PL for Pallets (range: 5001+)
 
     const lastRecord = await prisma.orderPallet.findFirst({
       where: {
@@ -41,19 +41,23 @@ export async function GET(req: Request) {
           startsWith: prefix,
         },
       },
+      // Sort by lrNo descending — since all records share the same prefix length,
+      // lexicographic order correctly finds the highest sequence number.
+      // Using date: 'desc' was unreliable when multiple records share the same date.
       orderBy: {
-        date: 'desc', // Use date instead of createdAt to match FY
+        lrNo: 'desc',
       },
       select: {
         lrNo: true,
       },
     });
 
-    let nextSequence = 1001; 
+    // PL invoices start at 5001 (LR invoices use 1001–4999) to prevent overlap
+    let nextSequence = 5001;
     if (lastRecord && lastRecord.lrNo) {
       const parts = lastRecord.lrNo.split('/');
       const lastSeq = parseInt(parts[parts.length - 1]);
-      if (!isNaN(lastSeq)) {
+      if (!isNaN(lastSeq) && lastSeq >= 5001) {
         nextSequence = lastSeq + 1;
       }
     }
