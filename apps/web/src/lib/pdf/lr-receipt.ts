@@ -142,10 +142,14 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
   doc.text(`From: ${order.fromLocation || '-'}`, margin + 95, logY);
   doc.text(`To: ${order.toLocation || '-'}`, pageWidth / 2 + 50, logY);
 
+  // Compute totals for LR receipt footer row
+  const totalBoxCount = (order.details || []).reduce((sum: number, item: any) => sum + (Number(item.boxCount) || 0), 0);
+  const totalWeight = (order.details || []).reduce((sum: number, item: any) => sum + (parseFloat(item.weight) || 0), 0);
+
   // 4. Goods Table (Compact & starts exactly at startY + 55)
   autoTable(doc, {
     startY: startY + 55,
-    head: [['Sr.', 'Good', 'Box', 'Packing', 'Weight', 'DCPI No']],
+    head: [['Sr.', 'Good', 'Box', 'Packing', 'Weight (KG)', 'DCPI No']],
     body: (order.details || []).map((item: any, idx: number) => [
       idx + 1,
       item.productName || 'GOODS',
@@ -154,9 +158,12 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
       item.weight || 0,
       item.dcpiNo || '-'
     ]),
+    foot: [['', 'TOTAL', totalBoxCount, '', `${totalWeight % 1 === 0 ? totalWeight : totalWeight.toFixed(2)} KG`, '']],
+    showFoot: 'lastPage',
     theme: 'grid',
     headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', halign: 'center' },
     bodyStyles: { fontSize: 7, fontStyle: 'bold', cellPadding: 1.5, textColor: [0, 0, 0] },
+    footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', halign: 'center' },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 80 },
