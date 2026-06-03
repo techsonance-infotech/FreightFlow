@@ -14,6 +14,10 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
   const primaryColor = company?.primaryColor || '#3b82f6';
   const items = data.palletDetails || [];
   const itemCount = items.length;
+
+  // Totals computed from item rows
+  const totalBoxQty = items.reduce((sum: number, item: any) => sum + (Number(item.boxQty) || 0), 0);
+  const totalWeight = items.reduce((sum: number, item: any) => sum + (parseFloat(item.weight) || 0), 0);
   const isHighItemCount = itemCount >= 4;
 
   // Dynamic spacing classes
@@ -120,6 +124,19 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
                <td></td>
             </tr>
           ))}
+          {/* TOTAL ROW */}
+          <tr className="bg-black text-white">
+            <td className={`border-r border-white text-center font-black ${tableCellPadding}`} colSpan={2}>
+              TOTAL
+            </td>
+            <td className={`border-r border-white text-center font-black ${tableCellPadding}`}>
+              {totalBoxQty}
+            </td>
+            <td className={`border-r border-white text-center font-black ${tableCellPadding}`}>
+              {totalWeight % 1 === 0 ? totalWeight : totalWeight.toFixed(2)} KG
+            </td>
+            <td className={`font-black ${tableCellPadding}`}>—</td>
+          </tr>
         </tbody>
       </table>
 

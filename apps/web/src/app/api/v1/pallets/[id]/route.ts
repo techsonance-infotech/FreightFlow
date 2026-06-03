@@ -71,6 +71,15 @@ export async function PATCH(
     const sgstAmount = isGst ? (body.sgstAmount || 0) : 0;
     const igstAmount = isGst ? (body.igstAmount || 0) : 0;
 
+    // Verify ownership before mutating — prevents cross-tenant data access
+    const existing = await prisma.orderPallet.findUnique({
+      where: { id },
+      select: { tenantId: true },
+    });
+    if (!existing || existing.tenantId !== user.tenantId) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     // Update order pallet
     const pallet = await prisma.orderPallet.update({
       where: { id },
@@ -144,6 +153,15 @@ export async function DELETE(
     const session = await getSession();
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify ownership before mutating — prevents cross-tenant data access
+    const existing = await prisma.orderPallet.findUnique({
+      where: { id },
+      select: { tenantId: true },
+    });
+    if (!existing || existing.tenantId !== session.user.tenantId) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
     await prisma.orderPallet.update({

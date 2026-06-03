@@ -160,6 +160,10 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   doc.text(`From: ${pallet.fromLocation || '-'}`, margin + 95, logY);
   doc.text(`To: ${pallet.toLocation || pallet.toAddress || '-'}`, pageWidth / 2 + 50, logY);
 
+  // Compute totals for footer row
+  const totalBoxQty = (pallet.palletDetails || []).reduce((sum: number, item: any) => sum + (Number(item.boxQty) || Number(item.qty) || 0), 0);
+  const totalWt = (pallet.palletDetails || []).reduce((sum: number, item: any) => sum + (parseFloat(item.weight as any) || 0), 0);
+
   // 4. Goods Table (Compact & starts exactly at startY + 55)
   autoTable(doc, {
     startY: startY + 55,
@@ -172,9 +176,12 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
       item.boxQty || item.qty || 0,
       item.uom || 'UNIT'
     ]),
+    foot: [['', 'TOTAL', '', `${totalWt % 1 === 0 ? totalWt : totalWt.toFixed(2)} KG`, totalBoxQty, '']],
+    showFoot: 'lastPage',
     theme: 'grid',
     headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', halign: 'center' },
     bodyStyles: { fontSize: 7, fontStyle: 'bold', cellPadding: 1.5, textColor: [0, 0, 0] },
+    footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', halign: 'center' },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 100 },
@@ -194,7 +201,10 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.text('DELIVERY CHALLAN ONLY - NON-COMMERCIAL MOVEMENT', margin + 3, summaryBoxY + 3.8);
-  doc.text(`Total Pallets: ${pallet.palletDetails?.length || 0}`, pageWidth - margin - 3, summaryBoxY + 3.8, { align: 'right' });
+  doc.text(
+    `Total Pallets: ${pallet.palletDetails?.length || 0}  |  Total Qty: ${totalBoxQty}  |  Total Wt: ${totalWt % 1 === 0 ? totalWt : totalWt.toFixed(2)} KG`,
+    pageWidth - margin - 3, summaryBoxY + 3.8, { align: 'right' }
+  );
 
   // 5. Fixed Footer Box (Starts exactly at startY + 97, Height: 35)
   const footerY = startY + 97;
