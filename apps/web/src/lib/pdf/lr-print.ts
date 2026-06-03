@@ -142,10 +142,14 @@ export async function generateLRPrintPDF(order: any, company: any) {
 
   currentY += 41; // Reduced space
 
+  // Compute totals for footer row
+  const totalQty = (order.details || []).reduce((sum: number, item: any) => sum + (Number(item.boxCount) || 0), 0);
+  const totalWt = (order.details || []).reduce((sum: number, item: any) => sum + (parseFloat(item.weight) || 0), 0);
+
   // 5. Main Goods Table
   autoTable(doc, {
     startY: currentY,
-    head: [['Sr.', 'Description Of Goods', 'HSN/SAC', 'DCPI #', 'Packing', 'Qty.', 'Weight']],
+    head: [['Sr.', 'Description Of Goods', 'HSN/SAC', 'DCPI #', 'Packing', 'Qty.', 'Weight (KG)']],
     body: (order.details || []).map((item: any, idx: number) => [
       idx + 1,
       item.productName || 'GOODS',
@@ -155,9 +159,12 @@ export async function generateLRPrintPDF(order: any, company: any) {
       item.boxCount || 0,
       item.weight || 0
     ]),
+    foot: [['', 'TOTAL', '', '', '', totalQty, `${totalWt % 1 === 0 ? totalWt : totalWt.toFixed(2)} KG`]],
+    showFoot: 'lastPage',
     theme: 'grid',
     headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },
     bodyStyles: { fontSize: 7 },
+    footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', halign: 'center' },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
       1: { cellWidth: 90 },
