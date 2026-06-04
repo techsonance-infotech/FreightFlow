@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { cn, formatUtcDate } from '@/lib/utils';
+import { cn, formatUtcDate, formatWeight } from '@/lib/utils';
 import { QrCode, Building2 } from 'lucide-react';
 
 interface PalletReceiptTemplateProps {
@@ -110,7 +110,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
               <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{i + 1}</td>
               <td className={`border-r-2 border-black uppercase tracking-wider text-black font-black ${tableCellPadding}`}>{item.palletDisplayId || `PALLET-${i+1}`}</td>
               <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{item.boxQty}</td>
-              <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{item.weight}</td>
+              <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{formatWeight(item.weight)}</td>
               <td className={`uppercase truncate max-w-[120px] text-black font-black ${tableCellPadding}`}>{item.consigneeName || 'Self'}</td>
             </tr>
           ))}
@@ -133,7 +133,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
               {totalBoxQty}
             </td>
             <td className={`border-r border-white text-center font-black ${tableCellPadding}`}>
-              {totalWeight % 1 === 0 ? totalWeight : totalWeight.toFixed(2)} KG
+              {formatWeight(totalWeight)} KG
             </td>
             <td className={`font-black ${tableCellPadding}`}>—</td>
           </tr>
@@ -181,7 +181,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
             <div className="space-y-0.5">
                <p className="text-[9px] font-black uppercase tracking-widest text-black">Total Net Tonnage</p>
                <p className="text-2xl font-black tracking-tighter text-black" style={{ color: '#000000' }}>
-                 {Number(data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseFloat(curr.weight) || 0), 0).toFixed(4)).toString()} <span className="text-xs">KG</span>
+                 {formatWeight(data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseFloat(curr.weight) || 0), 0))} <span className="text-xs">KG</span>
                </p>
                <p className="text-[9px] font-black text-black font-black">Total Units: {data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseInt(curr.boxQty) || 0), 0)} Boxes</p>
             </div>

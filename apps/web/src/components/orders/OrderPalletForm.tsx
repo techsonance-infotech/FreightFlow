@@ -11,7 +11,7 @@ import {
   ShieldCheck, AlertCircle, TrendingUp, TrendingDown, FileText, Zap,
   Users
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatWeight } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -1146,7 +1146,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                 <div className="space-y-2">
                   <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Weight</p>
                   <p className="text-4xl font-black text-slate-900 tracking-tighter">
-                    {Number(totals.totalWeight.toFixed(4))} <span className="text-sm text-slate-400 font-bold ml-1 uppercase">KG</span>
+                    {formatWeight(totals.totalWeight)} <span className="text-sm text-slate-400 font-bold ml-1 uppercase">KG</span>
                   </p>
                 </div>
                 <div className="space-y-2">

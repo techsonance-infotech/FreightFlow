@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatUtcDate } from '../utils';
+import { formatUtcDate, formatWeight } from '../utils';
 import { numberToWords } from '../utils/number-to-words';
 
 // Helper to convert Image URL to Base64 with dimension metadata
@@ -155,10 +155,10 @@ async function renderCopy(doc: jsPDF, order: any, company: any, copyTitle: strin
       item.productName || 'GOODS',
       item.boxCount || 0,
       item.packingType || '-',
-      item.weight || 0,
+      formatWeight(item.weight),
       item.dcpiNo || '-'
     ]),
-    foot: [['', 'TOTAL', totalBoxCount, '', `${totalWeight % 1 === 0 ? totalWeight : totalWeight.toFixed(2)} KG`, '']],
+    foot: [['', 'TOTAL', totalBoxCount, '', `${formatWeight(totalWeight)} KG`, '']],
     showFoot: 'lastPage',
     theme: 'grid',
     headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', halign: 'center' },
