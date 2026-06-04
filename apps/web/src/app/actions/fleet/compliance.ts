@@ -10,37 +10,36 @@ export async function getComplianceStats() {
 
   const companyId = session.user.companyId;
 
-  const totalDocuments = await prisma.vehicleDocument.count({ where: { companyId } });
-  
-  const today = new Set([new Date().toISOString().split('T')[0]]);
+  const now = new Date();
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-  const expiringSoon = await prisma.vehicleDocument.count({
-    where: {
-      companyId,
-      expiryDate: {
-        lte: thirtyDaysFromNow,
-        gt: new Date()
+  const [totalDocuments, expiringSoon, expired, vehicles] = await Promise.all([
+    prisma.vehicleDocument.count({ where: { companyId } }),
+    prisma.vehicleDocument.count({
+      where: {
+        companyId,
+        expiryDate: {
+          lte: thirtyDaysFromNow,
+          gt: now
+        }
       }
-    }
-  });
-
-  const expired = await prisma.vehicleDocument.count({
-    where: {
-      companyId,
-      expiryDate: {
-        lte: new Date()
+    }),
+    prisma.vehicleDocument.count({
+      where: {
+        companyId,
+        expiryDate: {
+          lte: now
+        }
       }
-    }
-  });
-
-  const vehicles = await prisma.vehicle.findMany({
-    where: { companyId },
-    include: {
-      vehicleDocuments: true
-    }
-  });
+    }),
+    prisma.vehicle.findMany({
+      where: { companyId },
+      include: {
+        vehicleDocuments: true
+      }
+    })
+  ]);
 
   return {
     stats: {

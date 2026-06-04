@@ -29,41 +29,38 @@ export async function getDealerEntryRecords(
       where.dealerId = dealerId;
     }
 
-    let standardRecords: any[] = [];
-    let palletRecords: any[] = [];
-
-    // Fetch Standard Box Records
-    if (loadType === 'BOX' || loadType === 'BOTH') {
-      standardRecords = await prisma.order.findMany({
-        where,
-        include: {
-          dealer: true,
-          consignee: true,
-          details: true,
-        },
-        orderBy: {
-          date: 'asc',
-        },
-      });
-    }
-
-    // Fetch Pallet Records
-    if (loadType === 'PALLET' || loadType === 'BOTH' || loadType === 'EMPTY') {
-      palletRecords = await prisma.orderPallet.findMany({
-        where: {
-          ...where,
-          type: loadType === 'EMPTY' ? 'RETURN' : 'OUTWARD',
-        },
-        include: {
-          dealer: true,
-          consignee: true,
-          palletDetails: true,
-        },
-        orderBy: {
-          date: 'asc',
-        },
-      });
-    }
+    // Fetch Standard and Pallet records in parallel
+    const [standardRecords, palletRecords] = (await Promise.all([
+      (loadType === 'BOX' || loadType === 'BOTH')
+        ? prisma.order.findMany({
+            where,
+            include: {
+              dealer: true,
+              consignee: true,
+              details: true,
+            },
+            orderBy: {
+              date: 'asc',
+            },
+          })
+        : Promise.resolve([]),
+      (loadType === 'PALLET' || loadType === 'BOTH' || loadType === 'EMPTY')
+        ? prisma.orderPallet.findMany({
+            where: {
+              ...where,
+              type: loadType === 'EMPTY' ? 'RETURN' : 'OUTWARD',
+            },
+            include: {
+              dealer: true,
+              consignee: true,
+              palletDetails: true,
+            },
+            orderBy: {
+              date: 'asc',
+            },
+          })
+        : Promise.resolve([])
+    ])) as [any[], any[]];
 
     const unifiedStandard = standardRecords.map(r => ({
       id: r.id,

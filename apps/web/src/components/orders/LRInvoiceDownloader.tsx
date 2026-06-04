@@ -45,6 +45,8 @@ export function LRInvoiceDownloader({ orderId, variant = 'print', label, classNa
     }
   };
 
+  const ariaLabel = label?.trim() ? label : (variant === 'print' ? 'Download LR' : 'Download Receipt');
+
   return (
     <Button
       variant="outline"
@@ -52,6 +54,7 @@ export function LRInvoiceDownloader({ orderId, variant = 'print', label, classNa
       className={className}
       disabled={loading}
       onClick={handleDownload}
+      aria-label={ariaLabel}
     >
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
