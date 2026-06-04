@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatUtcDate } from '../utils';
+import { formatUtcDate, formatWeight } from '../utils';
 import { numberToWords } from '../utils/number-to-words';
 
 // Helper to convert Image URL to Base64 with dimension metadata
@@ -172,11 +172,11 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
       idx + 1,
       `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
       item.code || '-',
-      (parseFloat(item.weight as any) || 0).toFixed(2),
+      formatWeight(item.weight),
       item.boxQty || item.qty || 0,
       item.uom || 'UNIT'
     ]),
-    foot: [['', 'TOTAL', '', `${totalWt % 1 === 0 ? totalWt : totalWt.toFixed(2)} KG`, totalBoxQty, '']],
+    foot: [['', 'TOTAL', '', `${formatWeight(totalWt)} KG`, totalBoxQty, '']],
     showFoot: 'lastPage',
     theme: 'grid',
     headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', halign: 'center' },
@@ -202,7 +202,7 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   doc.setFontSize(7.5);
   doc.text('DELIVERY CHALLAN ONLY - NON-COMMERCIAL MOVEMENT', margin + 3, summaryBoxY + 3.8);
   doc.text(
-    `Total Pallets: ${pallet.palletDetails?.length || 0}  |  Total Qty: ${totalBoxQty}  |  Total Wt: ${totalWt % 1 === 0 ? totalWt : totalWt.toFixed(2)} KG`,
+    `Total Pallets: ${pallet.palletDetails?.length || 0}  |  Total Qty: ${totalBoxQty}  |  Total Wt: ${formatWeight(totalWt)} KG`,
     pageWidth - margin - 3, summaryBoxY + 3.8, { align: 'right' }
   );
 

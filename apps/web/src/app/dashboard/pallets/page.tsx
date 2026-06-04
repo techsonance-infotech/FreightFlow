@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, formatWeight } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { InvoiceModal } from '@/components/accounting/invoice-modal';
 import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
@@ -464,7 +464,7 @@ export default function PalletListPage() {
                                         <tr key={dIdx}>
                                           <td className="px-6 py-4 text-xs font-bold text-slate-700">{detail.palletDisplayId}</td>
                                           <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.qty} <span className="text-[9px] text-slate-400">Nodes</span></td>
-                                          <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.weight || 0} <span className="text-[9px] text-slate-400">KG</span></td>
+                                          <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{formatWeight(detail.weight || 0)} <span className="text-[9px] text-slate-400">KG</span></td>
                                           <td className="px-4 py-4 text-xs font-black text-slate-600 text-right">₹{unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                           <td className="px-4 py-4 text-xs font-black text-blue-600 text-right">₹{rowAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                           <td className="px-6 py-4 text-xs font-bold text-slate-400 text-right">{detail.consigneeName || '-'}</td>
@@ -515,7 +515,7 @@ export default function PalletListPage() {
                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Formula</span>
                                             <span className="text-xs font-black text-blue-600 tracking-tighter">
                                               {pallet.rateOn === 'weight' 
-                                                ? `${Number(Number(pallet.totalWeight || 0).toFixed(4))} KG × ₹${(pallet.rate / 100).toFixed(2)}`
+                                                ? `${formatWeight(pallet.totalWeight)} KG × ₹${(pallet.rate / 100).toFixed(2)}`
                                                 : `${pallet.totalBoxes || 0} Units × ₹${(pallet.rate / 100).toFixed(2)}`
                                               }
                                               {" = "}
@@ -621,7 +621,7 @@ export default function PalletListPage() {
                                     <div>
                                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Load</p>
                                       <p className="text-xl font-black text-slate-900 tracking-tighter">
-                                      {Number(pallet.totalWeight || 0).toFixed(2)} KG
+                                      {formatWeight(pallet.totalWeight)} KG
                                       </p>
                                     </div>
                                     <div className="text-right">

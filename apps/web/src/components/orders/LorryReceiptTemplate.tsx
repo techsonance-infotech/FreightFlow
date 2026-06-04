@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { formatUtcDate } from '@/lib/utils';
+import { formatUtcDate, formatWeight } from '@/lib/utils';
 import { Download, X, Package, Truck, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -66,7 +66,7 @@ export function LorryReceiptTemplate({ order, orders, company, copyType, onClose
           detail.productName,
           detail.packingType,
           detail.boxCount,
-          Number(detail.weight.toFixed(4)).toString()
+          formatWeight(detail.weight)
         ]),
         theme: 'striped',
         headStyles: { fillStyle: [30, 41, 59] }
@@ -194,7 +194,7 @@ export function LorryReceiptTemplate({ order, orders, company, copyType, onClose
                           <td className="py-5 text-sm font-bold text-slate-700 uppercase">{detail.productName}</td>
                           <td className="py-5 text-sm font-medium text-slate-500 text-center">{detail.packingType}</td>
                           <td className="py-5 text-sm font-black text-slate-900 text-center">{detail.boxCount}</td>
-                          <td className="py-5 text-sm font-black text-slate-900 text-right">{Number(detail.weight.toFixed(4)).toString()}</td>
+                          <td className="py-5 text-sm font-black text-slate-900 text-right">{formatWeight(detail.weight)}</td>
                         </tr>
                       ))}
                     </tbody>

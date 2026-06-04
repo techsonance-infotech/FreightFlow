@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, formatWeight } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { InvoiceModal } from '@/components/accounting/invoice-modal';
 
@@ -95,7 +95,7 @@ export default function OrderListPage() {
         'Vehicle': order.vehicle?.plateNumber || order.vehicle?.regNo || 'Self Service',
         'From': order.fromLocation || 'N/A',
         'To': order.toLocation || 'N/A',
-        'Weight': `${Number(Number(order.totalWeight || 0).toFixed(4))} KG`,
+        'Weight': `${formatWeight(order.totalWeight)} KG`,
         'Boxes': order.totalBoxes || 0,
         'Amount': (order.totalAmount || 0) / 100,
         'Status': order.status.toUpperCase().replace('_', ' ')
@@ -547,7 +547,7 @@ export default function OrderListPage() {
                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Formula</span>
                                             <span className="text-xs font-black text-blue-600 tracking-tighter">
                                               {order.rateOn === 'weight' 
-                                                ? `${Number(Number(order.totalWeight || 0).toFixed(4))} KG × ₹${(order.rate / 100).toFixed(2)}`
+                                                ? `${formatWeight(order.totalWeight)} KG × ₹${(order.rate / 100).toFixed(2)}`
                                                 : `${order.totalBoxes || 0} Boxes × ₹${(order.rate / 100).toFixed(2)}`
                                               }
                                               {" = "}
@@ -651,7 +651,7 @@ export default function OrderListPage() {
                                     <div>
                                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tonnage</p>
                                       <p className="text-2xl font-black text-slate-900 tracking-tighter mt-1">
-                                        {Number(Number(order.totalWeight || 0).toFixed(4))} <span className="text-[10px] text-slate-400 uppercase ml-1">KG</span>
+                                        {formatWeight(order.totalWeight)} <span className="text-[10px] text-slate-400 uppercase ml-1">KG</span>
                                       </p>
                                     </div>
                                     <div className="text-right">

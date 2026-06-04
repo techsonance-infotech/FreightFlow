@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatUtcDate } from '../utils';
+import { formatUtcDate, formatWeight } from '../utils';
 
 
 // Helper to convert Image URL to Base64 with dimension metadata
@@ -157,9 +157,9 @@ export async function generateLRPrintPDF(order: any, company: any) {
       item.dcpiNo || '-',
       item.packingType || '-',
       item.boxCount || 0,
-      item.weight || 0
+      formatWeight(item.weight)
     ]),
-    foot: [['', 'TOTAL', '', '', '', totalQty, `${totalWt % 1 === 0 ? totalWt : totalWt.toFixed(2)} KG`]],
+    foot: [['', 'TOTAL', '', '', '', totalQty, `${formatWeight(totalWt)} KG`]],
     showFoot: 'lastPage',
     theme: 'grid',
     headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },

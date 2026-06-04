@@ -68,3 +68,11 @@ export function formatUtcDate(dateInput: any, formatStr: string = 'dd/MM/yyyy'):
   return `${day}/${month}/${year}`;
 }
 
+/** Formats a weight in KG, preserving precision up to 4 decimal places but stripping trailing zeroes */
+export function formatWeight(weight: number | string | null | undefined): string {
+  if (weight === null || weight === undefined || weight === '') return '0';
+  const val = typeof weight === 'string' ? parseFloat(weight) : weight;
+  if (isNaN(val)) return '0';
+  return Number(val.toFixed(4)).toString();
+}
+
