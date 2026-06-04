@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatUtcDate } from '../utils';
+import { formatUtcDate, formatWeight } from '../utils';
 import { numberToWords } from '../utils/number-to-words';
 
 // Helper to convert Image URL to Base64 with dimension metadata
@@ -202,7 +202,7 @@ export async function generatePalletPDF(pallet: any, company: any) {
         idx + 1,
         `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
         item.code || '-',
-        weight.toFixed(2),
+        formatWeight(weight),
         qty,
         item.uom || 'UNIT',
         (unitRate / 100).toFixed(2),

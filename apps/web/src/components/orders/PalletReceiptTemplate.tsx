@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { cn, formatUtcDate } from '@/lib/utils';
+import { cn, formatUtcDate, formatWeight } from '@/lib/utils';
 import { QrCode, Building2 } from 'lucide-react';
 
 interface PalletReceiptTemplateProps {
@@ -110,7 +110,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
               <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{i + 1}</td>
               <td className={`border-r-2 border-black uppercase tracking-wider text-black font-black ${tableCellPadding}`}>{item.palletDisplayId || `PALLET-${i+1}`}</td>
               <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{item.boxQty}</td>
-              <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{item.weight}</td>
+              <td className={`border-r-2 border-black text-center text-black font-black ${tableCellPadding}`}>{formatWeight(item.weight)}</td>
               <td className={`uppercase truncate max-w-[120px] text-black font-black ${tableCellPadding}`}>{item.consigneeName || 'Self'}</td>
             </tr>
           ))}
@@ -133,7 +133,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
               {totalBoxQty}
             </td>
             <td className={`border-r border-white text-center font-black ${tableCellPadding}`}>
-              {totalWeight % 1 === 0 ? totalWeight : totalWeight.toFixed(2)} KG
+              {formatWeight(totalWeight)} KG
             </td>
             <td className={`font-black ${tableCellPadding}`}>—</td>
           </tr>
