@@ -101,8 +101,12 @@ export function TodayPalletWidget() {
                       showIconOnly 
                       className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-black hover:text-black transition-all text-xs"
                     />
-                    <Link href={`/dashboard/pallets/${item.id}`}>
-                      <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all text-xs"><Pencil className="h-3.5 w-3.5" /></button>
+                    <Link 
+                      href={`/dashboard/pallets/${item.id}`}
+                      aria-label={`Edit Pallet ${item.lrNo}`}
+                      className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all text-xs"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
                     </Link>
                   </div>
                 </td>

@@ -69,26 +69,23 @@ export async function getPlatformHealth() {
   const now = new Date();
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-  // 1. DB Integrity - Based on Tenant Synchronization
-  const [totalTenants, activeTenants] = await Promise.all([
+  // Fetch all metrics in parallel
+  const [totalTenants, activeTenants, securityAlerts, recentTraffic] = await Promise.all([
     prisma.tenant.count(),
-    prisma.tenant.count({ where: { status: 'active' } })
+    prisma.tenant.count({ where: { status: 'active' } }),
+    prisma.auditLogPlatform.count({
+      where: { 
+        action: { contains: 'REJECT' },
+        createdAt: { gte: last24h }
+      }
+    }),
+    prisma.auditLogPlatform.count({
+      where: { createdAt: { gte: last24h } }
+    })
   ]);
+
   const dbIntegrity = totalTenants > 0 ? Math.round((activeTenants / totalTenants) * 100) : 100;
-
-  // 2. Security Guard - Based on recent audit activity
-  const securityAlerts = await prisma.auditLogPlatform.count({
-    where: { 
-      action: { contains: 'REJECT' },
-      createdAt: { gte: last24h }
-    }
-  });
   const securityScore = Math.max(0, 100 - (securityAlerts * 5));
-
-  // 3. API Resilience - Simulated based on recent traffic volume vs baseline
-  const recentTraffic = await prisma.auditLogPlatform.count({
-    where: { createdAt: { gte: last24h } }
-  });
   const resilience = recentTraffic > 0 ? 99.9 : 100;
 
   return {

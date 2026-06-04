@@ -7,21 +7,20 @@ export async function getGlobalComplianceMetrics() {
   const now = new Date();
   const thirtyDays = addDays(now, 30);
 
-  // Fetch expiring documents across all tenants
-  const expiringDocs = await prisma.kycDocument.findMany({
-    where: {
-      verifiedAt: { not: null },
-      status: 'verified',
-      // In a real app, kycDocument would have an expiryDate field
-      // For now we'll simulate based on createdAt
-      createdAt: { lte: addDays(now, -335) } // Simulating 1-year docs expiring soon
-    },
-    include: { tenant: true },
-    orderBy: { createdAt: 'asc' },
-    take: 10
-  });
-
-  const [totalDocs, pendingKyc] = await Promise.all([
+  // Fetch expiring documents and metrics across all tenants in parallel
+  const [expiringDocs, totalDocs, pendingKyc] = await Promise.all([
+    prisma.kycDocument.findMany({
+      where: {
+        verifiedAt: { not: null },
+        status: 'verified',
+        // In a real app, kycDocument would have an expiryDate field
+        // For now we'll simulate based on createdAt
+        createdAt: { lte: addDays(now, -335) } // Simulating 1-year docs expiring soon
+      },
+      include: { tenant: true },
+      orderBy: { createdAt: 'asc' },
+      take: 10
+    }),
     prisma.kycDocument.count(),
     prisma.tenant.count({ where: { kycStatus: 'pending' } })
   ]);

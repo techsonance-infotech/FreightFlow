@@ -117,10 +117,12 @@ export function TodayLRWidget() {
                   </td>
                   <td className="pr-6 py-4" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <Link href={`/dashboard/orders/${item.id}`}>
-                        <button className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all">
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
+                      <Link 
+                        href={`/dashboard/orders/${item.id}`}
+                        aria-label={`Edit Order ${item.lrNo}`}
+                        className="h-7 w-7 flex items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
                       </Link>
                     </div>
                   </td>
