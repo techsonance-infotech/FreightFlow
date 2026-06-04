@@ -437,7 +437,7 @@ export default function DealerEntryReportPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: 'Total Entries', value: records.length.toString(), icon: <ClipboardList className="h-6 w-6 text-blue-600" />, color: 'bg-blue-50' },
-          { label: 'Total Weight (KG)', value: records.reduce((a, b) => a + b.weight, 0).toLocaleString(undefined, { maximumFractionDigits: 4 }), icon: <Truck className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
+          { label: 'Total Weight (KG)', value: formatWeight(records.reduce((a, b) => a + b.weight, 0)), icon: <Truck className="h-6 w-6 text-amber-600" />, color: 'bg-amber-50' },
           { label: 'Total Box Qty', value: records.reduce((a, b) => a + b.boxes, 0).toLocaleString(), icon: <Package className="h-6 w-6 text-emerald-600" />, color: 'bg-emerald-50' },
           { label: 'Revenue Potential', value: `₹${(records.reduce((a, b) => a + b.amount, 0) / 1000).toFixed(1)}k`, icon: <IndianRupee className="h-6 w-6 text-purple-600" />, color: 'bg-purple-50' },
         ].map((stat, i) => (

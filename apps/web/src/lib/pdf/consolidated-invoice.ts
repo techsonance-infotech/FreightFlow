@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatUtcDate } from '../utils';
+import { formatUtcDate, formatWeight } from '../utils';
 
 export async function generateConsolidatedInvoicePDF(data: any, company: any) {
   const doc = new jsPDF('p', 'mm', 'a4');
@@ -82,7 +82,7 @@ export async function generateConsolidatedInvoicePDF(data: any, company: any) {
   doc.setFontSize(12);
   doc.setTextColor(15, 23, 42);
   doc.text(data.summary.totalOrders.toString(), margin + 10, currentY + 18);
-  doc.text(`${data.summary.totalWeight} KG`, margin + cardWidth + 10, currentY + 18);
+  doc.text(`${formatWeight(data.summary.totalWeight)} KG`, margin + cardWidth + 10, currentY + 18);
   doc.text(formatCurrency(data.summary.totalValue), margin + (cardWidth * 2) + 10, currentY + 18);
 
   currentY += 35;
@@ -96,7 +96,7 @@ export async function generateConsolidatedInvoicePDF(data: any, company: any) {
       item.orderNo,
       item.type,
       item.qty,
-      `${item.weight} KG`,
+      `${formatWeight(item.weight)} KG`,
       formatCurrency(item.amount)
     ]),
     theme: 'grid',

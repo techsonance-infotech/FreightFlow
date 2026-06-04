@@ -16,7 +16,7 @@ import Link from 'next/link';
 import { FreightInvoiceModal } from '@/components/accounting/freight-invoice-modal';
 import { VALID_STATUS_TRANSITIONS } from '@freightflow/shared';
 import { generateTripPDF } from '@/lib/pdf/trip-pdf';
-import { cn } from '@/lib/utils';
+import { cn, formatWeight } from '@/lib/utils';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -499,7 +499,7 @@ export default function TripDetailPage() {
                             <div className="text-xs font-bold text-slate-700 uppercase">{order.dealer?.name}</div>
                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">to {order.consignee?.name}</div>
                           </td>
-                          <td className="px-8 py-5 text-right font-black text-slate-900">{order.totalWeight} <span className="text-[9px] text-slate-400 uppercase">KG</span></td>
+                          <td className="px-8 py-5 text-right font-black text-slate-900">{formatWeight(order.totalWeight)} <span className="text-[9px] text-slate-400 uppercase">KG</span></td>
                           <td className="px-8 py-5 text-right font-black text-blue-600">{formatCurrency(order.totalAmount)}</td>
                           <td className="px-8 py-5 text-center">
                             <span className={cn(
@@ -566,7 +566,7 @@ export default function TripDetailPage() {
                                             <tr key={dIdx}>
                                               <td className="px-6 py-4 text-xs font-bold text-slate-700">{detail.productName}</td>
                                               <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.boxCount}</td>
-                                              <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{detail.weight}</td>
+                                              <td className="px-4 py-4 text-xs font-black text-slate-900 text-center">{formatWeight(detail.weight)}</td>
                                               <td className="px-4 py-4 text-xs font-black text-slate-600 text-right">₹{unitPrice.toLocaleString()}</td>
                                               <td className="px-4 py-4 text-xs font-black text-blue-600 text-right">₹{rowAmount.toLocaleString()}</td>
                                             </tr>
@@ -593,7 +593,7 @@ export default function TripDetailPage() {
                                     <div className="pt-4 border-t border-slate-50 grid grid-cols-2 gap-4">
                                       <div>
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tonnage</p>
-                                        <p className="text-lg font-black text-slate-900 tracking-tighter mt-1">{Number(Number(order.totalWeight || 0).toFixed(4))} <span className="text-[9px] text-slate-400 uppercase ml-1">KG</span></p>
+                                        <p className="text-lg font-black text-slate-900 tracking-tighter mt-1">{formatWeight(order.totalWeight)} <span className="text-[9px] text-slate-400 uppercase ml-1">KG</span></p>
                                       </div>
                                       <div className="text-right">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Units</p>
@@ -650,7 +650,7 @@ export default function TripDetailPage() {
                             <div className="text-xs font-bold text-slate-700 uppercase">{pallet.companyName}</div>
                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">to {pallet.consignee?.name || 'Multiple'}</div>
                           </td>
-                          <td className="px-8 py-5 text-right font-black text-slate-900">{pallet.totalWeight} <span className="text-[9px] text-slate-400 uppercase">KG</span></td>
+                          <td className="px-8 py-5 text-right font-black text-slate-900">{formatWeight(pallet.totalWeight)} <span className="text-[9px] text-slate-400 uppercase">KG</span></td>
                           <td className="px-8 py-5 text-right font-black text-blue-600">{formatCurrency(pallet.totalAmount)}</td>
                           <td className="px-8 py-5 text-center">
                             <span className={cn(

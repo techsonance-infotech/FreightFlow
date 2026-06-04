@@ -181,7 +181,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
             <div className="space-y-0.5">
                <p className="text-[9px] font-black uppercase tracking-widest text-black">Total Net Tonnage</p>
                <p className="text-2xl font-black tracking-tighter text-black" style={{ color: '#000000' }}>
-                 {Number(data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseFloat(curr.weight) || 0), 0).toFixed(4)).toString()} <span className="text-xs">KG</span>
+                 {formatWeight(data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseFloat(curr.weight) || 0), 0))} <span className="text-xs">KG</span>
                </p>
                <p className="text-[9px] font-black text-black font-black">Total Units: {data.palletDetails?.reduce((acc: number, curr: any) => acc + (parseInt(curr.boxQty) || 0), 0)} Boxes</p>
             </div>
