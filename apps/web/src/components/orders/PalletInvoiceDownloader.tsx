@@ -54,13 +54,16 @@ export function PalletInvoiceDownloader({
     }
   };
 
+  const buttonLabel = variant === 'invoice' ? 'Download PDF Invoice' : 'Download Pallet Challan';
+
   if (showIconOnly) {
     return (
       <button 
         onClick={handleDownload}
         disabled={loading}
         className={className}
-        title={variant === 'invoice' ? 'Download PDF Invoice' : 'Download Pallet Challan'}
+        title={buttonLabel}
+        aria-label={buttonLabel}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
       </button>
@@ -74,6 +77,7 @@ export function PalletInvoiceDownloader({
       onClick={handleDownload} 
       disabled={loading}
       className={className}
+      aria-label={label || buttonLabel}
     >
       {loading ? (
         <>

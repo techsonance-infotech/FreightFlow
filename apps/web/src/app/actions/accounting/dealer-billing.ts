@@ -70,32 +70,30 @@ export async function getDealerRecords(
       },
     };
 
-    let standardRecords: any[] = [];
-    let palletRecords: any[] = [];
-
-    if (loadType === 'BOX' || loadType === 'BOTH') {
-      standardRecords = await prisma.order.findMany({
-        ...query,
-        include: {
-          ...query.include,
-          details: true,
-        }
-      });
-    }
-
-    if (loadType === 'PALLET' || loadType === 'BOTH' || loadType === 'PALLET_RETURN') {
-      palletRecords = await prisma.orderPallet.findMany({
-        ...query,
-        where: {
-          ...query.where,
-          type: loadType === 'PALLET_RETURN' ? 'RETURN' : 'OUTWARD'
-        },
-        include: {
-          ...query.include,
-          palletDetails: true,
-        }
-      });
-    }
+    const [standardRecords, palletRecords] = (await Promise.all([
+      (loadType === 'BOX' || loadType === 'BOTH')
+        ? prisma.order.findMany({
+            ...query,
+            include: {
+              ...query.include,
+              details: true,
+            }
+          })
+        : Promise.resolve([]),
+      (loadType === 'PALLET' || loadType === 'BOTH' || loadType === 'PALLET_RETURN')
+        ? prisma.orderPallet.findMany({
+            ...query,
+            where: {
+              ...query.where,
+              type: loadType === 'PALLET_RETURN' ? 'RETURN' : 'OUTWARD'
+            },
+            include: {
+              ...query.include,
+              palletDetails: true,
+            }
+          })
+        : Promise.resolve([])
+    ])) as [any[], any[]];
 
     const unifiedStandard = standardRecords.map(r => ({
       ...r,
@@ -199,31 +197,36 @@ export async function getNextInvoiceNumber() {
     const today = new Date();
     const month = today.getMonth();
     const currentYear = today.getFullYear();
-    let fyStart = month >= 3 ? currentYear : currentYear - 1;
-    let fyEnd = fyStart + 1;
+    const fyStart = month >= 3 ? currentYear : currentYear - 1;
+    const fyEnd = fyStart + 1;
     const fyString = `${fyStart.toString().slice(-2)}-${fyEnd.toString().slice(-2)}`;
     const prefix = `INV/${fyString}/`;
 
-    // 1. Search in standard Orders (gstBillNo)
-    const lastOrder = await prisma.order.findFirst({
-      where: {
-        companyId,
-        gstBillNo: { startsWith: prefix }
-      },
-      orderBy: { gstBillNo: 'desc' },
-      select: { gstBillNo: true }
-    });
+    const startOfFy = new Date(fyStart, 3, 1);
 
-    // 2. Fetch all Pallets containing metadata with invoice info to check sequence
-    const palletRecords = await prisma.orderPallet.findMany({
-      where: {
-        companyId,
-        metadata: {
-          not: Prisma.DbNull
-        }
-      },
-      select: { metadata: true }
-    });
+    // Parallel execution and date-range filtering for pallets
+    const [lastOrder, palletRecords] = await Promise.all([
+      prisma.order.findFirst({
+        where: {
+          companyId,
+          gstBillNo: { startsWith: prefix }
+        },
+        orderBy: { gstBillNo: 'desc' },
+        select: { gstBillNo: true }
+      }),
+      prisma.orderPallet.findMany({
+        where: {
+          companyId,
+          date: {
+            gte: startOfFy
+          },
+          metadata: {
+            not: Prisma.DbNull
+          }
+        },
+        select: { metadata: true }
+      })
+    ]);
 
     let maxSeq = 0;
 

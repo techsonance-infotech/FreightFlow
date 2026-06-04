@@ -23,19 +23,20 @@ export class ReportEngine {
       };
     }
 
-    const lines = await prisma.journalLine.groupBy({
-      by: ['accountId'],
-      where,
-      _sum: {
-        debit: true,
-        credit: true,
-      },
-    });
-
-    const accounts = await prisma.chartOfAccount.findMany({
-      where: { tenantId, companyId },
-      select: { id: true, name: true, code: true, type: true },
-    });
+    const [lines, accounts] = await Promise.all([
+      prisma.journalLine.groupBy({
+        by: ['accountId'],
+        where,
+        _sum: {
+          debit: true,
+          credit: true,
+        },
+      }),
+      prisma.chartOfAccount.findMany({
+        where: { tenantId, companyId },
+        select: { id: true, name: true, code: true, type: true },
+      })
+    ]);
 
     const report = accounts.map(acc => {
       const summary = lines.find(l => l.accountId === acc.id);
@@ -498,23 +499,21 @@ export class ReportEngine {
     });
 
     const report = await Promise.all(vehicles.map(async (v) => {
-      // 1. Freight Earned
-      const revenue = await prisma.order.aggregate({
-        where: { vehicleId: v.id, date: { gte: startDate, lte: endDate } },
-        _sum: { totalAmount: true }
-      });
-
-      // 2. Fuel Expenses
-      const fuel = await prisma.fuelEntry.aggregate({
-        where: { vehicleId: v.id, date: { gte: startDate, lte: endDate } },
-        _sum: { amount: true }
-      });
-
-      // 3. Maintenance Expenses
-      const maintenance = await prisma.maintenanceJob.aggregate({
-        where: { vehicleId: v.id, completedAt: { gte: startDate, lte: endDate } },
-        _sum: { actualCost: true }
-      });
+      // Fetch revenue, fuel entries, and maintenance costs in parallel
+      const [revenue, fuel, maintenance] = await Promise.all([
+        prisma.order.aggregate({
+          where: { vehicleId: v.id, date: { gte: startDate, lte: endDate } },
+          _sum: { totalAmount: true }
+        }),
+        prisma.fuelEntry.aggregate({
+          where: { vehicleId: v.id, date: { gte: startDate, lte: endDate } },
+          _sum: { amount: true }
+        }),
+        prisma.maintenanceJob.aggregate({
+          where: { vehicleId: v.id, completedAt: { gte: startDate, lte: endDate } },
+          _sum: { actualCost: true }
+        })
+      ]);
 
       const rev = revenue._sum.totalAmount || 0;
       const exp = (fuel._sum.amount || 0) + (maintenance._sum.actualCost || 0);
