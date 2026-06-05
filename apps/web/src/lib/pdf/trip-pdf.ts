@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatUtcDate } from '../utils';
+import { formatUtcDate, formatWeight } from '../utils';
 
 // Helper to convert Image URL to Base64 with dimension metadata
 async function getBase64Image(imgUrl: string): Promise<{ data: string; width: number; height: number } | null> {
@@ -126,7 +126,7 @@ export async function generateTripPDF(trip: any, company: any) {
       `#${o.lrNo}`,
       formatUtcDate(o.date, 'dd MMM yyyy'),
       o.dealer?.name || 'N/A',
-      `${o.totalWeight} KG`,
+      `${formatWeight(o.totalWeight)} KG`,
       `INR ${(o.totalAmount / 100).toLocaleString()}`
     ]),
     theme: 'striped',

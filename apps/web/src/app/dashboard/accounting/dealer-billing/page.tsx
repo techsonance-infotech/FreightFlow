@@ -16,7 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, formatWeight } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -391,7 +391,7 @@ export default function DealerBillingPage() {
         (index + 1).toString(),
         item.description,
         item.type,
-        item.type === 'Pallet' ? `${item.totalQty} Nos` : `${item.totalWeight.toFixed(2)} KG`,
+        item.type === 'Pallet' ? `${item.totalQty} Nos` : `${formatWeight(item.totalWeight)} KG`,
         item.unitPrice.toFixed(2),
         (item.type === 'Pallet' ? item.totalQty * item.unitPrice : item.totalWeight * item.unitPrice).toFixed(2)
       ]);
@@ -931,7 +931,7 @@ export default function DealerBillingPage() {
                           <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Box Total (Weight / Qty)</span>
                           <div className="flex flex-col">
                             <span className="text-xl font-black text-slate-900">
-                              {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => acc + Number(r.totalWeight), 0).toFixed(2)} KG / {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => acc + (r.totalBoxes || 0), 0)} Boxes
+                              {formatWeight(records.filter(r => r.loadType === 'BOX').reduce((acc, r) => acc + Number(r.totalWeight), 0))} KG / {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => acc + (r.totalBoxes || 0), 0)} Boxes
                             </span>
                             <span className="text-base font-black text-blue-600 mt-1">
                               ₹ {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => {
@@ -952,7 +952,7 @@ export default function DealerBillingPage() {
                           <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Pallet Total (Qty / Weight)</span>
                           <div className="flex flex-col">
                             <span className="text-xl font-black text-slate-900">
-                              {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => acc + (r.totalBoxes || 0), 0)} Nos / {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => acc + Number(r.totalWeight), 0).toFixed(2)} KG
+                              {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => acc + (r.totalBoxes || 0), 0)} Nos / {formatWeight(records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => acc + Number(r.totalWeight), 0))} KG
                             </span>
                             <span className="text-base font-black text-orange-600 mt-1">
                               ₹ {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => {
@@ -1049,7 +1049,7 @@ export default function DealerBillingPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                           <span className="text-[9px] font-black text-slate-400 uppercase block">Total Weight</span>
-                          <span className="text-sm font-black text-slate-900">{item.totalWeight.toFixed(2)} KG</span>
+                          <span className="text-sm font-black text-slate-900">{formatWeight(item.totalWeight)} KG</span>
                         </div>
                         <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                           <span className="text-[9px] font-black text-slate-400 uppercase block">Total Quantity</span>
@@ -1070,7 +1070,7 @@ export default function DealerBillingPage() {
                         <div>
                           <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Box Total (Weight / Qty)</span>
                           <span className="text-lg font-black text-slate-900 block">
-                            {consolidatedItems.filter(i => i.loadType === 'BOX').reduce((acc, i) => acc + i.totalWeight, 0).toFixed(2)} KG / {consolidatedItems.filter(i => i.loadType === 'BOX').reduce((acc, i) => acc + i.totalQty, 0)} Boxes
+                            {formatWeight(consolidatedItems.filter(i => i.loadType === 'BOX').reduce((acc, i) => acc + i.totalWeight, 0))} KG / {consolidatedItems.filter(i => i.loadType === 'BOX').reduce((acc, i) => acc + i.totalQty, 0)} Boxes
                           </span>
                           <span className="text-sm font-bold text-brand-900 block mt-1">
                             ₹ {records.filter(r => r.loadType === 'BOX').reduce((acc, r) => {
@@ -1089,7 +1089,7 @@ export default function DealerBillingPage() {
                         <div>
                           <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Pallet Total (Qty / Weight)</span>
                           <span className="text-lg font-black text-slate-900 block">
-                            {consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').reduce((acc, i) => acc + i.totalQty, 0)} Nos / {consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').reduce((acc, i) => acc + i.totalWeight, 0).toFixed(2)} KG
+                            {consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').reduce((acc, i) => acc + i.totalQty, 0)} Nos / {formatWeight(consolidatedItems.filter(i => i.loadType === 'PALLET' || i.loadType === 'PALLET_RETURN').reduce((acc, i) => acc + i.totalWeight, 0))} KG
                           </span>
                           <span className="text-sm font-bold text-orange-600 block mt-1">
                             ₹ {records.filter(r => r.loadType === 'PALLET' || r.loadType === 'PALLET_RETURN').reduce((acc, r) => {

@@ -1068,7 +1068,7 @@ model Order {
   sgstPct      Decimal   @default(0) @map("sgst_pct") @db.Decimal(5, 2)
   igstPct      Decimal   @default(0) @map("igst_pct") @db.Decimal(5, 2)
   gstType      String    @default("intra") @map("gst_type") @db.VarChar(20)
-  totalWeight  Decimal   @default(0) @map("total_weight") @db.Decimal(10, 2)
+  totalWeight  Decimal   @default(0) @map("total_weight") @db.Decimal(10, 3)
   totalBoxes   Int       @default(0) @map("total_boxes")
   subtotal     Int       @default(0) // paise
   cgstAmount   Int       @default(0) @map("cgst_amount") // paise
@@ -1112,7 +1112,7 @@ model OrderDetail {
   productName String? @map("product_name") @db.VarChar(255)
   boxCount    Int     @default(0) @map("box_count")
   packingType String? @map("packing_type") @db.VarChar(50)
-  weight      Decimal @default(0) @db.Decimal(10, 2)
+  weight      Decimal @default(0) @db.Decimal(10, 3)
   dcpiNo      String? @map("dcpi_no") @db.VarChar(50)
   boxDetails  Json?   @map("box_details") @db.JsonB
   sortOrder   Int     @default(0) @map("sort_order")
@@ -1152,7 +1152,7 @@ model OrderPallet {
   igstPct Decimal @default(0) @map("igst_pct") @db.Decimal(5, 2)
   gstType String  @default("intra") @map("gst_type") @db.VarChar(20)
 
-  totalWeight Decimal @default(0) @map("total_weight") @db.Decimal(10, 2)
+  totalWeight Decimal @default(0) @map("total_weight") @db.Decimal(10, 3)
   totalBoxes  Int     @default(0) @map("total_boxes")
   subtotal    Int     @default(0) // paise
   cgstAmount  Int     @default(0) @map("cgst_amount") // paise
@@ -1190,7 +1190,7 @@ model PalletDetail {
   palletDisplayId String? @map("pallet_display_id") @db.VarChar(50)
   code            String? @db.VarChar(100)
   boxQty          Int     @default(0) @map("box_qty")
-  weight          Decimal @default(0) @db.Decimal(10, 2)
+  weight          Decimal @default(0) @db.Decimal(10, 3)
   consigneeName   String? @map("consignee_name") @db.VarChar(255)
   qty             Int     @default(0)
   rate            Int     @default(0) // paise
