@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -198,7 +198,7 @@ export default function GSTR3BPage() {
                         <TableCell className="px-8 py-5">
                           <div>
                             <p className="text-xs font-black text-neutral-900 tracking-tight">{d.partyName}</p>
-                            <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{d.voucherNo} • {format(new Date(d.date), 'dd MMM')}</p>
+                            <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{d.voucherNo} • {formatUtcDate(d.date, 'dd MMM')}</p>
                           </div>
                         </TableCell>
                         <TableCell className="px-8 py-5 text-right font-black text-neutral-700 text-xs">

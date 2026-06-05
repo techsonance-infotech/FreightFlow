@@ -12,7 +12,7 @@ import {
   Box, MapPin, Hash, Phone, CreditCard, ShieldCheck,
   ChevronRight, AlertCircle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, fetchOnlineDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 interface PalletFormProps {
@@ -41,7 +41,7 @@ export const PalletForm: React.FC<PalletFormProps> = ({ initialData, isEditing }
   } = useForm<any>({
     resolver: zodResolver(PalletSchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: initialData?.date || '',
       palletDetails: [{ qty: 0, rate: 0 }],
       consigneeDetails: [{ consigneeName: '', qty: 0, rate: 0 }],
       gstPct: 18,
@@ -90,14 +90,11 @@ export const PalletForm: React.FC<PalletFormProps> = ({ initialData, isEditing }
 
   useEffect(() => {
     if (!isEditing && !initialData?.date) {
-      fetch('/api/v1/system-date')
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.date) {
-            setValue('date', data.date);
-          }
-        })
-        .catch((err) => console.error('Failed to load server date:', err));
+      fetchOnlineDate().then((onlineDate) => {
+        if (onlineDate) {
+          setValue('date', onlineDate);
+        }
+      });
     }
   }, [isEditing, initialData, setValue]);
 

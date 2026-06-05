@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn, formatWeight } from '@/lib/utils';
+import { cn, formatWeight, formatUtcDate } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { InvoiceModal } from '@/components/accounting/invoice-modal';
 import { PalletInvoiceDownloader } from '@/components/orders/PalletInvoiceDownloader';
@@ -83,7 +83,7 @@ export default function PalletReturnListPage() {
   const handleExport = (exportFormat: 'csv' | 'excel' | 'pdf') => {
     const exportData = pallets.map(p => ({
       'Return ID': `#${p.lrNo}`,
-      'Date': format(new Date(p.date), 'dd MMM yyyy'),
+      'Date': formatUtcDate(p.date, 'dd MMM yyyy'),
       'Dealer': p.dealer?.name || p.companyName,
       'Vehicle': p.vehicle?.regNo || 'N/A',
       'Units': (p.palletDetails?.length > 0 ? p.palletDetails : (p.consigneeDetails || [])).reduce((acc: number, d: any) => acc + d.qty, 0),
@@ -314,7 +314,7 @@ export default function PalletReturnListPage() {
                           <div>
                             <div className="font-black text-slate-900 tracking-tighter uppercase text-xs">#{pallet.lrNo}</div>
                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                              {format(new Date(pallet.date), 'dd MMM yyyy')}
+                              {formatUtcDate(pallet.date, 'dd MMM yyyy')}
                             </div>
                           </div>
                         </div>

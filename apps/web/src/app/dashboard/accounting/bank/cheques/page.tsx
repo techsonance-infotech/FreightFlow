@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { Modal } from '@/components/ui/modal';
 
 export default function ChequeManagementPage() {
@@ -216,7 +216,7 @@ export default function ChequeManagementPage() {
                               {leaf.journalEntry ? (
                                  <div>
                                     <p className="text-[10px] font-black text-blue-600 uppercase">{leaf.journalEntry.voucherNo}</p>
-                                    <p className="text-[9px] font-bold text-slate-400">{format(new Date(leaf.journalEntry.date), 'dd MMM yyyy')}</p>
+                                    <p className="text-[9px] font-bold text-slate-400">{formatUtcDate(leaf.journalEntry.date, 'dd MMM yyyy')}</p>
                                  </div>
                               ) : '—'}
                            </td>

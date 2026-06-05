@@ -10,7 +10,7 @@ import {
   Layers, Package, FileCheck, Globe, Info, ShieldCheck,
   Search, Calculator, Activity
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { 
   StatCard, ReportSectionHeader, ReportContainer, 
   Pagination, EmptyReportState, LoadingState 
@@ -257,7 +257,7 @@ export default function GSTR1Page() {
                               </div>
                               <div>
                                 <p className="text-sm font-black text-neutral-900 tracking-tight">{inv.invoiceNo}</p>
-                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{format(new Date(inv.date), 'dd MMM yyyy')}</p>
+                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{formatUtcDate(inv.date, 'dd MMM yyyy')}</p>
                               </div>
                             </div>
                           </TableCell>
