@@ -7,6 +7,7 @@ import { Download, ArrowLeft, Loader2, Building2, User, MapPin, Truck } from 'lu
 import { generateLRPrintPDF } from '@/lib/pdf/lr-print';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { formatWeight } from '@/lib/utils';
 
 interface LorryReceiptPrintTemplateProps {
   order: any;
@@ -169,7 +170,7 @@ export function LorryReceiptPrintTemplate({ order, company, copyType }: LorryRec
             </td>
             <td className={`border-r border-white text-center font-black ${tableCellPadding}`}>—</td>
             <td className={`text-right font-black ${tableCellPadding}`}>
-              {totalWeight % 1 === 0 ? totalWeight : totalWeight.toFixed(2)} KG
+              {formatWeight(totalWeight)} KG
             </td>
           </tr>
         </tbody>
