@@ -7,7 +7,7 @@ import { Download, ArrowLeft, Loader2, Building2, User, MapPin, Truck } from 'lu
 import { generateLRPrintPDF } from '@/lib/pdf/lr-print';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { formatWeight } from '@/lib/utils';
+import { formatWeight, formatUtcDate } from '@/lib/utils';
 
 interface LorryReceiptPrintTemplateProps {
   order: any;
@@ -84,7 +84,7 @@ export function LorryReceiptPrintTemplate({ order, company, copyType }: LorryRec
           </div>
           <p className="text-[10px] font-black uppercase text-black tracking-widest mb-0.5">Lorry Receipt #</p>
           <p className="text-2xl md:text-3xl font-black tracking-tighter text-black" style={{ color: '#000000' }}>LR-{order.lrNo || '0000'}</p>
-          <p className="text-[10.5px] font-black text-black mt-0.5 uppercase">{format(new Date(order.date), 'dd MMMM yyyy')}</p>
+          <p className="text-[10.5px] font-black text-black mt-0.5 uppercase">{formatUtcDate(order.date, 'dd MMMM yyyy')}</p>
         </div>
       </div>
 

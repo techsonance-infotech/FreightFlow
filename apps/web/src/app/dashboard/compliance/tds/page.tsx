@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 
 export default function TDSManagementPage() {
   const [data, setData] = useState<any>(null);
@@ -309,7 +309,7 @@ export default function TDSManagementPage() {
                       <TableCell className="px-8 py-6">
                         <div>
                           <p className="text-sm font-black text-neutral-900 tracking-tight">{entry.vendorName}</p>
-                          <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">{format(new Date(entry.createdAt), 'dd MMM yyyy')}</p>
+                          <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">{formatUtcDate(entry.createdAt, 'dd MMM yyyy')}</p>
                         </div>
                       </TableCell>
                       <TableCell className="px-8 py-6">

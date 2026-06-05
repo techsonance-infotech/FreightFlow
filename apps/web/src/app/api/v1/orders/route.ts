@@ -88,16 +88,53 @@ export async function GET(request: Request) {
 }
 
 function getUtcNoonDate(dateVal: any): Date {
-  if (!dateVal) return new Date();
-  const d = new Date(dateVal);
-  if (typeof dateVal === 'string' && dateVal.includes('-') && dateVal.split('-')[0].length === 4) {
+  if (!dateVal) {
+    const now = new Date();
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const parts = formatter.format(now).split('/'); // MM/DD/YYYY
+      const m = Number(parts[0]);
+      const d = Number(parts[1]);
+      const y = Number(parts[2]);
+      return new Date(Date.UTC(y, m - 1, d, 12, 0, 0, 0));
+    } catch (e) {
+      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12, 0, 0, 0));
+    }
+  }
+
+  let dObj = new Date(dateVal);
+  if (isNaN(dObj.getTime())) {
+    dObj = new Date();
+  }
+
+  if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
     const [year, month, day] = dateVal.split('-').map(Number);
     return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
   }
-  const year = d.getFullYear();
-  const month = d.getMonth();
-  const day = d.getDate();
-  return new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.format(dObj).split('/'); // MM/DD/YYYY
+    const month = Number(parts[0]);
+    const day = Number(parts[1]);
+    const year = Number(parts[2]);
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  } catch (e) {
+    const year = dObj.getUTCFullYear();
+    const month = dObj.getUTCMonth();
+    const day = dObj.getUTCDate();
+    return new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+  }
 }
 
 // POST /api/v1/orders - Create a new order (LR)

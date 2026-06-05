@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn, formatWeight } from '@/lib/utils';
+import { cn, formatWeight, formatUtcDate } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { InvoiceModal } from '@/components/accounting/invoice-modal';
 
@@ -89,7 +89,7 @@ export default function OrderListPage() {
       // Prepare data for export
       const exportData = orders.map(order => ({
         'LR No': `#${order.lrNo}`,
-        'Date': format(new Date(order.date), 'dd MMM yyyy'),
+        'Date': formatUtcDate(order.date, 'dd MMM yyyy'),
         'Dealer': order.dealer?.name || 'Retail Client',
         'Consignee': order.consignee?.name || 'N/A',
         'Vehicle': order.vehicle?.plateNumber || order.vehicle?.regNo || 'Self Service',
@@ -412,7 +412,7 @@ export default function OrderListPage() {
                           <div>
                             <div className="font-black text-slate-900 tracking-tighter uppercase text-xs">#{order.lrNo}</div>
                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                              {format(new Date(order.date), 'dd MMM yyyy')}
+                              {formatUtcDate(order.date, 'dd MMM yyyy')}
                             </div>
                           </div>
                           <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform duration-300 ml-auto", expandedOrderId === order.id && "rotate-180 text-blue-500")} />

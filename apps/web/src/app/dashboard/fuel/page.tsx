@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Fuel, AlertTriangle, TrendingUp, Filter, Plus, Pencil, Trash2, IndianRupee, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatUtcDate } from '@/lib/utils';
 
 export default function FuelTrackingPage() {
   const [editingEntry, setEditingEntry] = useState<any>(null);
@@ -168,7 +169,7 @@ export default function FuelTrackingPage() {
           <div>
             <p className="font-black text-slate-900 uppercase tracking-tight text-sm leading-none">{row.vehicle?.regNo}</p>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              {format(new Date(row.date), 'dd MMM yyyy')}
+              {formatUtcDate(row.date, 'dd MMM yyyy')}
             </p>
           </div>
         </div>

@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { generateConsolidatedInvoicePDF } from '@/lib/pdf/consolidated-invoice';
 
 export default function EInvoicePage() {
@@ -190,7 +190,7 @@ export default function EInvoicePage() {
       const configRes = await fetch('/api/v1/companies/branding');
       const config = await configRes.json();
       const doc = await generateConsolidatedInvoicePDF(consolidatedData, config.data);
-      doc.save(`CONSOLIDATED_${consolidatedData.dealer?.name}_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      doc.save(`CONSOLIDATED_${consolidatedData.dealer?.name}_${formatUtcDate(new Date(), 'yyyyMMdd')}.pdf`);
       toast.success('Consolidated Invoice Generated');
     } catch (err) {
       toast.error('Failed to generate PDF');
@@ -385,7 +385,7 @@ export default function EInvoicePage() {
                         <TableRow key={inv.id} className="hover:bg-neutral-50/50 transition-colors group border-b border-neutral-50 last:border-none">
                           <TableCell className="px-8 py-6">
                             <p className="text-sm font-black text-brand-900 tracking-tight">{inv.invoiceNo}</p>
-                            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{format(new Date(inv.date), 'dd MMM yyyy')}</p>
+                            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{formatUtcDate(inv.date, 'dd MMM yyyy')}</p>
                           </TableCell>
                           <TableCell className="px-8 py-6">
                             <p className="text-sm font-bold text-neutral-700 uppercase tracking-tight">{inv.customerName}</p>
@@ -656,7 +656,7 @@ export default function EInvoicePage() {
                       <TableBody>
                         {consolidatedData.items.map((item: any, i: number) => (
                           <TableRow key={i} className="hover:bg-neutral-50/30 transition-colors border-b border-neutral-50 last:border-none">
-                            <TableCell className="px-8 py-6 text-sm font-bold text-neutral-700">{format(new Date(item.date), 'dd MMM yyyy')}</TableCell>
+                            <TableCell className="px-8 py-6 text-sm font-bold text-neutral-700">{formatUtcDate(item.date, 'dd MMM yyyy')}</TableCell>
                             <TableCell className="px-8 py-6 font-black text-brand-900 text-sm tracking-tight">{item.orderNo}</TableCell>
                             <TableCell className="px-8 py-6 text-center">
                               {item.podVerified ? (

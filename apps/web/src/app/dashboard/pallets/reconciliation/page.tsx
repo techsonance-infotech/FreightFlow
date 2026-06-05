@@ -11,7 +11,7 @@ import {
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
@@ -54,7 +54,7 @@ export default function PalletReconciliationPage() {
       'Total Sent': b.sent,
       'Total Returned': b.returned,
       'Outstanding Balance': b.balance,
-      'Last Activity': format(new Date(b.lastActivity), 'dd MMM yyyy'),
+      'Last Activity': formatUtcDate(b.lastActivity, 'dd MMM yyyy'),
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -189,7 +189,7 @@ export default function PalletReconciliationPage() {
                           <div className="font-black text-slate-900 text-base tracking-tight">{row.partyName}</div>
                           <div className="flex items-center gap-2 mt-1">
                              <History className="h-3 w-3 text-slate-300" />
-                             <span className="text-[10px] font-bold text-slate-400 uppercase">Last Activity: {format(new Date(row.lastActivity), 'dd MMM yyyy')}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase">Last Activity: {formatUtcDate(row.lastActivity, 'dd MMM yyyy')}</span>
                           </div>
                         </div>
                       </div>
