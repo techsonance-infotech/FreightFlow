@@ -16,7 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { cn, formatWeight } from '@/lib/utils';
+import { cn, formatWeight, formatUtcDate, fetchOnlineDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -84,6 +84,7 @@ export default function DealerBillingPage() {
   const [detailedPrices, setDetailedPrices] = useState<Record<string, number>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [invoiceDate, setInvoiceDate] = useState<string>('');
 
   // Pricing for consolidated report
   const [consolidatedItems, setConsolidatedItems] = useState<any[]>([]);
@@ -130,6 +131,9 @@ export default function DealerBillingPage() {
       setDealers(data);
       const nextNo = await getNextInvoiceNumber();
       if (nextNo) setCurrentInvoiceNo(nextNo);
+      
+      const dateStr = await fetchOnlineDate();
+      setInvoiceDate(dateStr);
     }
     loadDealers();
   }, []);
@@ -338,7 +342,7 @@ export default function DealerBillingPage() {
     const metaX = pageWidth / 2 + 2;
     doc.setFont('helvetica', 'bold');
     doc.text(`Invoice No :- ${currentInvoiceNo}`, metaX, currentY + 12);
-    doc.text(`Date :- ${format(new Date(), 'dd/MM/yyyy')}`, metaX, currentY + 17);
+    doc.text(`Date :- ${formatUtcDate(invoiceDate || new Date(), 'dd/MM/yyyy')}`, metaX, currentY + 17);
     doc.text(`Report Copy`, metaX, currentY + 22);
 
     currentY += 42;
@@ -534,7 +538,7 @@ export default function DealerBillingPage() {
     doc.setFont('helvetica', 'normal');
     doc.text(`If you have any questions about this invoice, please contact: ${companyDetails?.phone || '9173101711'}`, pageWidth / 2, currentY + 6, { align: 'center' });
 
-    doc.save(`${dealer?.name || 'Dealer'}_Report_${format(new Date(), 'yyyyMMdd')}.pdf`);
+    doc.save(`${dealer?.name || 'Dealer'}_Report_${formatUtcDate(invoiceDate || new Date(), 'yyyyMMdd')}.pdf`);
 
     // Commit the invoice number to DB
     try {
@@ -663,6 +667,16 @@ export default function DealerBillingPage() {
                   </div>
                 </div>
               )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Invoice Date</Label>
+              <Input 
+                type="date" 
+                value={invoiceDate} 
+                onChange={(e) => setInvoiceDate(e.target.value)}
+                className="rounded-xl border-slate-100 h-11 bg-slate-50/50 text-slate-850 font-bold text-xs"
+              />
             </div>
           </div>
 
@@ -834,7 +848,7 @@ export default function DealerBillingPage() {
                         .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                         .map((record) => (
                           <tr key={record.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4 text-xs font-bold text-slate-600">{format(new Date(record.date), 'dd MMM yyyy')}</td>
+                            <td className="px-6 py-4 text-xs font-bold text-slate-600">{formatUtcDate(record.date, 'dd MMM yyyy')}</td>
                             <td className="px-6 py-4 text-xs font-black text-slate-900">{record.lrNo}</td>
                             <td className="px-6 py-4">
                               <div className="flex flex-col">

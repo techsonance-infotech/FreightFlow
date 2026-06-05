@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Wrench, CheckCircle2, CircleDashed, Hammer, Pencil, Trash2, TrendingUp, IndianRupee } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatUtcDate } from '@/lib/utils';
 
 export default function MaintenanceHubPage() {
   const [data, setData] = useState<any[]>([]);
@@ -162,7 +163,7 @@ export default function MaintenanceHubPage() {
           <div>
             <p className="font-black text-slate-900 uppercase tracking-tight text-sm leading-none">{row.vehicle?.regNo}</p>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              {row.jobType} • {format(new Date(row.startedAt), 'dd MMM yyyy')}
+              {row.jobType} • {formatUtcDate(row.startedAt, 'dd MMM yyyy')}
             </p>
           </div>
         </div>

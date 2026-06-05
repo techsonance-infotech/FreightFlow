@@ -23,7 +23,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { cn, formatWeight } from '@/lib/utils';
+import { cn, formatWeight, formatUtcDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -209,7 +209,7 @@ export default function DealerEntryReportPage() {
       const cumulative: Record<string, any> = {};
       records.forEach(r => {
         r.details.forEach(d => {
-          const dateStr = format(new Date(r.date), 'dd/MM/yy');
+          const dateStr = formatUtcDate(r.date, 'dd/MM/yy');
           const key = `${dateStr}-${r.consigneeName || 'Direct Customer'}-${r.lrNo || '-'}-${d.product || 'Standard Cargo'}-${d.type || 'BOX'}`;
           if (!cumulative[key]) {
             cumulative[key] = {
@@ -257,7 +257,7 @@ export default function DealerEntryReportPage() {
       // Individual Records
       const tableBody = records.map((r, idx) => [
         (idx + 1).toString(),
-        format(new Date(r.date), 'dd/MM/yy'),
+        formatUtcDate(r.date, 'dd/MM/yy'),
         r.lrNo,
         r.dealerName,
         r.consigneeName,
@@ -470,7 +470,7 @@ export default function DealerEntryReportPage() {
             <tbody className="divide-y divide-slate-50">
               {paginatedRecords.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/30 transition-colors group">
-                  <td className="px-8 py-6 text-xs font-bold text-slate-600">{format(new Date(r.date), 'dd MMM yyyy')}</td>
+                  <td className="px-8 py-6 text-xs font-bold text-slate-600">{formatUtcDate(r.date, 'dd MMM yyyy')}</td>
                   <td className="px-8 py-6 text-xs font-black text-slate-900 group-hover:text-brand-900 transition-colors">
                     {r.lrNo || '-'}
                   </td>

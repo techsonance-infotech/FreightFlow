@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
   StatCard, 
@@ -192,7 +192,7 @@ export default function TransportReportsPage() {
                 headers = ['LR No', 'Date', 'Customer', 'Origin', 'Destination', 'Freight Value'];
                 data = lrData.map(lr => [
                   lr.orderNo,
-                  format(new Date(lr.date), 'dd MMM yyyy'),
+                  formatUtcDate(lr.date, 'dd MMM yyyy'),
                   lr.dealer?.name,
                   lr.fromLocation,
                   lr.toLocation,
@@ -201,7 +201,7 @@ export default function TransportReportsPage() {
               } else if (activeTab === 'fuel') {
                 headers = ['Date', 'Vehicle', 'Qty (L)', 'Pump', 'Efficiency (KMPL)'];
                 data = fuelData?.transactions?.map((t: any) => [
-                  format(new Date(t.date), 'dd MMM yyyy'),
+                  formatUtcDate(t.date, 'dd MMM yyyy'),
                   t.vehicleNumber,
                   t.quantity,
                   t.pumpName,
@@ -575,7 +575,7 @@ export default function TransportReportsPage() {
                             <TableRow key={lr.id} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
                               <TableCell className="px-8 py-6">
                                 <p className="text-sm font-black text-accent-600 tracking-tight">{lr.orderNo}</p>
-                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{format(new Date(lr.date), 'dd MMM yyyy')}</p>
+                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{formatUtcDate(lr.date, 'dd MMM yyyy')}</p>
                               </TableCell>
                               <TableCell className="px-8 py-6">
                                 <div className="space-y-1">
@@ -647,7 +647,7 @@ export default function TransportReportsPage() {
                               ) : fuelData.transactions.map((t: any, i: number) => (
                                 <TableRow key={i} className="hover:bg-transparent transition-colors group border-b border-neutral-50 last:border-none">
                                   <TableCell className="px-8 py-6">
-                                    <p className="text-sm font-bold text-neutral-900">{format(new Date(t.date), 'dd MMM yyyy')}</p>
+                                    <p className="text-sm font-bold text-neutral-900">{formatUtcDate(t.date, 'dd MMM yyyy')}</p>
                                     <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{t.pumpName || 'Commercial Pump'}</p>
                                   </TableCell>
                                   <TableCell className="px-8 py-6">

@@ -12,7 +12,7 @@ import {
   ChevronRight, ChevronDown, Box, CreditCard, ShieldCheck, AlertCircle, Hash, Building2, Calendar, Package,
   TrendingUp, TrendingDown, Zap, Navigation, CheckCircle2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, fetchOnlineDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { DealerForm } from '@/components/masters/dealer-form';
@@ -25,16 +25,22 @@ import { Textarea } from '@/components/ui/textarea';
 function formatLocalDate(dateVal: any): string {
   if (!dateVal) return '';
   const d = new Date(dateVal);
-  if (typeof dateVal === 'string' && (dateVal.includes('T') || dateVal.endsWith('Z'))) {
-    const year = d.getUTCFullYear();
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
+  if (isNaN(d.getTime())) return '';
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.format(d).split('/'); // MM/DD/YYYY
+    return `${parts[2]}-${parts[0]}-${parts[1]}`; // YYYY-MM-DD
+  } catch (e) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 interface OrderFormProps {
@@ -103,7 +109,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
       partyCode: '',
       companyName: '',
       ...initialData,
-      date: initialData?.date ? formatLocalDate(initialData.date) : formatLocalDate(new Date()),
+      date: initialData?.date ? formatLocalDate(initialData.date) : '',
       freight: initialData?.freight !== undefined ? initialData.freight : 0,
       hamali: initialData?.hamali !== undefined ? initialData.hamali : 0,
       rate: initialData?.rate !== undefined ? initialData.rate : 0,
@@ -206,14 +212,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
 
   useEffect(() => {
     if (!isEditing && !initialData?.date) {
-      fetch('/api/v1/system-date')
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.date) {
-            setValue('date', data.date);
-          }
-        })
-        .catch((err) => console.error('Failed to load server date:', err));
+      fetchOnlineDate().then((onlineDate) => {
+        if (onlineDate) {
+          setValue('date', onlineDate);
+        }
+      });
     }
   }, [isEditing, initialData, setValue]);
 

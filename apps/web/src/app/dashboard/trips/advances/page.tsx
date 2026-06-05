@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { AdvanceModal } from '@/components/trips/AdvanceModal';
 import { RecoveryModal } from '@/components/trips/RecoveryModal';
 import { exportToCSV } from '@/lib/export-utils';
+import { formatUtcDate } from '@/lib/utils';
 
 function useDebounce(value: string, delay: number) {
   const [debounced, setDebounced] = useState(value);
@@ -107,7 +108,7 @@ export default function DriverAdvancesPage() {
 
   const handleExport = () => {
     const data = advances.map((a: any) => ({
-      'Date': format(new Date(a.date), 'dd/MM/yyyy'),
+      'Date': formatUtcDate(a.date, 'dd/MM/yyyy'),
       'Driver': a.driver?.employee?.name || '',
       'Emp Code': a.driver?.employee?.empCode || '',
       'Trip': a.trip ? `TR-${a.trip.id.slice(0, 6).toUpperCase()}` : 'Standalone',
@@ -278,7 +279,7 @@ export default function DriverAdvancesPage() {
                       const outstanding = adv.amount - adv.recoveredAmount;
                       return (
                         <tr key={adv.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-5 font-bold text-slate-600">{format(new Date(adv.date), 'dd MMM yyyy')}</td>
+                          <td className="px-6 py-5 font-bold text-slate-600">{formatUtcDate(adv.date, 'dd MMM yyyy')}</td>
                           <td className="px-6 py-5">
                             <div className="font-black text-slate-900">{adv.driver?.employee?.name || 'N/A'}</div>
                             <div className="text-[10px] text-slate-400 font-bold">{adv.driver?.employee?.empCode || ''}</div>
@@ -373,7 +374,7 @@ export default function DriverAdvancesPage() {
                         <span className="font-black text-red-600">{formatCurrency(d.netOutstanding)}</span>
                       </td>
                       <td className="px-6 py-5 font-bold text-slate-600">
-                        {d.lastAdvanceDate ? format(new Date(d.lastAdvanceDate), 'dd MMM yyyy') : '—'}
+                        {d.lastAdvanceDate ? formatUtcDate(d.lastAdvanceDate, 'dd MMM yyyy') : '—'}
                       </td>
                     </tr>
                   ))

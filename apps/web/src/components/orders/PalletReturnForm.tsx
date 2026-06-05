@@ -11,7 +11,7 @@ import {
   ShieldCheck, AlertCircle, TrendingUp, FileText, Zap,
   Users, CheckCircle2, Lightbulb, Info
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, fetchOnlineDate } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,16 +33,22 @@ interface PalletReturnFormProps {
 function formatLocalDate(dateVal: any): string {
   if (!dateVal) return '';
   const d = new Date(dateVal);
-  if (typeof dateVal === 'string' && (dateVal.includes('T') || dateVal.endsWith('Z'))) {
-    const year = d.getUTCFullYear();
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
+  if (isNaN(d.getTime())) return '';
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.format(d).split('/'); // MM/DD/YYYY
+    return `${parts[2]}-${parts[0]}-${parts[1]}`; // YYYY-MM-DD
+  } catch (e) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletReturnFormProps) {
@@ -83,7 +89,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
       dealerId: initialData?.dealerId || '',
       consigneeId: initialData?.consigneeId || '',
       vehicleId: initialData?.vehicleId || '',
-      date: initialData?.date ? formatLocalDate(initialData.date) : formatLocalDate(new Date()),
+      date: initialData?.date ? formatLocalDate(initialData.date) : '',
       companyName: initialData?.companyName || '',
       partyCode: initialData?.partyCode || '',
       fromLocation: initialData?.fromLocation || '',
@@ -191,14 +197,11 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
 
   useEffect(() => {
     if (!initialData?.id) {
-      fetch('/api/v1/system-date')
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.date) {
-            setValue('date', data.date);
-          }
-        })
-        .catch((err) => console.error('Failed to load server date:', err));
+      fetchOnlineDate().then((onlineDate) => {
+        if (onlineDate) {
+          setValue('date', onlineDate);
+        }
+      });
     }
   }, [initialData, setValue]);
 

@@ -16,7 +16,7 @@ import Link from 'next/link';
 import { FreightInvoiceModal } from '@/components/accounting/freight-invoice-modal';
 import { VALID_STATUS_TRANSITIONS } from '@freightflow/shared';
 import { generateTripPDF } from '@/lib/pdf/trip-pdf';
-import { cn, formatWeight } from '@/lib/utils';
+import { cn, formatWeight, formatUtcDate } from '@/lib/utils';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -489,7 +489,7 @@ export default function TripDetailPage() {
                                 </div>
                                 <div>
                                   <div className="font-black text-slate-900 tracking-tighter uppercase text-xs">LR #{order.lrNo}</div>
-                                  <div className="text-[10px] text-slate-400 font-bold uppercase">{format(new Date(order.date), 'dd MMM yyyy')}</div>
+                                  <div className="text-[10px] text-slate-400 font-bold uppercase">{formatUtcDate(order.date, 'dd MMM yyyy')}</div>
                                 </div>
                               </div>
                               <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform duration-300", expandedOrderIds.includes(order.id) && "rotate-180 text-blue-500")} />
@@ -640,7 +640,7 @@ export default function TripDetailPage() {
                                 </div>
                                 <div>
                                   <div className="font-black text-slate-900 tracking-tighter uppercase text-xs">PL #{pallet.lrNo || pallet.id.slice(0, 8).toUpperCase()}</div>
-                                  <div className="text-[10px] text-slate-400 font-bold uppercase">{format(new Date(pallet.date), 'dd MMM yyyy')}</div>
+                                  <div className="text-[10px] text-slate-400 font-bold uppercase">{formatUtcDate(pallet.date, 'dd MMM yyyy')}</div>
                                 </div>
                               </div>
                               <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform duration-300", expandedOrderIds.includes(pallet.id) && "rotate-180 text-blue-500")} />
