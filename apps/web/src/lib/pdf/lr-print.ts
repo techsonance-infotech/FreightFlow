@@ -11,14 +11,29 @@ async function getBase64Image(imgUrl: string): Promise<{ data: string; width: nu
     img.src = imgUrl;
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      const MAX_WIDTH = 600;
+      const MAX_HEIGHT = 600;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+        if (width / height > MAX_WIDTH / MAX_HEIGHT) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        } else {
+          width = Math.round((width * MAX_HEIGHT) / height);
+          height = MAX_HEIGHT;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0);
+      ctx?.drawImage(img, 0, 0, width, height);
       resolve({
         data: canvas.toDataURL('image/png'),
-        width: img.width,
-        height: img.height
+        width: width,
+        height: height
       });
     };
     img.onerror = () => resolve(null);
@@ -48,10 +63,11 @@ export async function generateLRPrintPDF(order: any, company: any) {
   }
 
   // 2. Box 1: Consignor & Dealer Header
-  doc.setDrawColor(0);
+  doc.setDrawColor(150);
+  doc.setLineWidth(0.15);
   doc.rect(margin, currentY, boxWidth, 48); // Slightly taller for bank details
   
-  doc.setFontSize(10);
+  doc.setFontSize(10.5);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'bold');
   doc.setFillColor(245, 248, 252);
@@ -68,7 +84,7 @@ export async function generateLRPrintPDF(order: any, company: any) {
   doc.setFont('helvetica', 'bold');
   doc.text(order.dealer?.name?.toUpperCase() || order.companyName || '-', pageWidth / 2 + 2, currentY);
   
-  doc.setFontSize(8);
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   
   // Consignor details
@@ -100,8 +116,9 @@ export async function generateLRPrintPDF(order: any, company: any) {
   currentY += 40; // Reduced space after consignor section
 
   // 3. Box 2: Metadata Row
+  doc.setDrawColor(150);
   doc.rect(margin, currentY, boxWidth, 8);
-  doc.setFontSize(9);
+  doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
   doc.text('LORRY RECEIPT (LR)', margin + 2, currentY + 5.5);
   doc.text(`LR No :- ${order.lrNo || '-'}`, margin + 50, currentY + 5.5);
@@ -115,12 +132,12 @@ export async function generateLRPrintPDF(order: any, company: any) {
   doc.rect(margin + 0.1, currentY + 0.1, boxWidth / 2 - 0.1, 6, 'F');
   doc.rect(pageWidth / 2, currentY + 0.1, boxWidth / 2 - 0.1, 6, 'F');
   
-  doc.setFontSize(9);
+  doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
   doc.text('Detail Of Consignee', margin + 2, currentY + 4.5);
   doc.text('Shipped To- Address Of Delivery', pageWidth / 2 + 2, currentY + 4.5);
   
-  doc.setFontSize(8);
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   const consigneeName = order.consignee?.name || order.companyName || '-';
   const consigneeAddress = order.consignee?.address || order.toAddress || '-';
@@ -162,9 +179,10 @@ export async function generateLRPrintPDF(order: any, company: any) {
     foot: [['', 'TOTAL', '', '', '', totalQty, `${formatWeight(totalWt)} KG`]],
     showFoot: 'lastPage',
     theme: 'grid',
-    headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },
-    bodyStyles: { fontSize: 7 },
-    footStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', halign: 'center' },
+    styles: { lineColor: [180, 180, 180], lineWidth: 0.15 },
+    headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
+    bodyStyles: { fontSize: 8 },
+    footStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
       1: { cellWidth: 90 },
@@ -183,9 +201,10 @@ export async function generateLRPrintPDF(order: any, company: any) {
   const showFinancials = order.freight > 0 || order.subtotal > 0;
   const hasGst = (Number(order.cgstAmount) > 0 || Number(order.sgstAmount) > 0 || Number(order.igstAmount) > 0);
   const summaryBoxHeight = showFinancials ? (hasGst ? 32 : 20) : 15;
+  doc.setDrawColor(150);
   doc.rect(margin, currentY, boxWidth, summaryBoxHeight);
 
-  doc.setFontSize(8);
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   doc.text(`GST Bill No: ${order.gstBillNo || '-'}`, margin + 2, currentY + 5);
 
@@ -221,10 +240,10 @@ export async function generateLRPrintPDF(order: any, company: any) {
           taxY += 4;
         }
       }
-      doc.setFontSize(9);
+      doc.setFontSize(9.5);
       doc.text(`Grand Total: Rs. ${totalAmount.toFixed(2)}`, rightAlignX, currentY + 28, { align: 'right' });
     } else {
-      doc.setFontSize(9);
+      doc.setFontSize(9.5);
       doc.text(`Grand Total: Rs. ${totalAmount.toFixed(2)}`, rightAlignX, currentY + 16, { align: 'right' });
     }
   }
@@ -233,21 +252,23 @@ export async function generateLRPrintPDF(order: any, company: any) {
   currentY += summaryBoxHeight + 5;
 
   // 7. Box 5: Transport Info
+  doc.setDrawColor(150);
   doc.rect(margin, currentY, boxWidth, 18);
-  doc.setFontSize(8);
+  doc.setFontSize(8.5);
   doc.text(`Mode Of transport: By road`, margin + 2, currentY + 5);
   doc.text(`Vehicle No :- ${order.vehicle?.plateNumber || order.vehicle?.regNo || 'N/A'}`, margin + 2, currentY + 9);
   doc.text(`Route: ${order.fromLocation || '-'} to ${order.toLocation || '-'}`, margin + 2, currentY + 13);
   
-  doc.setFontSize(11);
+  doc.setFontSize(11.5);
   doc.setFont('helvetica', 'bold');
   doc.text(`LORRY RECEIPT`, pageWidth - margin - 5, currentY + 10, { align: 'right' });
   
   currentY += 23;
 
   // 8. Box 6: Signature Area
+  doc.setDrawColor(150);
   doc.rect(margin, currentY, boxWidth, 35);
-  doc.setFontSize(8);
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
   doc.text('Service Tax to be Born By', margin + 2, currentY + 5);
   
@@ -277,16 +298,17 @@ export async function generateLRPrintPDF(order: any, company: any) {
   if (termsText) {
     const termLines = doc.splitTextToSize(termsText, boxWidth - 4);
     const termsHeight = (termLines.length * 3) + 10;
+    doc.setDrawColor(150);
     doc.rect(margin, currentY, boxWidth, termsHeight);
     doc.setFont('helvetica', 'bold');
     doc.text('TERMS & CONDITIONS:', margin + 2, currentY + 5);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
+    doc.setFontSize(7.5);
     doc.text(termLines, margin + 2, currentY + 9);
   }
 
   // Final Page Border
-  doc.setDrawColor(0);
+  doc.setDrawColor(150);
   doc.rect(2, 2, pageWidth - 4, pageHeight - 4);
 
   return doc;
