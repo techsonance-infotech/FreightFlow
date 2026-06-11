@@ -21,25 +21,32 @@ export async function generateInvoicePDF(invoice: any, company: any) {
   };
 
   // Header
-  doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.setFillColor(248, 250, 252);
   doc.rect(0, 0, pageWidth, 40, 'F');
+  
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.15);
+  doc.line(0, 40, pageWidth, 40);
 
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
   doc.text('TAX INVOICE', pageWidth - 20, 25, { align: 'right' });
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
   doc.text(`${invoice.invoiceNo}`, pageWidth - 20, 32, { align: 'right' });
 
   // Company Info (Left side of header)
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
   doc.text(company?.name || 'FreightFlow Trans', 20, 20);
   
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
   doc.text([
     company?.address || '',
     `${company?.city || ''}, ${company?.state || ''} - ${company?.zip || ''}`,
@@ -56,29 +63,31 @@ export async function generateInvoicePDF(invoice: any, company: any) {
   doc.setFontSize(8);
   doc.text('BILL TO', 20, currentY);
   
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(15, 23, 42);
   doc.setFontSize(12);
   doc.text(invoice.customer?.name || '', 20, currentY + 7);
   
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
   const customerAddress = doc.splitTextToSize(invoice.customer?.address || '', 80);
   doc.text(customerAddress, 20, currentY + 12);
   
   const addressHeight = customerAddress.length * 4;
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
   doc.text(`GSTIN: ${invoice.customer?.gstin || 'N/A'}`, 20, currentY + 14 + addressHeight);
 
   // Right: Invoice Details
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.setFont('helvetica', 'bold');
   doc.text('INVOICE DATE', pageWidth - 20, currentY, { align: 'right' });
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(15, 23, 42);
   doc.text(formatUtcDate(invoice.date, 'dd MMMM yyyy'), pageWidth - 20, currentY + 5, { align: 'right' });
 
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.text('DUE DATE', pageWidth - 20, currentY + 15, { align: 'right' });
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(15, 23, 42);
   doc.text(formatUtcDate(invoice.dueDate || invoice.date, 'dd MMMM yyyy'), pageWidth - 20, currentY + 20, { align: 'right' });
 
   currentY += 45;
@@ -99,11 +108,13 @@ export async function generateInvoicePDF(invoice: any, company: any) {
     ],
     theme: 'grid',
     headStyles: {
-      fillColor: [31, 41, 55],
-      textColor: [255, 255, 255],
+      fillColor: [245, 248, 252],
+      textColor: [15, 23, 42],
       fontSize: 8,
       fontStyle: 'bold',
-      halign: 'center'
+      halign: 'center',
+      lineWidth: 0.15,
+      lineColor: [220, 225, 230]
     },
     columnStyles: {
       0: { cellWidth: 'auto' },
@@ -114,7 +125,9 @@ export async function generateInvoicePDF(invoice: any, company: any) {
     },
     styles: {
       fontSize: 8,
-      cellPadding: 4
+      cellPadding: 4,
+      lineWidth: 0.15,
+      lineColor: [226, 232, 240]
     }
   });
 
@@ -126,9 +139,12 @@ export async function generateInvoicePDF(invoice: any, company: any) {
   
   const drawTotalRow = (label: string, value: string, isTotal = false) => {
     if (isTotal) {
-      doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+      doc.setFillColor(239, 246, 255);
       doc.rect(totalBoxX, currentY - 4, totalBoxWidth + 5, 10, 'F');
-      doc.setTextColor(255, 255, 255);
+      doc.setDrawColor(191, 219, 254);
+      doc.setLineWidth(0.15);
+      doc.rect(totalBoxX, currentY - 4, totalBoxWidth + 5, 10, 'S');
+      doc.setTextColor(30, 58, 138);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
     } else {

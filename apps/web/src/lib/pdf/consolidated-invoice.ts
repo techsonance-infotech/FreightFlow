@@ -17,17 +17,22 @@ export async function generateConsolidatedInvoicePDF(data: any, company: any) {
   };
 
   // Header Background
-  doc.setFillColor(15, 23, 42); // slate-900
+  doc.setFillColor(248, 250, 252);
   doc.rect(0, 0, pageWidth, 45, 'F');
 
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.15);
+  doc.line(0, 45, pageWidth, 45);
+
   // Title
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(15, 23, 42);
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.text('CONSOLIDATED TAX INVOICE', margin, 25);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
   doc.text(`Invoice Cycle: ${data.period}`, margin, 35);
   const padZero = (n: number) => String(n).padStart(2, '0');
   const now = new Date();
@@ -38,9 +43,11 @@ export async function generateConsolidatedInvoicePDF(data: any, company: any) {
   // Company Info
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
   doc.text(company?.name || 'FreightFlow Logistics', pageWidth - margin, 25, { align: 'right' });
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
   doc.text([
     company?.address || '',
     `GSTIN: ${company?.gstin || ''}`
@@ -56,11 +63,13 @@ export async function generateConsolidatedInvoicePDF(data: any, company: any) {
   currentY += 6;
   
   doc.setFontSize(12);
+  doc.setTextColor(15, 23, 42);
   doc.text(data.dealer?.name || 'Customer Name', margin, currentY);
   currentY += 5;
   
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
   const addrLines = doc.splitTextToSize(data.dealer?.address || 'Address not available', 100);
   doc.text(addrLines, margin, currentY);
   
@@ -100,8 +109,19 @@ export async function generateConsolidatedInvoicePDF(data: any, company: any) {
       formatCurrency(item.amount)
     ]),
     theme: 'grid',
-    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+    headStyles: { 
+      fillColor: [245, 248, 252], 
+      textColor: [15, 23, 42], 
+      fontSize: 8, 
+      fontStyle: 'bold',
+      lineWidth: 0.15,
+      lineColor: [220, 225, 230]
+    },
     bodyStyles: { fontSize: 8 },
+    styles: {
+      lineWidth: 0.15,
+      lineColor: [226, 232, 240]
+    },
     columnStyles: {
       5: { halign: 'right' }
     }

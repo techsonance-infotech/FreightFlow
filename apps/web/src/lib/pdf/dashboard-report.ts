@@ -41,9 +41,20 @@ export async function generateDashboardPDF(kpis: any, companyName: string = 'Fre
       ['Outstanding Receivables', `INR ${(kpis.outstandingReceivables / 100).toLocaleString()}`, `${kpis.overdueCount || 0} Overdue Invoices`],
       ['Upcoming Doc Expiries', kpis.expiringDocsCount?.toString() || '0', 'Next 30 Days Alert']
     ],
-    theme: 'striped',
-    headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' }, // Brand Blue
-    styles: { fontSize: 10, cellPadding: 5 }
+    theme: 'grid',
+    headStyles: { 
+      fillColor: [245, 248, 252], 
+      textColor: [15, 23, 42], 
+      fontStyle: 'bold',
+      lineWidth: 0.15,
+      lineColor: [220, 225, 230]
+    },
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 5,
+      lineWidth: 0.15,
+      lineColor: [226, 232, 240]
+    }
   });
 
   currentY = (doc as any).lastAutoTable.finalY + 15;
@@ -65,8 +76,18 @@ export async function generateDashboardPDF(kpis: any, companyName: string = 'Fre
       fleet.idle || 0
     ]],
     theme: 'grid',
-    headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85] },
-    styles: { fontSize: 10, halign: 'center' }
+    headStyles: { 
+      fillColor: [245, 248, 252], 
+      textColor: [51, 65, 85],
+      lineWidth: 0.15,
+      lineColor: [220, 225, 230]
+    },
+    styles: { 
+      fontSize: 10, 
+      halign: 'center',
+      lineWidth: 0.15,
+      lineColor: [226, 232, 240]
+    }
   });
 
   currentY = (doc as any).lastAutoTable.finalY + 15;
@@ -85,9 +106,18 @@ export async function generateDashboardPDF(kpis: any, companyName: string = 'Fre
       r.name || 'Local',
       (r.amount / 100).toLocaleString()
     ]),
-    theme: 'striped',
-    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
-    styles: { fontSize: 9 }
+    theme: 'grid',
+    headStyles: { 
+      fillColor: [245, 248, 252], 
+      textColor: [15, 23, 42],
+      lineWidth: 0.15,
+      lineColor: [220, 225, 230]
+    },
+    styles: { 
+      fontSize: 9,
+      lineWidth: 0.15,
+      lineColor: [226, 232, 240]
+    }
   });
 
   currentY = (doc as any).lastAutoTable.finalY + 15;
@@ -109,8 +139,13 @@ export async function generateDashboardPDF(kpis: any, companyName: string = 'Fre
         a.user || 'System',
         a.action
       ]),
-      theme: 'plain',
-      styles: { fontSize: 8, cellPadding: 2 },
+      theme: 'grid',
+      styles: { 
+        fontSize: 8, 
+        cellPadding: 2,
+        lineWidth: 0.15,
+        lineColor: [226, 232, 240]
+      },
       columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 35 } }
     });
   }
