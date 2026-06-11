@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatUtcDate, formatWeight } from '../utils';
 
-// Helper to convert Image URL to Base64 with dimension metadata
+// Helper to convert Image URL to Base64 with dimension metadata and size compression
 async function getBase64Image(imgUrl: string): Promise<{ data: string; width: number; height: number } | null> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -10,12 +10,24 @@ async function getBase64Image(imgUrl: string): Promise<{ data: string; width: nu
     img.src = imgUrl;
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      const maxDim = 300;
+      let width = img.width;
+      let height = img.height;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0);
+      ctx?.drawImage(img, 0, 0, width, height);
       resolve({
-        data: canvas.toDataURL('image/png'),
+        data: canvas.toDataURL('image/jpeg', 0.75),
         width: img.width,
         height: img.height
       });
@@ -38,7 +50,7 @@ export async function generateTripPDF(trip: any, company: any) {
       if (logoData) {
         const targetHeight = 12;
         const targetWidth = Math.min(50, targetHeight * (logoData.width / logoData.height));
-        doc.addImage(logoData.data, 'PNG', margin, currentY, targetWidth, targetHeight);
+        doc.addImage(logoData.data, 'JPEG', margin, currentY, targetWidth, targetHeight);
       }
     } catch (e) {}
   }
@@ -50,13 +62,14 @@ export async function generateTripPDF(trip: any, company: any) {
   
   currentY += 18;
   doc.setDrawColor(226, 232, 240); // Slate-200
+  doc.setLineWidth(0.15);
   doc.line(margin, currentY, pageWidth - margin, currentY);
   currentY += 10;
 
   // 2. Trip Metadata Row
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100);
+  doc.setTextColor(100, 116, 139);
   doc.text('TRIP ID', margin, currentY);
   doc.text('MISSION STATUS', pageWidth / 2, currentY, { align: 'center' });
   doc.text('GENERATED ON', pageWidth - margin, currentY, { align: 'right' });
@@ -116,6 +129,7 @@ export async function generateTripPDF(trip: any, company: any) {
   // 4. Assigned Orders (Table)
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 41, 59);
   doc.text('ASSIGNED LORRY RECEIPTS (LR)', margin, currentY);
   currentY += 5;
 
@@ -129,9 +143,21 @@ export async function generateTripPDF(trip: any, company: any) {
       `${formatWeight(o.totalWeight)} KG`,
       `INR ${(o.totalAmount / 100).toLocaleString()}`
     ]),
-    theme: 'striped',
-    headStyles: { fillColor: [30, 41, 59], fontSize: 8, fontStyle: 'bold' },
-    styles: { fontSize: 8, cellPadding: 4 },
+    theme: 'grid',
+    headStyles: { 
+      fillColor: [245, 248, 252], 
+      textColor: [30, 41, 59], 
+      fontSize: 8, 
+      fontStyle: 'bold',
+      lineWidth: 0.15,
+      lineColor: [220, 225, 230]
+    },
+    styles: { 
+      fontSize: 8, 
+      cellPadding: 4,
+      lineWidth: 0.15,
+      lineColor: [226, 232, 240]
+    },
   });
 
   currentY = (doc as any).lastAutoTable.finalY + 15;
@@ -140,6 +166,7 @@ export async function generateTripPDF(trip: any, company: any) {
   if (trip.expenses?.length > 0) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
     doc.text('MISSION EXPENSES', margin, currentY);
     currentY += 5;
 
@@ -153,8 +180,20 @@ export async function generateTripPDF(trip: any, company: any) {
         `INR ${(e.amount / 100).toLocaleString()}`
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [71, 85, 105], fontSize: 8, fontStyle: 'bold' },
-      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { 
+        fillColor: [245, 248, 252], 
+        textColor: [30, 41, 59], 
+        fontSize: 8, 
+        fontStyle: 'bold',
+        lineWidth: 0.15,
+        lineColor: [220, 225, 230]
+      },
+      styles: { 
+        fontSize: 8, 
+        cellPadding: 3,
+        lineWidth: 0.15,
+        lineColor: [226, 232, 240]
+      },
     });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
@@ -166,26 +205,30 @@ export async function generateTripPDF(trip: any, company: any) {
     currentY = margin;
   }
 
-  doc.setFillColor(30, 41, 59);
+  doc.setFillColor(248, 250, 252);
   doc.rect(margin, currentY, pageWidth - (margin * 2), 35, 'F');
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.15);
+  doc.rect(margin, currentY, pageWidth - (margin * 2), 35, 'S');
   
   const totalRev = trip.pnl?.totalRevenue || 0;
   const totalExp = trip.pnl?.totalExpenses || 0;
   const netContribution = trip.pnl?.netContribution || 0;
 
-  doc.setTextColor(255);
+  doc.setTextColor(100, 116, 139);
   doc.setFontSize(8);
   doc.text('GROSS REVENUE', margin + 10, currentY + 12);
   doc.text('TOTAL EXPENSES', pageWidth / 2, currentY + 12, { align: 'center' });
   doc.text('NET CONTRIBUTION', pageWidth - margin - 10, currentY + 12, { align: 'right' });
 
   doc.setFontSize(14);
+  doc.setTextColor(30, 41, 59);
   doc.text(`INR ${(totalRev / 100).toLocaleString()}`, margin + 10, currentY + 22);
   doc.text(`INR ${(totalExp / 100).toLocaleString()}`, pageWidth / 2, currentY + 22, { align: 'center' });
   if (netContribution >= 0) {
-    doc.setTextColor(74, 222, 128); // Green
+    doc.setTextColor(21, 128, 61); // Green-700
   } else {
-    doc.setTextColor(248, 113, 113); // Red
+    doc.setTextColor(185, 28, 28); // Red-700
   }
   doc.text(`INR ${(netContribution / 100).toLocaleString()}`, pageWidth - margin - 10, currentY + 22, { align: 'right' });
 
