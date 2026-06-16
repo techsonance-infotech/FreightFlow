@@ -43,7 +43,7 @@ export const PalletDetailSchema = z.object({
   palletDisplayId: z.string().default(''),
   code: z.string().optional().nullable().or(z.literal('')),
   qty: z.number().int().min(1, 'Quantity is required'),
-  rate: z.number().int().min(0).default(0), // in paise
+  rate: z.number().min(0).default(0), // in paise
   weight: z.coerce.number().min(0).default(0),
   boxQty: z.number().int().optional(),
   consigneeName: z.string().default(''),
@@ -53,7 +53,7 @@ export const PalletConsigneeDetailSchema = z.object({
   id: z.string().uuid().optional(),
   consigneeName: z.string().min(1, 'Consignee Name is required'),
   qty: z.number().int().min(1, 'Quantity is required'),
-  rate: z.number().int().min(0), // in paise
+  rate: z.number().min(0), // in paise
 });
 
 export const PalletSchema = z.object({
