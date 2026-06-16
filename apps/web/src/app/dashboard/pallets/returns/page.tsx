@@ -391,6 +391,28 @@ export default function PalletReturnListPage() {
                             className="h-9 px-3 rounded-xl bg-white border border-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white shadow-sm font-black text-[10px] uppercase"
                           />
                           <Link href={`/dashboard/pallets/returns/${pallet.id}`} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-amber-600 hover:text-white transition-all shadow-sm"><Edit className="h-4 w-4" /></Link>
+                          <button
+                            onClick={async () => {
+                              if (confirm('Are you sure you want to delete this pallet return record?')) {
+                                try {
+                                  const res = await fetch(`/api/v1/pallets/${pallet.id}`, { method: 'DELETE' });
+                                  if (res.ok) {
+                                    toast.success('Palletized return deleted successfully');
+                                    fetchPallets(meta.page);
+                                    fetchStats();
+                                  } else {
+                                    toast.error('Failed to delete pallet return record');
+                                  }
+                                } catch (error) {
+                                  toast.error('An error occurred while deleting');
+                                }
+                              }
+                            }}
+                            className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm group"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4 text-slate-400 group-hover:text-white" />
+                          </button>
                         </div>
                       </td>
                     </tr>
