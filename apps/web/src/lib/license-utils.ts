@@ -11,9 +11,9 @@ export type LicenseVerificationResult = {
 import { unstable_cache } from 'next/cache';
 
 export async function verifyTenantLicense(tenantId: string): Promise<LicenseVerificationResult> {
-  return unstable_cache(
-    async (tid: string) => {
-      try {
+  try {
+    return await unstable_cache(
+      async (tid: string) => {
         const tenant = await prisma.tenant.findUnique({
           where: { id: tid },
           select: {
@@ -56,11 +56,12 @@ export async function verifyTenantLicense(tenantId: string): Promise<LicenseVeri
           daysRemaining,
           plan: tenant.plan,
         };
-      } catch (error) {
-        return { valid: false, isTrial: false, daysRemaining: 0, plan: 'none', error: 'Failed to verify license.' };
-      }
-    },
-    [`license-${tenantId}`],
-    { revalidate: 300, tags: [`license-${tenantId}`] } // Cache for 5 minutes
-  )(tenantId);
+      },
+      [`license-${tenantId}`],
+      { revalidate: 300, tags: [`license-${tenantId}`] } // Cache for 5 minutes
+    )(tenantId);
+  } catch (error) {
+    console.error('Database connection error in verifyTenantLicense:', error);
+    return { valid: false, isTrial: false, daysRemaining: 0, plan: 'none', error: 'Failed to verify license.' };
+  }
 }
