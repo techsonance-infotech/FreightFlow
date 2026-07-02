@@ -378,6 +378,8 @@ export default function DealerBillingPage() {
 
         return [
           (index + 1).toString(),
+          formatUtcDate(record.date, 'dd/MM/yyyy'),
+          (record as any).consignee?.name || (record as any).companyName || '-',
           prodName,
           packType,
           isPallet 
@@ -390,18 +392,20 @@ export default function DealerBillingPage() {
 
       autoTable(doc, {
         startY: currentY,
-        head: [['SR.', 'DESCRIPTION OF GOODS', 'TYPE', 'QTY / WEIGHT', 'UNIT RATE', 'AMOUNT']],
+        head: [['SR.', 'DATE', 'CUSTOMER NAME', 'DESCRIPTION OF GOODS', 'TYPE', 'QTY / WEIGHT', 'UNIT RATE', 'AMOUNT']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
-        bodyStyles: { fontSize: 8, halign: 'center' },
+        bodyStyles: { textColor: [0, 0, 0], fontSize: 8, halign: 'center' },
         columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 80, halign: 'left' },
-          2: { cellWidth: 20, halign: 'center' },
-          3: { cellWidth: 25, halign: 'center' },
-          4: { cellWidth: 25, halign: 'right' },
-          5: { cellWidth: 30, halign: 'right' },
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 22, halign: 'center' },
+          2: { cellWidth: 40, halign: 'left' },
+          3: { cellWidth: 45, halign: 'left' },
+          4: { cellWidth: 15, halign: 'center' },
+          5: { cellWidth: 20, halign: 'center' },
+          6: { cellWidth: 18, halign: 'right' },
+          7: { cellWidth: 22, halign: 'right' },
         },
         margin: { left: margin, right: margin }
       });
@@ -851,11 +855,12 @@ export default function DealerBillingPage() {
                   <table className="w-full text-left border-collapse">
                     <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
                       <tr>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">LR / CH.No</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Item Details</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Weight/Qty</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Amount</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Date</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">LR / CH.No</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Customer</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Item Details</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Weight/Qty</th>
+                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800 text-right">Amount</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -863,12 +868,13 @@ export default function DealerBillingPage() {
                         .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                         .map((record) => (
                           <tr key={record.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4 text-xs font-bold text-slate-600">{formatUtcDate(record.date, 'dd MMM yyyy')}</td>
+                            <td className="px-6 py-4 text-xs font-bold text-slate-900">{formatUtcDate(record.date, 'dd/MM/yyyy')}</td>
                             <td className="px-6 py-4 text-xs font-black text-slate-900">{record.lrNo}</td>
+                            <td className="px-6 py-4 text-xs font-bold text-slate-900">{(record as any).consignee?.name || (record as any).companyName || '-'}</td>
                             <td className="px-6 py-4">
                               <div className="flex flex-col">
                                 <span className="text-xs font-bold text-slate-900">{record.details?.[0]?.productName || 'Yarn'}</span>
-                                <span className="text-[10px] text-slate-400">{record.details?.[0]?.packingType || 'Box'}</span>
+                                <span className="text-[10px] text-slate-700 font-bold">{record.details?.[0]?.packingType || 'Box'}</span>
                               </div>
                             </td>
                              <td className="px-6 py-4 text-xs font-black text-slate-900">
