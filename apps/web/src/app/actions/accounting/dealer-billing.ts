@@ -64,6 +64,7 @@ export async function getDealerRecords(
       },
       include: {
         dealer: true,
+        consignee: true,
       },
       orderBy: {
         date: 'asc',
