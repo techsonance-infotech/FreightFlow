@@ -145,6 +145,7 @@ export const NAV_ITEMS: NavGroup[] = [
         category: 'intelligence',
         subItems: [
           { id: 'reports-transport', label: 'Transport Analytics', icon: 'truck', path: '/dashboard/reports/transport', allowedRoles: ['tenant_owner', 'ops_manager'], category: 'intelligence' },
+          { id: 'reports-fuel', label: 'Fuel Intelligence', icon: 'fuel', path: '/dashboard/reports/transport?tab=fuel', allowedRoles: ['tenant_owner', 'ops_manager', 'fleet_owner', 'accountant'], category: 'intelligence' },
           { id: 'reports-pallets', label: 'Pallet Audit BI', icon: 'chart', path: '/dashboard/pallets/reconciliation', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
           { id: 'reports-routes', label: 'Route Profitability', icon: 'route', path: '/dashboard/reports/routes', allowedRoles: ['tenant_owner', 'ops_manager', 'accountant'], category: 'intelligence' },
           { id: 'reports-financial', label: 'Financial Reports', icon: 'rupee', path: '/dashboard/reports/financial', allowedRoles: ['tenant_owner', 'accountant', 'auditor'], category: 'intelligence' },
