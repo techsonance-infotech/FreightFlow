@@ -103,12 +103,27 @@ export class FleetService {
     };
   }
 
-  /**
-   * Fleet-wide fuel consumption report with trends.
-   */
-  static async getFuelReport(tenantId: string, companyId: string) {
+  static async getFuelReport(
+    tenantId: string,
+    companyId: string,
+    startDate?: Date,
+    endDate?: Date,
+    vehicleId?: string
+  ) {
+    const where: any = { tenantId, companyId };
+    
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = startDate;
+      if (endDate) where.date.lte = endDate;
+    }
+    
+    if (vehicleId && vehicleId !== 'all') {
+      where.vehicleId = vehicleId;
+    }
+
     const entries = await prisma.fuelEntry.findMany({
-      where: { tenantId, companyId },
+      where,
       include: {
         vehicle: {
           select: { regNo: true }
