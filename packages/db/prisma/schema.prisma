@@ -1177,6 +1177,8 @@ model OrderPallet {
   trip             Trip?                   @relation(fields: [tripId], references: [id])
   palletDetails    PalletDetail[]
   consigneeDetails PalletConsigneeDetail[]
+  freightInvoiceId String?                 @map("freight_invoice_id") @db.Uuid
+  freightInvoice   FreightInvoice?         @relation(fields: [freightInvoiceId], references: [id])
 
   @@index([tenantId])
   @@index([companyId])
@@ -1776,6 +1778,7 @@ model FreightInvoice {
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   company      Company       @relation(fields: [companyId], references: [id])
   orders       Order[]
+  pallets      OrderPallet[]
   eInvoiceLogs EInvoiceLog[]
 
   @@index([tenantId])

@@ -27,12 +27,21 @@ import {
 } from '@/components/reports/report-components';
 import { Input } from '@/components/ui/input';
 import { exportToPDF } from '@/lib/export-utils';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer,
+  LineChart, Line
+} from 'recharts';
 
 export default function TransportReportsPage() {
   const [activeTab, setActiveTab] = useState('vehicle');
   const [loading, setLoading] = useState(true);
+  const [periodType, setPeriodType] = useState<'month' | 'range'>('month');
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');
 
   const [summary, setSummary] = useState<any>(null);
   const [vehicleData, setVehicleData] = useState<any[]>([]);
@@ -42,6 +51,28 @@ export default function TransportReportsPage() {
   const [dealerData, setDealerData] = useState<any[]>([]);
   const [driverData, setDriverData] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadVehicles() {
+      try {
+        const res = await fetch('/api/v1/masters/vehicles?limit=100');
+        const json = await res.json();
+        if (res.ok) setVehicles(json.data || []);
+      } catch (e) {
+        console.error('Failed to load vehicles');
+      }
+    }
+    loadVehicles();
+  }, []);
+
+  useEffect(() => {
+    if (periodType === 'month' && selectedMonth) {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      setStartDate(`${selectedMonth}-01`);
+      setEndDate(`${selectedMonth}-${String(lastDay).padStart(2, '0')}`);
+    }
+  }, [periodType, selectedMonth]);
 
   const fetchSummary = async () => {
     try {
@@ -70,7 +101,12 @@ export default function TransportReportsPage() {
         const result = await res.json();
         setLrData(Array.isArray(result) ? result : result.data || []);
       } else if (activeTab === 'fuel') {
-        const res = await fetch(`/api/v1/reports/transport/fuel?${params}`);
+        const queryParams = new URLSearchParams({
+          startDate,
+          endDate,
+          ...(selectedVehicleId && selectedVehicleId !== 'all' ? { vehicleId: selectedVehicleId } : {})
+        });
+        const res = await fetch(`/api/v1/reports/transport/fuel?${queryParams}`);
         const result = await res.json();
         setFuelData(result);
       } else if (activeTab === 'dealer') {
@@ -99,7 +135,7 @@ export default function TransportReportsPage() {
 
   useEffect(() => {
     fetchReportData();
-  }, [activeTab, startDate, endDate]);
+  }, [activeTab, startDate, endDate, selectedVehicleId]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -126,25 +162,82 @@ export default function TransportReportsPage() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
+          {/* Period Type Toggle */}
+          <div className="flex rounded-xl bg-neutral-100 p-1 border border-neutral-200/50 shadow-sm">
+            <button
+              onClick={() => setPeriodType('month')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                periodType === 'month' 
+                  ? "bg-white text-neutral-900 shadow-sm" 
+                  : "text-neutral-500 hover:text-neutral-800"
+              )}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setPeriodType('range')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                periodType === 'range' 
+                  ? "bg-white text-neutral-900 shadow-sm" 
+                  : "text-neutral-500 hover:text-neutral-800"
+              )}
+            >
+              Custom Range
+            </button>
+          </div>
+
+          {/* Vehicle Dropdown Filter (Visible only when tab is 'fuel') */}
+          {activeTab === 'fuel' && (
+            <select
+              value={selectedVehicleId}
+              onChange={(e) => setSelectedVehicleId(e.target.value)}
+              className="h-11 px-4 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-750 shadow-sm cursor-pointer outline-none focus:ring-2 focus:ring-accent-50"
+            >
+              <option value="all">All Vehicles</option>
+              {vehicles.map((v: any) => (
+                <option key={v.id} value={v.id}>
+                  {v.regNo}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Date Picker Input */}
           <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-neutral-200 shadow-sm">
-            <div className="flex items-center gap-2 px-3">
-              <Calendar className="h-4 w-4 text-neutral-400" />
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={e => setStartDate(e.target.value)} 
-                className="bg-transparent border-none text-xs font-bold outline-none w-28 text-neutral-700 cursor-pointer" 
-              />
-            </div>
-            <div className="h-4 w-[1px] bg-neutral-200" />
-            <div className="flex items-center gap-2 px-3">
-              <input 
-                type="date" 
-                value={endDate} 
-                onChange={e => setEndDate(e.target.value)} 
-                className="bg-transparent border-none text-xs font-bold outline-none w-28 text-neutral-700 cursor-pointer" 
-              />
-            </div>
+            {periodType === 'month' ? (
+              <div className="flex items-center gap-2 px-3">
+                <Calendar className="h-4 w-4 text-neutral-400" />
+                <input 
+                  type="month" 
+                  value={selectedMonth} 
+                  onChange={e => setSelectedMonth(e.target.value)} 
+                  className="bg-transparent border-none text-xs font-bold outline-none w-32 text-neutral-700 cursor-pointer" 
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 px-3">
+                  <Calendar className="h-4 w-4 text-neutral-400" />
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)} 
+                    className="bg-transparent border-none text-xs font-bold outline-none w-28 text-neutral-700 cursor-pointer" 
+                  />
+                </div>
+                <div className="h-4 w-[1px] bg-neutral-200" />
+                <div className="flex items-center gap-2 px-3">
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)} 
+                    className="bg-transparent border-none text-xs font-bold outline-none w-28 text-neutral-700 cursor-pointer" 
+                  />
+                </div>
+              </>
+            )}
           </div>
           <Button 
             onClick={() => {
@@ -627,8 +720,67 @@ export default function TransportReportsPage() {
                           <MetricCard title="Avg KMPL" value={fuelData.avgKmpl} icon={<Activity />} color="blue" />
                           <MetricCard title="Total Volume" value={`${fuelData.totalLitres} L`} icon={<Fuel />} color="slate" />
                           <MetricCard title="Aggregate Cost" value={formatCurrency(fuelData.totalCost)} icon={<IndianRupee />} color="rose" />
-                          <MetricCard title="Alerts" value="3" icon={<BadgeAlert />} color="amber" />
+                          <MetricCard title="Alerts" value={fuelData.transactions?.filter((t: any) => t.isAnomaly).length || 0} icon={<BadgeAlert />} color="amber" />
                         </div>
+
+                        {/* Interactive Recharts Fuel Trend Charts */}
+                        {fuelData.transactions && fuelData.transactions.length > 0 && (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Fuel Expense Area Chart */}
+                            <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm">
+                              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4">Fuel Expense & Volume Trend</h4>
+                              <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <AreaChart data={[...(fuelData.transactions)].reverse().map((t: any) => ({
+                                    date: formatUtcDate(t.date, 'dd MMM'),
+                                    cost: t.amount / 100,
+                                    qty: Number(t.quantity)
+                                  }))}>
+                                    <defs>
+                                      <linearGradient id="colorFuelCost" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15}/>
+                                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                                      </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 700, fill: '#94a3b8'}} dy={10} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 700, fill: '#94a3b8'}} tickFormatter={(val) => `₹${val}`} />
+                                    <ChartTooltip 
+                                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
+                                      formatter={(value: any, name: string) => [
+                                        name === 'cost' ? `₹${value.toLocaleString()}` : `${value} L`, 
+                                        name === 'cost' ? 'Expense' : 'Quantity'
+                                      ]}
+                                    />
+                                    <Area type="monotone" dataKey="cost" name="cost" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorFuelCost)" />
+                                  </AreaChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+
+                            {/* Efficiency Line Chart */}
+                            <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm">
+                              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4">Efficiency (KMPL) Trend</h4>
+                              <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={[...(fuelData.transactions)].reverse().map((t: any) => ({
+                                    date: formatUtcDate(t.date, 'dd MMM'),
+                                    kmpl: Number(t.kmpl) || 0
+                                  }))}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 700, fill: '#94a3b8'}} dy={10} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 700, fill: '#94a3b8'}} tickFormatter={(val) => `${val} km/l`} />
+                                    <ChartTooltip 
+                                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', padding: '12px' }}
+                                      formatter={(value: any) => [`${value} km/l`, 'Efficiency']}
+                                    />
+                                    <Line type="monotone" dataKey="kmpl" name="kmpl" stroke="#3b82f6" strokeWidth={3} dot={{ stroke: '#3b82f6', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         
                         <div className="rounded-[24px] border border-neutral-100 overflow-hidden shadow-sm bg-white">
                           <Table>
