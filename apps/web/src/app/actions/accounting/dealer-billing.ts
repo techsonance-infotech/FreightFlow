@@ -246,16 +246,14 @@ export async function markRecordsAsInvoiced(records: { id: string, type: 'BOX' |
     }
 
     if (palletIds.length > 0) {
-      for (const id of palletIds) {
-        const pallet = await prisma.orderPallet.findUnique({ where: { id } });
-        const metadata = (pallet?.metadata as any) || {};
-        await prisma.orderPallet.update({
-          where: { id },
-          data: { 
-            metadata: { ...metadata, invoiceNo }
-          }
-        });
-      }
+      const params = [invoiceNo, companyId, ...palletIds];
+      const idPlaceholders = palletIds.map((_, i) => `$${i + 3}::uuid`).join(', ');
+      await prisma.$executeRawUnsafe(
+        `UPDATE "order_pallets"
+         SET "metadata" = jsonb_set(coalesce("metadata", '{}'::jsonb), '{invoiceNo}', to_jsonb($1::text))
+         WHERE "id" IN (${idPlaceholders}) AND "company_id" = $2::uuid`,
+        ...params
+      );
     }
 
     return { success: true };
@@ -317,20 +315,21 @@ export async function createFreightInvoice(data: {
       }
 
       if (palletIds.length > 0) {
-        for (const id of palletIds) {
-          const pallet = await tx.orderPallet.findUnique({ where: { id } });
-          const metadata = (pallet?.metadata as any) || {};
-          await tx.orderPallet.update({
-            where: { id },
-            data: { 
-              freightInvoiceId: inv.id,
-              metadata: { ...metadata, invoiceNo: data.invoiceNo }
-            }
-          });
-        }
+        const params = [inv.id, data.invoiceNo, companyId, ...palletIds];
+        const idPlaceholders = palletIds.map((_, i) => `$${i + 4}::uuid`).join(', ');
+        await tx.$executeRawUnsafe(
+          `UPDATE "order_pallets"
+           SET "freight_invoice_id" = $1::uuid,
+               "metadata" = jsonb_set(coalesce("metadata", '{}'::jsonb), '{invoiceNo}', to_jsonb($2::text))
+           WHERE "id" IN (${idPlaceholders}) AND "company_id" = $3::uuid`,
+          ...params
+        );
       }
 
       return inv;
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
     });
 
     return { success: true, invoice };
@@ -471,23 +470,25 @@ export async function deleteFreightInvoice(invoiceId: string) {
 
       // 3. Disconnect pallets
       if (inv.pallets.length > 0) {
-        for (const pallet of inv.pallets) {
-          const metadata = (pallet.metadata as any) || {};
-          delete metadata.invoiceNo;
-          await tx.orderPallet.update({
-            where: { id: pallet.id },
-            data: {
-              freightInvoiceId: null,
-              metadata: metadata
-            }
-          });
-        }
+        const palletIds = inv.pallets.map(p => p.id);
+        const params = [companyId, ...palletIds];
+        const idPlaceholders = palletIds.map((_, i) => `$${i + 2}::uuid`).join(', ');
+        await tx.$executeRawUnsafe(
+          `UPDATE "order_pallets"
+           SET "freight_invoice_id" = NULL,
+               "metadata" = coalesce("metadata", '{}'::jsonb) - 'invoiceNo'
+           WHERE "id" IN (${idPlaceholders}) AND "company_id" = $1::uuid`,
+          ...params
+        );
       }
 
       // 4. Delete the invoice itself
       await tx.freightInvoice.delete({
         where: { id: invoiceId }
       });
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
     });
 
     return { success: true };
@@ -607,6 +608,9 @@ export async function updateInvoiceRecords(
           totalAmount: totalAmountPaise,
         }
       });
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
     });
 
     return { success: true };

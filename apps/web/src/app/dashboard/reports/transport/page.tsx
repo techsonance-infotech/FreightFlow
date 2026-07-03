@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn, formatUtcDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useSearchParams } from 'next/navigation';
 import { 
   StatCard, 
   ReportSectionHeader, 
@@ -33,6 +34,9 @@ import {
 } from 'recharts';
 
 export default function TransportReportsPage() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
   const [activeTab, setActiveTab] = useState('vehicle');
   const [loading, setLoading] = useState(true);
   const [periodType, setPeriodType] = useState<'month' | 'range'>('month');
@@ -42,6 +46,12 @@ export default function TransportReportsPage() {
 
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');
+
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const [summary, setSummary] = useState<any>(null);
   const [vehicleData, setVehicleData] = useState<any[]>([]);
