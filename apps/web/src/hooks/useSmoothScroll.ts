@@ -12,15 +12,8 @@ export function useSmoothScroll() {
 
     async function initLenis() {
       try {
-        // Try modern 'lenis' package first, fall back to '@studio-freight/lenis'
-        let LenisClass;
-        try {
-          const mod = await import('lenis');
-          LenisClass = mod.default;
-        } catch {
-          const mod = await import('@studio-freight/lenis');
-          LenisClass = mod.default;
-        }
+        const mod = await import('@studio-freight/lenis');
+        const LenisClass = mod.default;
 
         lenis = new LenisClass({
           duration: 1.2,
