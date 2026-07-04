@@ -3,25 +3,16 @@
 import { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { Zap, CheckCircle2, Building, XCircle } from 'lucide-react';
+import { triggerDemoModal } from '@/hooks/useDemoModal';
 
 const FreightScene = dynamic(() => import('./three/FreightScene'), { ssr: false });
 
 const STATS = [
-  { value: '30s', label: 'Create an LR', icon: '⚡' },
-  { value: '100%', label: 'GST Compliant', icon: '✅' },
-  { value: '∞', label: 'Multi-company', icon: '🏢' },
-  { value: '0', label: 'Excel sheets', icon: '🚫' },
-];
-
-const BADGES = [
-  '📋 Auto LR#',
-  '🚛 Live Fleet Map',
-  '🧾 GST Toggle',
-  '📦 Pallet Tracking',
-  '💰 AR/AP Ledger',
-  '📊 BI Reports',
-  '👥 HR & Payroll',
-  '🔔 Compliance Alerts',
+  { value: '30s', label: 'Create an LR', icon: Zap, color: 'text-ff-amber-500' },
+  { value: '100%', label: 'GST Compliant', icon: CheckCircle2, color: 'text-ff-teal-400' },
+  { value: '∞', label: 'Multi-company', icon: Building, color: 'text-blue-400' },
+  { value: '0', label: 'Excel sheets', icon: XCircle, color: 'text-red-400' },
 ];
 
 export default function Hero() {
@@ -50,12 +41,11 @@ export default function Hero() {
       // Floating animation on the card
       if (floatingCardRef.current) {
         gsap.to(floatingCardRef.current, {
-          y: -12,
-          duration: 3,
+          y: -15,
+          duration: 4,
           ease: 'sine.inOut',
           yoyo: true,
           repeat: -1,
-          delay: 1.5,
         });
       }
     };
@@ -63,30 +53,24 @@ export default function Hero() {
   }, []);
 
   return (
-    <section
-      id="hero"
-      className="relative min-h-screen flex flex-col overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #0B1220 0%, #0F1B2E 50%, #1C3252 100%)' }}
-    >
-      {/* Three.js scene */}
-      <FreightScene />
-
-      {/* Multi-layer gradient overlays */}
-      <div className="absolute inset-0 z-[1] pointer-events-none">
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,0.15) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-0 left-0 right-0 h-64" style={{ background: 'linear-gradient(to top, #050D1E, transparent)' }} />
-        <div className="absolute top-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to bottom, #050D1E 0%, transparent 100%)' }} />
-        <div className="absolute top-20 right-20 w-96 h-96 rounded-full opacity-10 blur-[100px]" style={{ background: '#FFB300' }} />
-        <div className="absolute bottom-40 left-10 w-80 h-80 rounded-full opacity-8 blur-[80px]" style={{ background: '#2563EB' }} />
+    <section className="relative min-h-[90vh] flex flex-col justify-between pt-36 bg-[#050D1E] overflow-hidden">
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 z-0">
+        {/* Glow Effects */}
+        <div className="absolute top-12 left-1/4 w-[40vw] h-[40vw] rounded-full filter blur-[150px] opacity-[0.08]" style={{ background: '#2563EB' }} />
+        <div className="absolute bottom-20 right-1/4 w-[35vw] h-[35vw] rounded-full filter blur-[120px] opacity-[0.05]" style={{ background: '#FFB300' }} />
+        
+        {/* WebGL Scene Container */}
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          <FreightScene />
+        </div>
       </div>
 
-      {/* Content grid */}
-      <div className="relative z-10 flex-1 flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-24 pb-32">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center w-full">
-
-          {/* Left: Text content */}
-          <div>
-            {/* Eyebrow */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10 flex-grow flex items-center mb-16">
+        <div className="grid lg:grid-cols-12 gap-12 items-center w-full">
+          
+          {/* Left Content */}
+          <div className="lg:col-span-7 text-left">
             <div ref={eyebrowRef} style={{ opacity: 0 }} className="flex items-center gap-3 mb-7">
               <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-ff-navy-500/30 bg-ff-navy-900/50">
                 <span className="w-2 h-2 rounded-full bg-ff-amber-500 animate-pulse" />
@@ -99,7 +83,7 @@ export default function Hero() {
               <h1 className="font-black text-white leading-[0.95]" style={{ fontSize: 'clamp(44px, 6vw, 76px)', letterSpacing: '-3px' }}>
                 Every Trip. <br />
                 Every Rupee. <br />
-                Every Mile — <br />
+                Every Mile <br />
                 <span className="text-ff-amber-500">In Control.</span>
               </h1>
             </div>
@@ -110,15 +94,15 @@ export default function Hero() {
 
             {/* CTA row */}
             <div ref={ctaRef} style={{ opacity: 0 }} className="flex flex-wrap items-center gap-4 mt-9">
-              <Link
-                href="/login"
-                className="group inline-flex items-center gap-2.5 text-ff-navy-950 font-bold text-[15px] px-8 py-4 rounded-lg bg-ff-amber-500 hover:bg-ff-amber-600 transition-all duration-300 hover:-translate-y-0.5 shadow-lg shadow-ff-amber-500/25"
+              <button
+                onClick={triggerDemoModal}
+                className="group inline-flex items-center gap-2.5 text-ff-navy-950 font-bold text-[15px] px-8 py-4 rounded-lg bg-ff-amber-500 hover:bg-ff-amber-600 transition-all duration-300 hover:-translate-y-0.5 shadow-lg shadow-ff-amber-500/25 cursor-pointer"
               >
                 Book a Free Demo
                 <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-              </Link>
+              </button>
               <a href="#features" className="inline-flex items-center gap-2.5 text-[15px] font-semibold px-7 py-4 rounded-lg border border-white/20 text-white/80 hover:bg-white/5 transition-all duration-300 hover:-translate-y-0.5">
                 See How It Works
               </a>
@@ -140,7 +124,7 @@ export default function Hero() {
           </div>
 
           {/* Right: Floating LR Card */}
-          <div ref={floatingCardRef} style={{ opacity: 0 }} className="relative hidden lg:block">
+          <div ref={floatingCardRef} style={{ opacity: 0 }} className="relative hidden lg:block lg:col-span-5">
             {/* Glow behind card */}
             <div className="absolute -inset-10 rounded-3xl blur-3xl opacity-20" style={{ background: 'radial-gradient(circle, #2563EB, transparent 70%)' }} />
 
@@ -217,11 +201,11 @@ export default function Hero() {
             </div>
 
             {/* Floating mini-badges around the card */}
-            <div className="absolute -top-4 -right-4 px-3 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,179,0,0.15)', border: '1px solid rgba(255,179,0,0.3)', color: '#FFB300', backdropFilter: 'blur(10px)' }}>
-              ⚡ LR created in 30s
+            <div className="absolute -top-4 -right-4 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5" style={{ background: 'rgba(255,179,0,0.15)', border: '1px solid rgba(255,179,0,0.3)', color: '#FFB300', backdropFilter: 'blur(10px)' }}>
+              <Zap className="w-3.5 h-3.5" /> LR created in 30s
             </div>
-            <div className="absolute -bottom-4 -left-4 px-3 py-2 rounded-xl text-xs font-bold" style={{ background: 'rgba(67,160,71,0.15)', border: '1px solid rgba(67,160,71,0.3)', color: '#43A047', backdropFilter: 'blur(10px)' }}>
-              ✅ 100% GST Ready
+            <div className="absolute -bottom-4 -left-4 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5" style={{ background: 'rgba(67,160,71,0.15)', border: '1px solid rgba(67,160,71,0.3)', color: '#43A047', backdropFilter: 'blur(10px)' }}>
+              <CheckCircle2 className="w-3.5 h-3.5" /> 100% GST Ready
             </div>
           </div>
         </div>
@@ -230,10 +214,10 @@ export default function Hero() {
       {/* Stats bar at bottom */}
       <div ref={statsRef} className="relative z-10 border-t" style={{ opacity: 0, borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)' }}>
         <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/5">
-          {STATS.map(({ value, label, icon }) => (
+          {STATS.map(({ value, label, icon: Icon, color }) => (
             <div key={label} className="flex flex-col items-center py-5 px-4">
               <div className="flex items-center gap-2">
-                <span className="text-xl">{icon}</span>
+                <Icon className={`w-5 h-5 ${color}`} />
                 <span className="text-2xl sm:text-3xl font-black" style={{ color: '#FFB300', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
               </div>
               <span className="text-[11px] font-medium uppercase tracking-wider mt-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>

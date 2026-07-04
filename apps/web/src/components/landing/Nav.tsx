@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { triggerDemoModal } from '@/hooks/useDemoModal';
 
 export default function Nav() {
   const navRef = useRef<HTMLElement>(null);
@@ -29,11 +31,12 @@ export default function Nav() {
   }, []);
 
   const navLinks = [
-    { href: '#features', label: 'Features' },
-    { href: '#pricing', label: 'Pricing' },
-    { href: '#security', label: 'Security' },
-    { href: '#blog', label: 'Blog' },
-    { href: '#about', label: 'About' },
+    { href: '/#features', label: 'Features' },
+    { href: '/#pricing', label: 'Pricing' },
+    { href: '/security', label: 'Security' },
+    { href: '/blog', label: 'Blog' },
+    { href: '/about', label: 'About' },
+    { href: '/contact', label: 'Contact' },
   ];
 
   return (
@@ -41,35 +44,56 @@ export default function Nav() {
       ref={navRef}
       id="main-nav"
       style={{ opacity: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? 'bg-ff-navy-950/80 backdrop-blur-xl border-b border-ff-navy-700/50 shadow-2xl'
-          : 'bg-transparent'
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
+        ? 'bg-ff-navy-950/80 backdrop-blur-xl border-b border-ff-navy-700/50 shadow-2xl'
+        : 'bg-transparent'
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-ff-navy-700 to-ff-navy-900 flex items-center justify-center border border-ff-navy-500/30 shadow-lg group-hover:shadow-ff-navy-500/25 transition-all duration-300">
-              <span className="text-ff-amber-500 font-black text-lg leading-none">F</span>
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg border border-white/10 p-1.5 transition-transform duration-300 group-hover:scale-105">
+              <Image
+                src="/favicon_io/android-chrome-512x512.png"
+                alt="FreightFlow Logo"
+                width={28}
+                height={28}
+                className="object-contain"
+              />
             </div>
-            <span className="text-white font-bold text-lg tracking-tight">
-              Freight<span className="text-ff-amber-500">Flow</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-white font-bold text-base tracking-tight leading-none">
+                FreightFlow
+              </span>
+              <span className="text-[8px] text-white/50 font-bold tracking-wider uppercase mt-1 leading-none">
+                Account. Manage. Move Ahead.
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Links */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map(({ href, label }) => (
-              <a
-                key={href}
-                href={href}
-                className="text-white/70 hover:text-white text-sm font-medium transition-colors duration-200"
-              >
-                {label}
-              </a>
-            ))}
+            {navLinks.map(({ href, label }) => {
+              const isLocalPage = href.startsWith('/') && !href.includes('#');
+              return isLocalPage ? (
+                <Link
+                  key={href}
+                  href={href}
+                  className="text-white/70 hover:text-white text-sm font-medium transition-colors duration-200"
+                >
+                  {label}
+                </Link>
+              ) : (
+                <a
+                  key={href}
+                  href={href}
+                  className="text-white/70 hover:text-white text-sm font-medium transition-colors duration-200"
+                >
+                  {label}
+                </a>
+              );
+            })}
           </div>
 
           {/* CTAs */}
@@ -80,12 +104,12 @@ export default function Nav() {
             >
               Login
             </Link>
-            <Link
-              href="/login"
-              className="text-ff-navy-950 text-sm font-bold px-5 py-2.5 rounded-lg bg-ff-amber-500 hover:bg-ff-amber-600 transition-all duration-300 shadow-lg shadow-ff-amber-500/20 hover:shadow-ff-amber-500/30 hover:-translate-y-0.5 transform"
+            <button
+              onClick={triggerDemoModal}
+              className="text-ff-navy-950 text-sm font-bold px-5 py-2.5 rounded-lg bg-ff-amber-500 hover:bg-ff-amber-600 transition-all duration-300 shadow-lg shadow-ff-amber-500/20 hover:shadow-ff-amber-500/30 hover:-translate-y-0.5 transform cursor-pointer"
             >
               Book a Demo
-            </Link>
+            </button>
           </div>
 
           {/* Mobile hamburger */}
@@ -106,19 +130,39 @@ export default function Nav() {
         {/* Mobile Menu */}
         {menuOpen && (
           <div className="md:hidden bg-ff-navy-950/95 backdrop-blur-xl border-t border-ff-navy-700/50 py-4 px-4 space-y-3">
-            {navLinks.map(({ href, label }) => (
-              <a
-                key={href}
-                href={href}
-                onClick={() => setMenuOpen(false)}
-                className="block text-white/70 hover:text-white text-base font-medium py-2 transition-colors"
-              >
-                {label}
-              </a>
-            ))}
+            {navLinks.map(({ href, label }) => {
+              const isLocalPage = href.startsWith('/') && !href.includes('#');
+              return isLocalPage ? (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className="block text-white/70 hover:text-white text-base font-medium py-2 transition-colors"
+                >
+                  {label}
+                </Link>
+              ) : (
+                <a
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className="block text-white/70 hover:text-white text-base font-medium py-2 transition-colors"
+                >
+                  {label}
+                </a>
+              );
+            })}
             <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
               <Link href="/login" className="text-center text-white/80 py-2.5 rounded-lg border border-white/20 text-sm font-medium">Login</Link>
-              <Link href="/login" className="text-center text-ff-navy-950 py-2.5 rounded-lg bg-ff-amber-500 text-sm font-bold">Book a Demo</Link>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  triggerDemoModal();
+                }}
+                className="text-center text-ff-navy-950 py-2.5 rounded-lg bg-ff-amber-500 text-sm font-bold cursor-pointer"
+              >
+                Book a Demo
+              </button>
             </div>
           </div>
         )}

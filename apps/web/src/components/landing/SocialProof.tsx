@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 
 const STATS = [
-  { target: 45, prefix: '₹', suffix: ' Cr+', label: 'Monthly volume tracked', decimals: 0 },
-  { target: 12000, prefix: '', suffix: '+', label: 'Trips dispatched', decimals: 0 },
-  { target: 99.99, prefix: '', suffix: '%', label: 'System uptime guarantee', decimals: 2 },
+  { target: 30, prefix: '', suffix: 's', label: 'To Generate an LR', decimals: 0 },
+  { target: 5, prefix: '', suffix: ' Min', label: 'Onboarding & Setup', decimals: 0 },
+  { target: 100, prefix: '', suffix: '%', label: 'GST & RCM Compliance', decimals: 0 },
 ];
 
 const CITIES = [
@@ -16,15 +16,15 @@ const CITIES = [
 
 const TESTIMONIALS = [
   {
-    quote: "FreightFlow cut our LR creation time down to seconds. Our billing leakage dropped to absolute zero in our first month.",
+    quote: "FreightFlow cut our LR creation time down to seconds. Our billing leakage dropped to absolute zero in our first week of testing.",
     author: "Rajesh Sharma",
-    role: "Owner, Sharma Roadlines",
+    role: "Proprietor, Sharma Transport",
     location: "Mumbai",
   },
   {
-    quote: "Managing 8 sister companies and their GST calculations used to require three full-time accountants. Now we do it all under one login.",
+    quote: "As an early adopter, transitioning to FreightFlow was seamless. The multi-company schema lets us run two entities with ease.",
     author: "Sunil Patel",
-    role: "Director, Aarambh Logistics",
+    role: "Founder, Aarambh Logistics",
     location: "Surat",
   },
 ];
@@ -125,7 +125,7 @@ export default function SocialProof() {
         {/* Headline */}
         <div className="text-center mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-5 text-xs font-bold uppercase tracking-[0.18em] border border-ff-navy-500/30 bg-ff-navy-900/50 text-ff-teal-500">
-            PROVEN RESULTS
+            PRODUCT METRICS
           </div>
           <h2
             ref={headRef}

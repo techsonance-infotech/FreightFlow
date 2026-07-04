@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { ShieldCheck, ClipboardCheck } from 'lucide-react';
 
 const SECURITY_ITEMS = [
   { title: 'PostgreSQL Row-Level Security (RLS)', desc: 'Guarantees complete database schema separation between independent tenant accounts.' },
@@ -70,8 +71,8 @@ export default function SecuritySection() {
           {/* Security Column */}
           <div className="p-8 rounded-2xl border border-ff-navy-700/50 bg-ff-navy-900/30 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-2xl">🛡️</span>
+              <div className="flex items-center gap-3.5 mb-6">
+                <ShieldCheck className="w-6 h-6 text-ff-teal-500" />
                 <h3 className="text-xl font-bold text-white">Data Security & Isolation</h3>
               </div>
               <div className="space-y-6">
@@ -91,8 +92,8 @@ export default function SecuritySection() {
           {/* Compliance Column */}
           <div className="p-8 rounded-2xl border border-ff-navy-700/50 bg-ff-navy-900/30 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-2xl">📋</span>
+              <div className="flex items-center gap-3.5 mb-6">
+                <ClipboardCheck className="w-6 h-6 text-ff-amber-500" />
                 <h3 className="text-xl font-bold text-white">Regulatory Tax Compliance</h3>
               </div>
               <div className="space-y-6">

@@ -1,31 +1,25 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 const FOOTER_LINKS = {
   Product: [
     { label: 'Features', href: '#features' },
     { label: 'How it Works', href: '#how-it-works' },
     { label: 'Pricing', href: '#pricing' },
-    { label: 'Changelog', href: '#' },
+    { label: 'Changelog', href: '/changelog' },
   ],
   Company: [
-    { label: 'About', href: '#' },
-    { label: 'Blog', href: '#' },
-    { label: 'Careers', href: '#' },
-    { label: 'Contact', href: '#' },
-  ],
-  Support: [
-    { label: 'Documentation', href: 'https://docs.freightflow.com' },
-    { label: 'Support', href: '#' },
-    { label: 'Status', href: '#' },
-    { label: 'API Reference', href: '#' },
+    { label: 'About', href: '/about' },
+    { label: 'Blog', href: '/blog' },
+    { label: 'Contact', href: '/contact' },
   ],
   Legal: [
-    { label: 'Privacy Policy', href: '#' },
-    { label: 'Terms of Service', href: '#' },
-    { label: 'Cookie Policy', href: '#' },
-    { label: 'License', href: '#' },
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Terms of Service', href: '/terms-of-service' },
+    { label: 'Cookie Policy', href: '/cookie-policy' },
+    { label: 'License', href: '/license' },
   ],
 };
 
@@ -41,14 +35,25 @@ export default function Footer() {
         <div className="py-16 grid grid-cols-2 md:grid-cols-6 gap-8">
 
           {/* Brand column */}
-          <div className="col-span-2 md:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 mb-5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-ff-teal-500 to-ff-teal-600 flex items-center justify-center shadow-lg">
-                <span className="text-white font-black text-lg">F</span>
+          <div className="col-span-2 md:col-span-3">
+            <Link href="/" className="flex items-center gap-3 mb-5 group">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg border border-white/10 p-1.5 transition-transform duration-300 group-hover:scale-105">
+                <Image
+                  src="/favicon_io/android-chrome-512x512.png"
+                  alt="FreightFlow Logo"
+                  width={28}
+                  height={28}
+                  className="object-contain"
+                />
               </div>
-              <span className="text-white font-bold text-lg tracking-tight">
-                Freight<span className="text-ff-amber-500">Flow</span>
-              </span>
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-base tracking-tight leading-none">
+                  FreightFlow
+                </span>
+                <span className="text-[8px] text-white/50 font-bold tracking-wider uppercase mt-1 leading-none">
+                  Account. Manage. Move Ahead.
+                </span>
+              </div>
             </Link>
             <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-xs">
               Every Trip. Every Rupee. Every Mile — In Control.
@@ -56,38 +61,58 @@ export default function Footer() {
               Logistics & Supply Chain Intelligence for Indian transport businesses.
             </p>
 
-            {/* Corporate Info */}
-            <div className="text-white/40 text-xs space-y-1 mb-6 font-mono">
-              <p>TechSonance InfoTech LLP</p>
-              <p className="leading-relaxed">Regd: 401, Sapphire Chambers, Baner, Pune - 411045</p>
-              <p>GSTIN: 27AAACT9011J1ZX</p>
-              <p>CIN: U72900MH2026PTC390888</p>
-            </div>
-
-            {/* Contact */}
-            <div className="space-y-2">
+            {/* Social Icons */}
+            <div className="flex items-center gap-3 mb-6">
               <a
-                href="mailto:support@freightflow.com"
-                className="flex items-center gap-2 text-white/40 hover:text-white/70 text-sm transition-colors"
+                href="https://x.com/techsonance_in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-ff-teal-400 hover:bg-ff-teal-500/10 hover:border-ff-teal-500/30 transition-all duration-200"
+                aria-label="Twitter"
               >
-                <svg className="w-4 h-4 text-ff-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
-                support@freightflow.com
               </a>
               <a
-                href="https://docs.freightflow.com"
-                className="flex items-center gap-2 text-white/40 hover:text-white/70 text-sm transition-colors"
+                href="https://linkedin.com/company/techsonance-infotech/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-ff-teal-400 hover:bg-ff-teal-500/10 hover:border-ff-teal-500/30 transition-all duration-200"
+                aria-label="LinkedIn"
               >
-                <svg className="w-4 h-4 text-ff-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                 </svg>
-                docs.freightflow.com
+              </a>
+              <a
+                href="https://www.instagram.com/techsonance_infotech/?igsh=MTZqNm04enMxaGZmbg%3D%3D#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-ff-teal-400 hover:bg-ff-teal-500/10 hover:border-ff-teal-500/30 transition-all duration-200"
+                aria-label="Instagram"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                </svg>
+              </a>
+              <a
+                href="https://techsonance.co.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-ff-teal-400 hover:bg-ff-teal-500/10 hover:border-ff-teal-500/30 transition-all duration-200"
+                aria-label="Website"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
               </a>
             </div>
 
             {/* Compliance badges */}
-            <div className="flex flex-wrap gap-2 mt-6">
+            <div className="flex flex-wrap gap-2">
               {['GST Ready', 'e-Way Bill', 'IRN e-Invoice', 'TDS 194C'].map((badge) => (
                 <span
                   key={badge}
@@ -106,12 +131,21 @@ export default function Footer() {
               <ul className="space-y-2.5">
                 {links.map(({ label, href }) => (
                   <li key={label}>
-                    <a
-                      href={href}
-                      className="text-white/50 hover:text-white text-sm transition-colors duration-200"
-                    >
-                      {label}
-                    </a>
+                    {href.startsWith('/') ? (
+                      <Link
+                        href={href}
+                        className="text-white/50 hover:text-white text-sm transition-colors duration-200"
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={href}
+                        className="text-white/50 hover:text-white text-sm transition-colors duration-200"
+                      >
+                        {label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -119,15 +153,40 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-white/5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-white/30 text-sm text-center sm:text-left">
-            FreightFlow © 2026+ · Logistics & Supply Chain Intelligence
-          </p>
-          <p className="text-white/20 text-sm text-center sm:text-right">
-            Proudly built by{' '}
-            <span className="text-white/40 font-medium">TechSonance InfoTech LLP</span>
-          </p>
+        {/* Bottom bar matching user image */}
+        <div className="border-t border-white/5 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-sm text-white/50">
+          <div className="space-y-1.5 font-sans">
+            <p>
+              Support:{' '}
+              <a href="mailto:support@techsonance.co.in" className="text-white/70 hover:text-ff-teal-400 font-medium transition-colors">
+                support@techsonance.co.in
+              </a>{' '}
+              | Phone:{' '}
+              <a href="tel:+919173101711" className="text-white/70 hover:text-ff-teal-400 font-medium transition-colors">
+                +91 91731 01711
+              </a>
+            </p>
+            <p className="text-white/45 text-sm leading-relaxed">
+              HQ: UG-15 Palladium Plaza, Vesu, Surat, Gujarat 395007, India
+            </p>
+          </div>
+
+          <div className="space-y-1 md:text-right font-sans">
+            <p>
+              FreightFlow is a registered product of{' '}
+              <a
+                href="https://techsonance.co.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white hover:text-ff-teal-400 font-medium transition-colors"
+              >
+                Techsonance InfoTech LLP
+              </a>.
+            </p>
+            <p className="text-white/45 text-xs flex items-center md:justify-end gap-1.5">
+              © 2026 FreightFlow. All rights reserved. | Made with ❤️ in India 🇮🇳
+            </p>
+          </div>
         </div>
       </div>
     </footer>

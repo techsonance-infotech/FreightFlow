@@ -2,13 +2,16 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { triggerDemoModal } from '@/hooks/useDemoModal';
 
 const PLANS = [
   {
     id: 'starter',
     name: 'Starter Plan',
-    price: '₹1,999',
-    period: '/month',
+    price: '₹4,999',
+    period: '/year',
+    originalPrice: '₹19,999',
+    launchOffer: 'Launching Offer (First Year)',
     tagline: 'Perfect for small fleets (up to 15 trucks)',
     color: '#0EA5A0',
     highlighted: false,
@@ -33,8 +36,10 @@ const PLANS = [
   {
     id: 'growth',
     name: 'Growth Plan',
-    price: '₹4,999',
-    period: '/month',
+    price: '₹9,999',
+    period: '/year',
+    originalPrice: '₹49,999',
+    launchOffer: 'Launching Offer (First Year)',
     tagline: 'For expanding regional fleets (up to 75 trucks)',
     color: '#F59E0B',
     highlighted: true,
@@ -62,6 +67,8 @@ const PLANS = [
     name: 'Enterprise Plan',
     price: 'Custom',
     period: '',
+    originalPrice: null,
+    launchOffer: null,
     tagline: 'For national fleets & corporate carriers (75+ trucks)',
     color: '#F59E0B',
     highlighted: false,
@@ -180,14 +187,24 @@ export default function Pricing() {
                     <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: plan.color }} />
                     {plan.name}
                   </div>
-                  <div className="flex items-baseline gap-1 mb-2">
+                  <div className="flex items-baseline gap-2 mb-2 flex-wrap">
                     <span
                       className="text-4xl font-black text-white"
                     >
                       {plan.price}
                     </span>
                     <span className="text-white/40 text-sm">{plan.period}</span>
+                    {plan.originalPrice && (
+                      <span className="text-white/30 text-sm line-through ml-1">
+                        {plan.originalPrice}
+                      </span>
+                    )}
                   </div>
+                  {plan.launchOffer && (
+                    <div className="inline-flex items-center gap-1 bg-gradient-to-r from-ff-amber-500/20 to-ff-amber-600/15 text-ff-amber-300 text-[11px] font-extrabold px-2.5 py-1 rounded border border-ff-amber-500/40 mb-3 uppercase tracking-wider shadow-sm shadow-ff-amber-500/10">
+                      <span className="text-[10px]">⚡</span> {plan.launchOffer}
+                    </div>
+                  )}
                   <p className="text-white/50 text-xs">{plan.tagline}</p>
                 </div>
 
@@ -220,17 +237,17 @@ export default function Pricing() {
               </div>
 
               {/* CTA */}
-              <Link
-                href="/login"
+              <button
+                onClick={triggerDemoModal}
                 id={`pricing-cta-${plan.id}`}
-                className={`block w-full text-center py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 ${
+                className={`block w-full text-center py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer ${
                   plan.highlighted
                     ? 'bg-ff-amber-500 text-ff-navy-950 hover:bg-ff-amber-600 shadow-lg shadow-ff-amber-500/10 hover:shadow-ff-amber-500/20'
                     : 'border border-white/15 text-white/90 hover:border-white/30 hover:bg-white/5'
                 }`}
               >
                 {plan.cta}
-              </Link>
+              </button>
             </div>
           ))}
         </div>
@@ -241,7 +258,10 @@ export default function Pricing() {
             All subscriptions include: automatic cloud backups, AES-256 file attachments encryption, GSTR files export, and direct integration support.
           </p>
           <p className="text-white/30 text-[10px] mt-2">
-            Pricing shown excludes applicable GST (18%). Annual commitments qualify for a 20% discount.
+            Pricing shown excludes applicable GST (18%). Launch offer pricing is locked for your first year subscription.
+          </p>
+          <p className="text-ff-amber-500/80 text-[10px] mt-2 font-medium">
+            Note: Local pricing may vary based on your region & currency. Contact us for accurate, localized rates.
           </p>
         </div>
       </div>

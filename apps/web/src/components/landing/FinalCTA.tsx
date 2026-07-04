@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { triggerDemoModal } from '@/hooks/useDemoModal';
 
 const FreightScene = dynamic(() => import('./three/FreightScene'), { ssr: false });
 
@@ -112,16 +113,16 @@ export default function FinalCTA() {
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
           style={{ opacity: 0 }}
         >
-          <Link
-            href="/login"
+          <button
+            onClick={triggerDemoModal}
             id="final-cta-primary"
-            className="group inline-flex items-center gap-2 text-ff-navy-950 font-bold text-lg px-10 py-5 rounded-full bg-ff-amber-500 hover:bg-ff-amber-600 transition-all duration-300 shadow-2xl shadow-ff-amber-500/20 hover:-translate-y-1 transform will-change-transform"
+            className="group inline-flex items-center gap-2 text-ff-navy-950 font-bold text-lg px-10 py-5 rounded-full bg-ff-amber-500 hover:bg-ff-amber-600 transition-all duration-300 shadow-2xl shadow-ff-amber-500/20 hover:-translate-y-1 transform will-change-transform cursor-pointer"
           >
             Book a Free Demo
             <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
-          </Link>
+          </button>
           <Link
             href="/login"
             id="final-cta-demo"

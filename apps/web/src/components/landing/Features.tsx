@@ -15,7 +15,7 @@ const FEATURES = [
       'Inventory attributes: Box quantity, Weight, DCFI#, and Material Type',
       'One-click download of PDF & print copies',
     ],
-    badge: '⚡ 30s LR Creation',
+    badge: '30s LR Creation',
     color: '#F59E0B',
     mockup: 'lr',
   },

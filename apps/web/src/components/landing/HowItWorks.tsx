@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { ClipboardList, Receipt, Truck, Box, Calculator, CheckCircle2 } from 'lucide-react';
 
 const FLOW_NODES = [
   {
     id: 'booking',
     step: '01',
-    icon: '📋',
+    icon: ClipboardList,
     title: 'Dealer Books Shipment',
     desc: 'Consignee & dealer details captured digitally. Party reference, GST bill ref, E-Way Bill auto-linked.',
     tag: 'Step 1',
@@ -16,17 +17,17 @@ const FLOW_NODES = [
   {
     id: 'lr-create',
     step: '02',
-    icon: '🧾',
+    icon: Receipt,
     title: 'LR Created in 30 Seconds',
     desc: 'Auto-generated LR# (LR/2026-27/1005). Rate calc, GST toggle, submission checklist — all done.',
-    tag: '⚡ Instant',
+    tag: 'Instant',
     tagColor: '#1E88E5',
     detail: ['LR#: LR/2026-27/1005', 'Route: SURAT → MUMBAI', 'Freight: ₹13,125 WITH GST'],
   },
   {
     id: 'vehicle',
     step: '03',
-    icon: '🚛',
+    icon: Truck,
     title: 'Vehicle Assigned + Route Mapped',
     desc: 'Fleet allocation from registry. Driver assigned. Live route dispatched to fleet map.',
     tag: 'Real-time',
@@ -36,7 +37,7 @@ const FLOW_NODES = [
   {
     id: 'pallet',
     step: '04',
-    icon: '📦',
+    icon: Box,
     title: 'Pallet Load Tracked',
     desc: 'Inventory payload: Boxes, Weight (KG), DCFI#. Batch PL/2026-27 reconciled per partner.',
     tag: '9 Batches',
@@ -46,17 +47,17 @@ const FLOW_NODES = [
   {
     id: 'gst',
     step: '05',
-    icon: '🧮',
+    icon: Calculator,
     title: 'GST Invoice Auto-Generated',
     desc: 'CGST/SGST/IGST calculated automatically. RCM applied. One toggle: WITH / WITHOUT GST.',
-    tag: '✅ Compliant',
+    tag: 'Compliant',
     tagColor: '#43A047',
     detail: ['GST: 18% IGST = ₹2,362', 'SAC Code: 9965', 'GSTR-1 Ready'],
   },
   {
     id: 'pod',
     step: '06',
-    icon: '✅',
+    icon: CheckCircle2,
     title: 'POD Delivered — Payment Settled',
     desc: 'Collections, receivables & driver advance settled. Financial Pulse updated. Zero leakage.',
     tag: '₹0 Leakage',
@@ -154,6 +155,7 @@ export default function HowItWorks() {
         <div className="space-y-8">
           {FLOW_NODES.map((node, i) => {
             const isLeft = i % 2 === 0;
+            const Icon = node.icon;
             return (
               <div
                 key={node.id}
@@ -173,7 +175,7 @@ export default function HowItWorks() {
                     <div className="relative">
                       <div className="flex items-center gap-4 mb-5">
                         <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ background: `${node.tagColor}15`, border: `1px solid ${node.tagColor}30` }}>
-                          {node.icon}
+                          <Icon className="w-6 h-6" style={{ color: node.tagColor }} />
                         </div>
                         <div>
                           <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: `${node.tagColor}20`, color: node.tagColor }}>{node.tag}</span>
@@ -200,19 +202,8 @@ export default function HowItWorks() {
                       ))}
                     </div>
                   </div>
-                </div>
 
-                {/* Connector arrow (not on last item) */}
-                {i < FLOW_NODES.length - 1 && (
-                  <div className="flex justify-center mt-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-0.5 h-5" style={{ background: `linear-gradient(to bottom, ${node.tagColor}60, ${FLOW_NODES[i+1].tagColor}60)` }} />
-                      <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
-                        <path d="M8 10L0 0h16L8 10z" fill={FLOW_NODES[i+1].tagColor} opacity="0.5" />
-                      </svg>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             );
           })}
