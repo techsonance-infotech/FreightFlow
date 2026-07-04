@@ -176,7 +176,7 @@ export default function MultiCompany() {
 
               {/* RLS Query Demonstration */}
               <div className="p-4 rounded-xl bg-black/50 border border-white/5 font-mono text-[10px] sm:text-xs text-white/70 overflow-x-auto space-y-2">
-                <div className="text-white/40">// Auto-injected RLS constraints at execution:</div>
+                <div className="text-white/40">{"// Auto-injected RLS constraints at execution:"}</div>
                 <div>
                   <span className="text-ff-teal-400">SET LOCAL</span> app.current_tenant_id = <span className="text-ff-amber-500">&apos;{activeCompany.name.toLowerCase().replace(/ /g, '_')}&apos;</span>;
                 </div>

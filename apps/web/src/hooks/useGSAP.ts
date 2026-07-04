@@ -19,6 +19,5 @@ export function useGSAP(
       }
       ScrollTrigger.getAll().forEach(t => t.kill());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
