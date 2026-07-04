@@ -3,13 +3,24 @@
 /* ============================================
    FreightFlow — Design System Tokens
    ============================================ */
-
 @theme inline {
   /* --- Brand: Navy (Trust & Authority) --- */
   --color-brand-950: #0A1628;
   --color-brand-900: #0F2B5B;
   --color-brand-800: #1A3A6B;
   --color-brand-700: #1E4D8C;
+
+  /* --- Landing Page specific colors --- */
+  --color-ff-navy-950: #0B1220;
+  --color-ff-navy-900: #0F1B2E;
+  --color-ff-navy-700: #1C3252;
+  --color-ff-navy-500: #2E4E7C;
+  --color-ff-amber-500: #F59E0B;
+  --color-ff-amber-600: #D97706;
+  --color-ff-teal-500: #0EA5A0;
+  --color-ff-teal-600: #0B8481;
+  --color-ff-teal-400: #14B8A6;
+  --color-ff-teal-300: #5EEAD4;
 
   /* --- Accent: Blue (Technology & Speed) --- */
   --color-accent-600: #2563EB;
