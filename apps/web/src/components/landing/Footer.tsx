@@ -32,8 +32,8 @@ const FOOTER_LINKS = {
 export default function Footer() {
   return (
     <footer
-      className="border-t border-white/10"
-      style={{ background: '#0A1628' }}
+      className="border-t border-ff-navy-700/50"
+      style={{ background: '#0B1220' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -43,18 +43,26 @@ export default function Footer() {
           {/* Brand column */}
           <div className="col-span-2 md:col-span-2">
             <Link href="/" className="flex items-center gap-2.5 mb-5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E4D8C] flex items-center justify-center shadow-lg">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-ff-teal-500 to-ff-teal-600 flex items-center justify-center shadow-lg">
                 <span className="text-white font-black text-lg">F</span>
               </div>
               <span className="text-white font-bold text-lg tracking-tight">
-                Freight<span className="text-[#42A5F5]">Flow</span>
+                Freight<span className="text-ff-amber-500">Flow</span>
               </span>
             </Link>
             <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-xs">
-              Account. Manage. Move Ahead.
+              Every Trip. Every Rupee. Every Mile — In Control.
               <br />
               Logistics & Supply Chain Intelligence for Indian transport businesses.
             </p>
+
+            {/* Corporate Info */}
+            <div className="text-white/40 text-xs space-y-1 mb-6 font-mono">
+              <p>TechSonance InfoTech LLP</p>
+              <p className="leading-relaxed">Regd: 401, Sapphire Chambers, Baner, Pune - 411045</p>
+              <p>GSTIN: 27AAACT9011J1ZX</p>
+              <p>CIN: U72900MH2026PTC390888</p>
+            </div>
 
             {/* Contact */}
             <div className="space-y-2">
@@ -62,7 +70,7 @@ export default function Footer() {
                 href="mailto:support@freightflow.com"
                 className="flex items-center gap-2 text-white/40 hover:text-white/70 text-sm transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-ff-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 support@freightflow.com
@@ -71,7 +79,7 @@ export default function Footer() {
                 href="https://docs.freightflow.com"
                 className="flex items-center gap-2 text-white/40 hover:text-white/70 text-sm transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-ff-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 docs.freightflow.com
@@ -83,7 +91,7 @@ export default function Footer() {
               {['GST Ready', 'e-Way Bill', 'IRN e-Invoice', 'TDS 194C'].map((badge) => (
                 <span
                   key={badge}
-                  className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-[#2563EB]/30 text-[#42A5F5] bg-[#2563EB]/10"
+                  className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-ff-teal-500/30 text-ff-teal-500 bg-ff-teal-500/10"
                 >
                   {badge}
                 </span>

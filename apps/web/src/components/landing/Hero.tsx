@@ -66,7 +66,7 @@ export default function Hero() {
     <section
       id="hero"
       className="relative min-h-screen flex flex-col overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #050D1E 0%, #0A1628 50%, #0D1F3C 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #0B1220 0%, #0F1B2E 50%, #1C3252 100%)' }}
     >
       {/* Three.js scene */}
       <FreightScene />
@@ -88,51 +88,54 @@ export default function Hero() {
           <div>
             {/* Eyebrow */}
             <div ref={eyebrowRef} style={{ opacity: 0 }} className="flex items-center gap-3 mb-7">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full border" style={{ borderColor: 'rgba(37,99,235,0.4)', background: 'rgba(37,99,235,0.1)' }}>
-                <span className="w-2 h-2 rounded-full bg-[#42A5F5] animate-pulse" />
-                <span className="text-[#42A5F5] text-xs font-bold tracking-[0.18em] uppercase">Logistics & Supply Chain Intelligence</span>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-ff-navy-500/30 bg-ff-navy-900/50">
+                <span className="w-2 h-2 rounded-full bg-ff-amber-500 animate-pulse" />
+                <span className="text-white/80 text-xs font-bold tracking-[0.18em] uppercase">India-First Logistics Operating System</span>
               </div>
             </div>
 
             {/* Main headline */}
             <div ref={headlineRef} style={{ opacity: 0 }}>
-              <h1 className="font-black text-white leading-[0.95]" style={{ fontSize: 'clamp(48px, 7vw, 88px)', letterSpacing: '-4px' }}>
-                Every Freight.<br />
-                <span style={{ color: '#FFB300' }}>Every Route.</span><br />
-                One Platform.
+              <h1 className="font-black text-white leading-[0.95]" style={{ fontSize: 'clamp(44px, 6vw, 76px)', letterSpacing: '-3px' }}>
+                Every Trip. <br />
+                Every Rupee. <br />
+                Every Mile — <br />
+                <span className="text-ff-amber-500">In Control.</span>
               </h1>
             </div>
 
-            <p ref={subtextRef} style={{ opacity: 0 }} className="mt-7 text-lg leading-relaxed max-w-xl" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              Create LRs in <span className="text-white font-semibold">30 seconds</span>. Auto-generate GST invoices. Track every shipment, driver & payment — across all your companies.
+            <p ref={subtextRef} style={{ opacity: 0 }} className="mt-7 text-lg leading-relaxed max-w-xl text-white/70">
+              A single platform replacing spreadsheets, paper LRs, and disconnected Tally accounts for Indian road transport businesses, from LR creation to GST filing.
             </p>
 
             {/* CTA row */}
             <div ref={ctaRef} style={{ opacity: 0 }} className="flex flex-wrap items-center gap-4 mt-9">
               <Link
                 href="/login"
-                className="group inline-flex items-center gap-2.5 text-white font-bold text-[15px] px-7 py-4 rounded-full transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
-                style={{ background: 'linear-gradient(135deg, #2563EB, #1E4D8C)', boxShadow: '0 8px 32px rgba(37,99,235,0.4)' }}
+                className="group inline-flex items-center gap-2.5 text-ff-navy-950 font-bold text-[15px] px-8 py-4 rounded-lg bg-ff-amber-500 hover:bg-ff-amber-600 transition-all duration-300 hover:-translate-y-0.5 shadow-lg shadow-ff-amber-500/25"
               >
-                Start Free Trial — It&apos;s Free
+                Book a Free Demo
                 <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
-              <button className="inline-flex items-center gap-2.5 text-[15px] font-semibold px-7 py-4 rounded-full border transition-all duration-300 hover:bg-white/5"
-                style={{ color: 'rgba(255,255,255,0.75)', borderColor: 'rgba(255,255,255,0.2)' }}>
-                <span className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>▶</span>
-                Watch Demo
-              </button>
+              <a href="#features" className="inline-flex items-center gap-2.5 text-[15px] font-semibold px-7 py-4 rounded-lg border border-white/20 text-white/80 hover:bg-white/5 transition-all duration-300 hover:-translate-y-0.5">
+                See How It Works
+              </a>
             </div>
 
-            {/* Feature badge chips */}
-            <div ref={badgesRef} style={{ opacity: 0 }} className="mt-10 flex flex-wrap gap-2">
-              {BADGES.map((b) => (
-                <span key={b} className="text-[11px] font-medium px-3 py-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  {b}
-                </span>
-              ))}
+            {/* Trust bar directly below hero */}
+            <div ref={badgesRef} style={{ opacity: 0 }} className="mt-12 pt-6 border-t border-ff-navy-700/30">
+              <p className="text-xs font-semibold text-white/50 mb-3 tracking-wider uppercase">
+                Trusted by transport businesses running 5 to 500+ trucks
+              </p>
+              <div className="flex flex-wrap gap-2.5">
+                {['18 Modules', 'Multi-Company Ready', 'GST-Native', 'e-Way Bill Integrated'].map((b) => (
+                  <span key={b} className="text-[11px] font-bold px-3 py-1.5 rounded-md border border-ff-navy-700/50 bg-ff-navy-900/40 text-ff-teal-500">
+                    ✓ {b}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -225,8 +228,8 @@ export default function Hero() {
       </div>
 
       {/* Stats bar at bottom */}
-      <div ref={statsRef} style={{ opacity: 0 }} className="relative z-10 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)' }}>
-        <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 divide-x" style={{ divideColor: 'rgba(255,255,255,0.08)' }}>
+      <div ref={statsRef} className="relative z-10 border-t" style={{ opacity: 0, borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)' }}>
+        <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/5">
           {STATS.map(({ value, label, icon }) => (
             <div key={label} className="flex flex-col items-center py-5 px-4">
               <div className="flex items-center gap-2">

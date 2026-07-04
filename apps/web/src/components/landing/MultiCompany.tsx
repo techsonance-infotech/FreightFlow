@@ -227,13 +227,13 @@ export default function MultiCompany() {
         </div>
 
         {/* Security badges */}
-        <div className="mt-16 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {[
-            { icon: '🔒', label: 'Row-Level Security', sub: 'PostgreSQL RLS ensures tenant isolation' },
-            { icon: '🏢', label: 'Branch Isolation', sub: 'Independent accounts per location' },
-            { icon: '👤', label: 'Granular Permissions', sub: 'Assign Owner, Manager, or Staff roles' },
+            { icon: '🔒', label: 'True Multi-Tenancy', sub: 'Complete data isolation via PostgreSQL Row-Level Security (RLS) policies.' },
+            { icon: '🏢', label: 'Multi-Company Architecture', sub: 'Run independent sister firms, depots, or partner entities from a single unified login.' },
+            { icon: '📊', label: 'Consolidated Financial Reporting', sub: 'Automatically aggregate tax, AR/AP, and fuel expenses across all child companies or view them individually.' },
           ].map((item) => (
-            <div key={item.label} className="text-center p-5 rounded-2xl border border-white/5 bg-white/3 hover:bg-white/5 transition-colors">
+            <div key={item.label} className="text-center p-6 rounded-2xl border border-ff-navy-700/50 bg-ff-navy-900/40 hover:bg-ff-navy-900/60 transition-colors">
               <div className="text-3xl mb-3">{item.icon}</div>
               <div className="text-white font-bold text-sm mb-1">{item.label}</div>
               <div className="text-white/40 text-xs leading-relaxed">{item.sub}</div>

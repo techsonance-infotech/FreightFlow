@@ -63,7 +63,7 @@ export default function FinalCTA() {
       ref={sectionRef}
       id="cta"
       className="relative min-h-[80vh] flex items-center justify-center overflow-hidden py-32 px-4"
-      style={{ background: '#0A1628' }}
+      style={{ background: '#0B1220' }}
     >
       {/* Three.js background (lighter) */}
       <div className="absolute inset-0 opacity-30">
@@ -72,15 +72,15 @@ export default function FinalCTA() {
 
       {/* Gradient overlay */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A1628]/80 via-transparent to-[#0A1628]/80" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[#2563EB]/15 blur-[120px] rounded-full" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1220]/80 via-transparent to-[#0B1220]/80" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-ff-teal-500/10 blur-[120px] rounded-full" />
       </div>
 
       {/* Content */}
       <div className="relative z-10 max-w-5xl mx-auto text-center">
         {/* Tag */}
-        <div className="inline-flex items-center gap-2 text-[#42A5F5] text-sm font-semibold tracking-[0.2em] uppercase mb-8 px-4 py-2 rounded-full border border-[#2563EB]/30 bg-[#2563EB]/10">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#42A5F5] animate-pulse" />
+        <div className="inline-flex items-center gap-2 text-ff-teal-500 text-sm font-semibold tracking-[0.2em] uppercase mb-8 px-4 py-2 rounded-full border border-ff-navy-500/30 bg-ff-navy-900/50">
+          <span className="w-1.5 h-1.5 rounded-full bg-ff-teal-500 animate-pulse" />
           Ready to go digital?
         </div>
 
@@ -90,11 +90,11 @@ export default function FinalCTA() {
           style={{ letterSpacing: '-4px' }}
         >
           <span ref={line1Ref} className="block text-white" style={{ opacity: 0 }}>
-            Account.{' '}
-            <span className="text-[#2563EB]">Manage.</span>
+            Every Trip.{' '}
+            <span className="text-ff-teal-500">Every Rupee.</span>
           </span>
-          <span ref={line2Ref} className="block text-[#FFB300]" style={{ opacity: 0 }}>
-            Move Ahead.
+          <span ref={line2Ref} className="block text-ff-amber-500" style={{ opacity: 0 }}>
+            In Control.
           </span>
         </div>
 
@@ -115,40 +115,41 @@ export default function FinalCTA() {
           <Link
             href="/login"
             id="final-cta-primary"
-            className="group inline-flex items-center gap-2 text-white font-bold text-lg px-10 py-5 rounded-full bg-gradient-to-r from-[#2563EB] to-[#1E4D8C] hover:from-[#1E88E5] hover:to-[#2563EB] transition-all duration-300 shadow-2xl shadow-[#2563EB]/30 hover:shadow-[#2563EB]/50 hover:-translate-y-1 transform will-change-transform"
+            className="group inline-flex items-center gap-2 text-ff-navy-950 font-bold text-lg px-10 py-5 rounded-full bg-ff-amber-500 hover:bg-ff-amber-600 transition-all duration-300 shadow-2xl shadow-ff-amber-500/20 hover:-translate-y-1 transform will-change-transform"
           >
-            Start Free Trial
+            Book a Free Demo
             <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </Link>
-          <button
+          <Link
+            href="/login"
             id="final-cta-demo"
             className="inline-flex items-center gap-2 text-white/80 hover:text-white font-semibold text-lg px-10 py-5 rounded-full border-2 border-white/20 hover:border-white/40 transition-all duration-300 hover:bg-white/5"
           >
-            Book a Demo
+            Start 7-Day Trial
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-          </button>
+          </Link>
         </div>
 
         {/* Trust micro-copy */}
         <div className="flex items-center justify-center gap-6 mt-10 text-white/30 text-sm">
           <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-ff-teal-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
             No credit card
           </span>
           <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-ff-teal-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
             Setup in 5 minutes
           </span>
           <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-ff-teal-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
             Cancel anytime

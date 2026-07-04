@@ -9,13 +9,13 @@ const PLANS = [
     name: 'Starter Plan',
     price: '₹1,999',
     period: '/month',
-    tagline: 'Perfect for small fleets getting started',
-    color: '#42A5F5',
+    tagline: 'Perfect for small fleets (up to 15 trucks)',
+    color: '#0EA5A0',
     highlighted: false,
     features: [
       '1 Isolated Company Tenant',
       'Up to 5 User accounts',
-      '20 Registered Vehicles max',
+      'Up to 15 Trucks maximum',
       '500 Lorry Receipts (LR) / month',
       'Instant 30s LR Creation & Printing',
       'Standard Pallet Tracking & return logs',
@@ -35,14 +35,14 @@ const PLANS = [
     name: 'Growth Plan',
     price: '₹4,999',
     period: '/month',
-    tagline: 'For expanding regional transport fleets',
-    color: '#2563EB',
+    tagline: 'For expanding regional fleets (up to 75 trucks)',
+    color: '#F59E0B',
     highlighted: true,
     badge: 'Most Popular',
     features: [
       '3 Isolated Company Tenants',
       'Up to 25 User accounts',
-      '100 Registered Vehicles max',
+      'Up to 75 Trucks maximum',
       '5,000 Lorry Receipts (LR) / month',
       'Everything in Starter included',
       'Trip P&L (Fuel, Tolls, Driver advances)',
@@ -55,20 +55,20 @@ const PLANS = [
       'Multi-branch permissions delegation',
       'Dedicated SLA Account Manager',
     ],
-    cta: 'Start 7-Day Free Trial',
+    cta: 'Book a Free Demo',
   },
   {
     id: 'enterprise',
     name: 'Enterprise Plan',
     price: 'Custom',
     period: '',
-    tagline: 'For national fleets & corporate transporters',
-    color: '#FFB300',
+    tagline: 'For national fleets & corporate carriers (75+ trucks)',
+    color: '#F59E0B',
     highlighted: false,
     features: [
       'Unlimited Company Tenants',
       'Unlimited User accounts & roles',
-      'Unlimited Vehicles & active trips',
+      'Unlimited Trucks & active trips',
       'Unlimited Lorry Receipts (LR)',
       'Everything in Growth included',
       'Multi-branch delegation & permissions',
@@ -124,15 +124,15 @@ export default function Pricing() {
       ref={sectionRef}
       id="pricing"
       className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #081120 0%, #0A1628 100%)' }}
+      style={{ background: 'linear-gradient(180deg, #0F1B2E 0%, #0B1220 100%)' }}
     >
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(37,99,235,0.03) 0%, transparent 60%)' }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 50%, rgba(13,148,136,0.03) 0%, transparent 60%)' }} />
 
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header */}
         <div className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-5 text-xs font-bold uppercase tracking-[0.18em]" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.3)', color: '#42A5F5' }}>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-5 text-xs font-bold uppercase tracking-[0.18em] border border-ff-navy-500/30 bg-ff-navy-900/50 text-ff-teal-500">
             FLEXIBLE LICENSING
           </div>
           <h2
@@ -141,7 +141,7 @@ export default function Pricing() {
             style={{ letterSpacing: '-2px', opacity: 0 }}
           >
             Simple, transparent{' '}
-            <br /><span className="text-[#FFB300]">pricing modules.</span>
+            <br /><span className="text-ff-amber-500">pricing modules.</span>
           </h2>
           <p className="text-white/60 text-lg">
             Start a 7-day free trial. No credit card required. Cancel anytime.
@@ -154,17 +154,17 @@ export default function Pricing() {
             <div
               key={plan.id}
               ref={el => { if (el) cardsRef.current[i] = el; }}
-              className={`relative rounded-3xl p-8 transition-all duration-500 group hover:-translate-y-2 will-change-transform flex flex-col justify-between ${
+              className={`relative rounded-2xl p-8 transition-all duration-500 group hover:-translate-y-2 will-change-transform flex flex-col justify-between ${
                 plan.highlighted
-                  ? 'border border-[#2563EB]/50 bg-gradient-to-b from-[#10254C] to-[#0A1628] shadow-2xl shadow-[#2563EB]/10'
-                  : 'border border-white/5 bg-white/3 hover:border-white/10'
+                  ? 'border border-ff-amber-500/30 bg-gradient-to-b from-[#111A2E] to-[#0B1220] shadow-2xl shadow-ff-amber-500/5'
+                  : 'border border-ff-navy-700/50 bg-ff-navy-900/30 hover:border-ff-navy-700'
               }`}
               style={{ opacity: 0 }}
             >
               {/* Popular badge */}
               {plan.badge && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-[#2563EB] to-[#1E88E5] text-white text-[10px] font-bold tracking-widest uppercase px-4 py-1.5 rounded-full shadow-lg">
+                  <span className="bg-gradient-to-r from-ff-amber-500 to-ff-amber-600 text-ff-navy-950 text-[10px] font-bold tracking-widest uppercase px-4 py-1.5 rounded-full shadow-lg">
                     {plan.badge}
                   </span>
                 </div>
@@ -191,7 +191,7 @@ export default function Pricing() {
                   <p className="text-white/50 text-xs">{plan.tagline}</p>
                 </div>
 
-                <div className="border-t border-white/5 my-6" />
+                <div className="border-t border-ff-navy-700/50 my-6" />
 
                 {/* Feature list */}
                 <div className="space-y-3 mb-8">
@@ -205,7 +205,7 @@ export default function Pricing() {
                   ))}
                   {plan.missing.length > 0 && (
                     <>
-                      <div className="my-3 border-t border-white/5" />
+                      <div className="my-3 border-t border-ff-navy-700/30" />
                       {plan.missing.map((feat) => (
                         <div key={feat} className="flex items-start gap-2.5 opacity-20">
                           <svg className="w-4 h-4 shrink-0 mt-0.5 text-white/30" fill="currentColor" viewBox="0 0 20 20">
@@ -225,7 +225,7 @@ export default function Pricing() {
                 id={`pricing-cta-${plan.id}`}
                 className={`block w-full text-center py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 ${
                   plan.highlighted
-                    ? 'bg-gradient-to-r from-[#2563EB] to-[#1E4D8C] text-white hover:from-[#1E88E5] hover:to-[#2563EB] shadow-lg shadow-[#2563EB]/20 hover:shadow-[#2563EB]/40'
+                    ? 'bg-ff-amber-500 text-ff-navy-950 hover:bg-ff-amber-600 shadow-lg shadow-ff-amber-500/10 hover:shadow-ff-amber-500/20'
                     : 'border border-white/15 text-white/90 hover:border-white/30 hover:bg-white/5'
                 }`}
               >
@@ -236,9 +236,9 @@ export default function Pricing() {
         </div>
 
         {/* Bottom note */}
-        <div className="mt-16 text-center border-t border-white/5 pt-10">
+        <div className="mt-16 text-center border-t border-ff-navy-700/50 pt-10">
           <p className="text-white/40 text-xs">
-            All subscriptions include: automatic cloud backups, 128-bit file attachments encryption, GSTR files export, and direct integration support.
+            All subscriptions include: automatic cloud backups, AES-256 file attachments encryption, GSTR files export, and direct integration support.
           </p>
           <p className="text-white/30 text-[10px] mt-2">
             Pricing shown excludes applicable GST (18%). Annual commitments qualify for a 20% discount.
