@@ -263,28 +263,33 @@ export async function markRecordsAsInvoiced(records: { id: string, type: 'BOX' |
   }
 }
 
-async function validateInvoiceNumber(companyId: string, invoiceNo: string, excludeInvoiceId?: string) {
+async function validateInvoiceNumber(tx: any, companyId: string, invoiceNo: string, excludeInvoiceId?: string) {
+  const trimmed = invoiceNo.trim();
+  if (!trimmed) {
+    return { valid: false, error: 'Invoice number cannot be empty.' };
+  }
+
   // 1. Check duplicate
-  const existing = await prisma.freightInvoice.findFirst({
+  const existing = await tx.freightInvoice.findFirst({
     where: {
       companyId,
-      invoiceNo,
+      invoiceNo: trimmed,
       id: excludeInvoiceId ? { not: excludeInvoiceId } : undefined
     }
   });
 
   if (existing) {
-    return { valid: false, error: `Invoice number "${invoiceNo}" already exists.` };
+    return { valid: false, error: `Invoice number "${trimmed}" already exists.` };
   }
 
   // 2. Format sequence check: INV/YY-YY/SEQ
-  const match = invoiceNo.match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
+  const match = trimmed.match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
   if (match) {
-    const seq = parseInt(match[1]);
-    const prefix = invoiceNo.substring(0, invoiceNo.lastIndexOf('/') + 1); // e.g. "INV/24-25/"
+    const seq = parseInt(match[1], 10);
+    const prefix = trimmed.substring(0, trimmed.lastIndexOf('/') + 1); // e.g. "INV/24-25/"
 
     // Fetch all active sequences under this prefix
-    const invoices = await prisma.freightInvoice.findMany({
+    const invoices = await tx.freightInvoice.findMany({
       where: {
         companyId,
         invoiceNo: { startsWith: prefix },
@@ -293,10 +298,10 @@ async function validateInvoiceNumber(companyId: string, invoiceNo: string, exclu
       select: { invoiceNo: true }
     });
 
-    const seqs = invoices.map(inv => {
-      const parts = inv.invoiceNo.split('/');
-      return parseInt(parts[parts.length - 1]);
-    }).filter(s => !isNaN(s));
+    const seqs = invoices.map((inv: any) => {
+      const m = inv.invoiceNo.trim().match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
+      return m ? parseInt(m[1], 10) : null;
+    }).filter((s: any) => s !== null && !isNaN(s));
 
     const maxSeq = seqs.length > 0 ? Math.max(...seqs) : 0;
     if (seq <= maxSeq) {
@@ -329,18 +334,26 @@ export async function createFreightInvoice(data: {
     const tenantId = session?.user?.tenantId;
     if (!companyId || !tenantId) return { success: false, error: 'Unauthorized' };
 
-    const validation = await validateInvoiceNumber(companyId, data.invoiceNo);
-    if (!validation.valid) {
-      return { success: false, error: validation.error };
+    const trimmedInvoiceNo = data.invoiceNo.trim();
+    if (!trimmedInvoiceNo) {
+      return { success: false, error: 'Invoice number is required.' };
     }
 
     const invoice = await prisma.$transaction(async (tx) => {
+      // Acquire transaction-level advisory lock to serialize generation for this company
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${companyId}::text))`;
+
+      const validation = await validateInvoiceNumber(tx, companyId, trimmedInvoiceNo);
+      if (!validation.valid) {
+        throw new Error(validation.error);
+      }
+
       // 1. Create the FreightInvoice record
       const inv = await tx.freightInvoice.create({
         data: {
           tenantId,
           companyId,
-          invoiceNo: data.invoiceNo,
+          invoiceNo: trimmedInvoiceNo,
           date: new Date(data.date),
           customerId: data.dealerId,
           subtotal: Math.round(data.subtotal * 100), // Convert to paise
@@ -361,14 +374,14 @@ export async function createFreightInvoice(data: {
         await tx.order.updateMany({
           where: { id: { in: boxIds }, companyId },
           data: { 
-            gstBillNo: data.invoiceNo,
+            gstBillNo: trimmedInvoiceNo,
             freightInvoiceId: inv.id
           }
         });
       }
 
       if (palletIds.length > 0) {
-        const params = [inv.id, data.invoiceNo, companyId, ...palletIds];
+        const params = [inv.id, trimmedInvoiceNo, companyId, ...palletIds];
         const idPlaceholders = palletIds.map((_, i) => `$${i + 4}::uuid`).join(', ');
         await tx.$executeRawUnsafe(
           `UPDATE "order_pallets"
@@ -572,22 +585,32 @@ export async function updateInvoiceRecords(
     const companyId = session?.user?.companyId;
     if (!companyId) return { success: false, error: 'Unauthorized' };
 
-    // Fetch current invoice first to check if invoiceNo changed
-    const currentInvoice = await prisma.freightInvoice.findUnique({
-      where: { id: invoiceId, companyId },
-      select: { invoiceNo: true }
-    });
-    if (!currentInvoice) return { success: false, error: 'Invoice not found' };
-
-    const isInvoiceNoChanged = invoiceNo && invoiceNo !== currentInvoice.invoiceNo;
-    if (isInvoiceNoChanged) {
-      const validation = await validateInvoiceNumber(companyId, invoiceNo, invoiceId);
-      if (!validation.valid) {
-        return { success: false, error: validation.error };
-      }
-    }
-
     await prisma.$transaction(async (tx) => {
+      // Acquire transaction-level advisory lock to serialize updates for this company
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${companyId}::text))`;
+
+      // Fetch current invoice first to check if invoiceNo changed
+      const currentInvoice = await tx.freightInvoice.findUnique({
+        where: { id: invoiceId, companyId },
+        select: { invoiceNo: true }
+      });
+      if (!currentInvoice) {
+        throw new Error('Invoice not found');
+      }
+
+      const trimmedInvoiceNo = invoiceNo?.trim();
+      if (invoiceNo !== undefined && !trimmedInvoiceNo) {
+        throw new Error('Invoice number cannot be empty.');
+      }
+
+      const isInvoiceNoChanged = trimmedInvoiceNo && trimmedInvoiceNo !== currentInvoice.invoiceNo;
+      if (isInvoiceNoChanged) {
+        const validation = await validateInvoiceNumber(tx, companyId, trimmedInvoiceNo, invoiceId);
+        if (!validation.valid) {
+          throw new Error(validation.error);
+        }
+      }
+
       let subtotalPaise = 0;
       let cgstPaise = 0;
       let sgstPaise = 0;
@@ -675,8 +698,8 @@ export async function updateInvoiceRecords(
         totalAmount: totalAmountPaise,
       };
 
-      if (isInvoiceNoChanged) {
-        updateData.invoiceNo = invoiceNo;
+      if (isInvoiceNoChanged && trimmedInvoiceNo) {
+        updateData.invoiceNo = trimmedInvoiceNo;
       }
 
       await tx.freightInvoice.update({
@@ -684,11 +707,11 @@ export async function updateInvoiceRecords(
         data: updateData
       });
 
-      if (isInvoiceNoChanged) {
+      if (isInvoiceNoChanged && trimmedInvoiceNo) {
         // Update linked orders' gstBillNo
         await tx.order.updateMany({
           where: { freightInvoiceId: invoiceId, companyId },
-          data: { gstBillNo: invoiceNo }
+          data: { gstBillNo: trimmedInvoiceNo }
         });
 
         // Update linked pallets' metadata -> invoiceNo
@@ -696,7 +719,7 @@ export async function updateInvoiceRecords(
           `UPDATE "order_pallets"
            SET "metadata" = jsonb_set(coalesce("metadata", '{}'::jsonb), '{invoiceNo}', to_jsonb($1::text))
            WHERE "freight_invoice_id" = $2::uuid AND "company_id" = $3::uuid`,
-          invoiceNo,
+          trimmedInvoiceNo,
           invoiceId,
           companyId
         );
