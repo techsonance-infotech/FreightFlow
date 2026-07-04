@@ -263,6 +263,54 @@ export async function markRecordsAsInvoiced(records: { id: string, type: 'BOX' |
   }
 }
 
+async function validateInvoiceNumber(companyId: string, invoiceNo: string, excludeInvoiceId?: string) {
+  // 1. Check duplicate
+  const existing = await prisma.freightInvoice.findFirst({
+    where: {
+      companyId,
+      invoiceNo,
+      id: excludeInvoiceId ? { not: excludeInvoiceId } : undefined
+    }
+  });
+
+  if (existing) {
+    return { valid: false, error: `Invoice number "${invoiceNo}" already exists.` };
+  }
+
+  // 2. Format sequence check: INV/YY-YY/SEQ
+  const match = invoiceNo.match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
+  if (match) {
+    const seq = parseInt(match[1]);
+    const prefix = invoiceNo.substring(0, invoiceNo.lastIndexOf('/') + 1); // e.g. "INV/24-25/"
+
+    // Fetch all active sequences under this prefix
+    const invoices = await prisma.freightInvoice.findMany({
+      where: {
+        companyId,
+        invoiceNo: { startsWith: prefix },
+        id: excludeInvoiceId ? { not: excludeInvoiceId } : undefined
+      },
+      select: { invoiceNo: true }
+    });
+
+    const seqs = invoices.map(inv => {
+      const parts = inv.invoiceNo.split('/');
+      return parseInt(parts[parts.length - 1]);
+    }).filter(s => !isNaN(s));
+
+    const maxSeq = seqs.length > 0 ? Math.max(...seqs) : 0;
+    if (seq <= maxSeq) {
+      const formattedMax = `${prefix}${maxSeq.toString().padStart(3, '0')}`;
+      return {
+        valid: false,
+        error: `Only invoice numbers greater than the previous valid invoice number (${formattedMax}) are allowed.`
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
 export async function createFreightInvoice(data: {
   invoiceNo: string;
   date: string;
@@ -280,6 +328,11 @@ export async function createFreightInvoice(data: {
     const companyId = session?.user?.companyId;
     const tenantId = session?.user?.tenantId;
     if (!companyId || !tenantId) return { success: false, error: 'Unauthorized' };
+
+    const validation = await validateInvoiceNumber(companyId, data.invoiceNo);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
 
     const invoice = await prisma.$transaction(async (tx) => {
       // 1. Create the FreightInvoice record
@@ -511,12 +564,28 @@ export async function updateInvoiceRecords(
     rateOn: string;
     gstType: string;
     gstRate: number;
-  }[]
+  }[],
+  invoiceNo?: string
 ) {
   try {
     const session = await getSession();
     const companyId = session?.user?.companyId;
     if (!companyId) return { success: false, error: 'Unauthorized' };
+
+    // Fetch current invoice first to check if invoiceNo changed
+    const currentInvoice = await prisma.freightInvoice.findUnique({
+      where: { id: invoiceId, companyId },
+      select: { invoiceNo: true }
+    });
+    if (!currentInvoice) return { success: false, error: 'Invoice not found' };
+
+    const isInvoiceNoChanged = invoiceNo && invoiceNo !== currentInvoice.invoiceNo;
+    if (isInvoiceNoChanged) {
+      const validation = await validateInvoiceNumber(companyId, invoiceNo, invoiceId);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
+      }
+    }
 
     await prisma.$transaction(async (tx) => {
       let subtotalPaise = 0;
@@ -596,18 +665,42 @@ export async function updateInvoiceRecords(
         }
       }
 
+      const updateData: any = {
+        date: new Date(date),
+        notes: notes || '',
+        subtotal: subtotalPaise,
+        cgst: cgstPaise,
+        sgst: sgstPaise,
+        igst: igstPaise,
+        totalAmount: totalAmountPaise,
+      };
+
+      if (isInvoiceNoChanged) {
+        updateData.invoiceNo = invoiceNo;
+      }
+
       await tx.freightInvoice.update({
         where: { id: invoiceId, companyId },
-        data: {
-          date: new Date(date),
-          notes: notes || '',
-          subtotal: subtotalPaise,
-          cgst: cgstPaise,
-          sgst: sgstPaise,
-          igst: igstPaise,
-          totalAmount: totalAmountPaise,
-        }
+        data: updateData
       });
+
+      if (isInvoiceNoChanged) {
+        // Update linked orders' gstBillNo
+        await tx.order.updateMany({
+          where: { freightInvoiceId: invoiceId, companyId },
+          data: { gstBillNo: invoiceNo }
+        });
+
+        // Update linked pallets' metadata -> invoiceNo
+        await tx.$executeRawUnsafe(
+          `UPDATE "order_pallets"
+           SET "metadata" = jsonb_set(coalesce("metadata", '{}'::jsonb), '{invoiceNo}', to_jsonb($1::text))
+           WHERE "freight_invoice_id" = $2::uuid AND "company_id" = $3::uuid`,
+          invoiceNo,
+          invoiceId,
+          companyId
+        );
+      }
     }, {
       maxWait: 10000,
       timeout: 30000,
