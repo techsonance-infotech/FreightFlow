@@ -113,6 +113,7 @@ export default function DealerBillingPage() {
 
   // Editing Invoice State
   const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
+  const [editInvoiceNo, setEditInvoiceNo] = useState('');
   const [editInvoiceDate, setEditInvoiceDate] = useState('');
   const [editInvoiceNotes, setEditInvoiceNotes] = useState('');
   const [editRecords, setEditRecords] = useState<any[]>([]);
@@ -684,6 +685,7 @@ export default function DealerBillingPage() {
   // Open Edit Modal
   const handleStartEdit = (inv: any) => {
     setEditingInvoice(inv);
+    setEditInvoiceNo(inv.invoiceNo);
     setEditInvoiceDate(formatUtcDate(inv.date, 'yyyy-MM-dd'));
     setEditInvoiceNotes(inv.notes || '');
     
@@ -719,13 +721,18 @@ export default function DealerBillingPage() {
 
   const handleSaveInvoiceEdit = async () => {
     if (!editingInvoice) return;
+    if (!editInvoiceNo.trim()) {
+      toast.error('Invoice number is required');
+      return;
+    }
     setIsSavingEdit(true);
     try {
       const res = await updateInvoiceRecords(
         editingInvoice.id,
         editInvoiceDate,
         editInvoiceNotes,
-        editRecords
+        editRecords,
+        editInvoiceNo.trim()
       );
 
       if (res.success) {
@@ -921,6 +928,17 @@ export default function DealerBillingPage() {
                 )}
               </div>
               
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Invoice Number</Label>
+                <Input 
+                  type="text" 
+                  value={currentInvoiceNo} 
+                  onChange={(e) => setCurrentInvoiceNo(e.target.value)}
+                  className="rounded-xl border-slate-100 h-11 bg-slate-50/50 text-slate-850 font-bold text-xs"
+                  placeholder="Auto-generated number..."
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Invoice Date</Label>
                 <Input 
@@ -1504,7 +1522,16 @@ export default function DealerBillingPage() {
           }
         >
           <div className="space-y-6 text-slate-900">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase text-slate-400">Invoice Number</Label>
+                <Input
+                  type="text"
+                  value={editInvoiceNo}
+                  onChange={(e) => setEditInvoiceNo(e.target.value)}
+                  className="rounded-xl h-11 border-slate-200 font-bold text-xs"
+                />
+              </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black uppercase text-slate-400">Invoice Date</Label>
                 <Input
