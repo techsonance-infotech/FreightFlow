@@ -23,6 +23,7 @@ export async function getDealerEntryRecords(
       status: {
         not: 'deleted',
       },
+      deletedAt: null,
     };
 
     if (dealerId !== 'ALL') {
