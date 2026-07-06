@@ -61,6 +61,7 @@ export async function getDealerRecords(
         status: {
           not: 'deleted',
         },
+        deletedAt: null,
       },
       include: {
         dealer: true,
@@ -341,7 +342,7 @@ export async function createFreightInvoice(data: {
 
     const invoice = await prisma.$transaction(async (tx) => {
       // Acquire transaction-level advisory lock to serialize generation for this company
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${companyId}::text))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${companyId}::text))`;
 
       const validation = await validateInvoiceNumber(tx, companyId, trimmedInvoiceNo);
       if (!validation.valid) {
@@ -415,9 +416,11 @@ export async function getSavedInvoices() {
       where: { companyId },
       include: {
         orders: {
+          where: { deletedAt: null },
           include: { consignee: true, details: true }
         },
         pallets: {
+          where: { deletedAt: null },
           include: { consignee: true, palletDetails: true }
         }
       },
@@ -432,7 +435,55 @@ export async function getSavedInvoices() {
     });
     const dealerMap = new Map(dealers.map(d => [d.id, d]));
 
-    const enriched = invoices.map(inv => {
+    const enriched = [];
+    for (const inv of invoices) {
+      let activeSubtotalPaise = 0;
+      let activeCgstPaise = 0;
+      let activeSgstPaise = 0;
+      let activeIgstPaise = 0;
+      let activeTotalAmountPaise = 0;
+
+      for (const r of inv.orders) {
+        activeSubtotalPaise += Number(r.subtotal || 0);
+        activeCgstPaise += Number(r.cgstAmount || 0);
+        activeSgstPaise += Number(r.sgstAmount || 0);
+        activeIgstPaise += Number(r.igstAmount || 0);
+        activeTotalAmountPaise += Number(r.totalAmount || 0);
+      }
+
+      for (const r of inv.pallets) {
+        activeSubtotalPaise += Number(r.subtotal || 0);
+        activeCgstPaise += Number(r.cgstAmount || 0);
+        activeSgstPaise += Number(r.sgstAmount || 0);
+        activeIgstPaise += Number(r.igstAmount || 0);
+        activeTotalAmountPaise += Number(r.totalAmount || 0);
+      }
+
+      // Auto-heal if totals are out of sync due to soft-deleted records
+      if (
+        activeSubtotalPaise !== inv.subtotal ||
+        activeCgstPaise !== inv.cgst ||
+        activeSgstPaise !== inv.sgst ||
+        activeIgstPaise !== inv.igst ||
+        activeTotalAmountPaise !== inv.totalAmount
+      ) {
+        await prisma.freightInvoice.update({
+          where: { id: inv.id },
+          data: {
+            subtotal: activeSubtotalPaise,
+            cgst: activeCgstPaise,
+            sgst: activeSgstPaise,
+            igst: activeIgstPaise,
+            totalAmount: activeTotalAmountPaise
+          }
+        });
+        inv.subtotal = activeSubtotalPaise;
+        inv.cgst = activeCgstPaise;
+        inv.sgst = activeSgstPaise;
+        inv.igst = activeIgstPaise;
+        inv.totalAmount = activeTotalAmountPaise;
+      }
+
       // Map standard and pallet orders to a unified format
       const unifiedOrders = inv.orders.map(r => ({
         id: r.id,
@@ -484,7 +535,7 @@ export async function getSavedInvoices() {
         }))
       }));
 
-      return {
+      enriched.push({
         id: inv.id,
         invoiceNo: inv.invoiceNo,
         date: inv.date,
@@ -498,8 +549,8 @@ export async function getSavedInvoices() {
         status: inv.status,
         dealer: dealerMap.get(inv.customerId) || { name: 'Unknown Customer' },
         records: [...unifiedOrders, ...unifiedPallets].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      };
-    });
+      });
+    }
 
     return JSON.parse(JSON.stringify(enriched));
   } catch (error) {
@@ -587,7 +638,7 @@ export async function updateInvoiceRecords(
 
     await prisma.$transaction(async (tx) => {
       // Acquire transaction-level advisory lock to serialize updates for this company
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${companyId}::text))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${companyId}::text))`;
 
       // Fetch current invoice first to check if invoiceNo changed
       const currentInvoice = await tx.freightInvoice.findUnique({
@@ -733,5 +784,58 @@ export async function updateInvoiceRecords(
   } catch (error: any) {
     console.error('Error updating invoice records:', error);
     return { success: false, error: error?.message || 'Failed to update invoice' };
+  }
+}
+
+export async function recalculateInvoiceTotals(invoiceId: string) {
+  try {
+    const inv = await prisma.freightInvoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        orders: {
+          where: { deletedAt: null }
+        },
+        pallets: {
+          where: { deletedAt: null }
+        }
+      }
+    });
+
+    if (!inv) return;
+
+    let subtotalPaise = 0;
+    let cgstPaise = 0;
+    let sgstPaise = 0;
+    let igstPaise = 0;
+    let totalAmountPaise = 0;
+
+    for (const r of inv.orders) {
+      subtotalPaise += Number(r.subtotal || 0);
+      cgstPaise += Number(r.cgstAmount || 0);
+      sgstPaise += Number(r.sgstAmount || 0);
+      igstPaise += Number(r.igstAmount || 0);
+      totalAmountPaise += Number(r.totalAmount || 0);
+    }
+
+    for (const r of inv.pallets) {
+      subtotalPaise += Number(r.subtotal || 0);
+      cgstPaise += Number(r.cgstAmount || 0);
+      sgstPaise += Number(r.sgstAmount || 0);
+      igstPaise += Number(r.igstAmount || 0);
+      totalAmountPaise += Number(r.totalAmount || 0);
+    }
+
+    await prisma.freightInvoice.update({
+      where: { id: invoiceId },
+      data: {
+        subtotal: subtotalPaise,
+        cgst: cgstPaise,
+        sgst: sgstPaise,
+        igst: igstPaise,
+        totalAmount: totalAmountPaise
+      }
+    });
+  } catch (error) {
+    console.error('Error recalculating invoice totals:', error);
   }
 }
