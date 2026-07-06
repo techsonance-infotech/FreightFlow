@@ -507,6 +507,58 @@ export default function DealerBillingPage() {
 
     currentY = (doc as any).lastAutoTable.finalY + 5;
 
+    // --- Load Type Breakdown Summary ---
+    const boxRecords = inv.records.filter(r => r.loadType === 'BOX');
+    const palletRecords = inv.records.filter(r => r.loadType === 'PALLET');
+    const palletReturnRecords = inv.records.filter(r => r.loadType === 'PALLET_RETURN');
+
+    const boxTotalQty = boxRecords.reduce((acc, r) => acc + (Number(r.totalBoxes) || 0), 0);
+    const boxTotalWeight = boxRecords.reduce((acc, r) => acc + (Number(r.totalWeight) || 0), 0);
+    const palletTotalQty = palletRecords.reduce((acc, r) => acc + (Number(r.totalBoxes) || 0), 0);
+    const palletTotalWeight = palletRecords.reduce((acc, r) => acc + (Number(r.totalWeight) || 0), 0);
+    const palletReturnTotalQty = palletReturnRecords.reduce((acc, r) => acc + (Number(r.totalBoxes) || 0), 0);
+    const palletReturnTotalWeight = palletReturnRecords.reduce((acc, r) => acc + (Number(r.totalWeight) || 0), 0);
+
+    const grandTotalQty = boxTotalQty + palletTotalQty + palletReturnTotalQty;
+    const grandTotalWeight = boxTotalWeight + palletTotalWeight + palletReturnTotalWeight;
+
+    const summaryBody: any[] = [];
+    if (boxRecords.length > 0) {
+      summaryBody.push(['Box Load', `${boxRecords.length}`, `${boxTotalQty} Boxes`, `${boxTotalWeight.toFixed(2)} KG`]);
+    }
+    if (palletRecords.length > 0) {
+      summaryBody.push(['Pallet Load', `${palletRecords.length}`, `${palletTotalQty} Nos`, `${palletTotalWeight.toFixed(2)} KG`]);
+    }
+    if (palletReturnRecords.length > 0) {
+      summaryBody.push(['Pallet Return', `${palletReturnRecords.length}`, `${palletReturnTotalQty} Nos`, `${palletReturnTotalWeight.toFixed(2)} KG`]);
+    }
+    summaryBody.push(['GRAND TOTAL', `${inv.records.length}`, `${grandTotalQty}`, `${grandTotalWeight.toFixed(2)} KG`]);
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [['LOAD TYPE', 'RECORDS', 'TOTAL QTY', 'TOTAL WEIGHT']],
+      body: summaryBody,
+      theme: 'grid',
+      headStyles: { fillColor: [235, 240, 248], textColor: [0, 0, 0], fontSize: 7.5, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { textColor: [0, 0, 0], fontSize: 7.5, halign: 'center' },
+      columnStyles: {
+        0: { cellWidth: 35, halign: 'left', fontStyle: 'bold' },
+        1: { cellWidth: 20, halign: 'center' },
+        2: { cellWidth: 25, halign: 'center' },
+        3: { cellWidth: 25, halign: 'center' },
+      },
+      margin: { left: margin, right: margin },
+      tableWidth: 105,
+      didParseCell: (data) => {
+        if (data.row.index === summaryBody.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [245, 248, 252];
+        }
+      }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 5;
+
     const neededHeight = 90;
     if (currentY + neededHeight > pageHeight - margin) {
       doc.addPage();
