@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-utils';
 import { prisma } from '@freightflow/db';
+import { recalculateInvoiceTotals } from '@/app/actions/accounting/dealer-billing';
 
 export async function GET(
   request: NextRequest,
@@ -210,6 +211,15 @@ export async function DELETE(
     const { user } = session;
     const { id } = await params;
 
+    const order = await prisma.order.findUnique({
+      where: {
+        id,
+        tenantId: user.tenantId,
+        companyId: user.companyId,
+      },
+      select: { freightInvoiceId: true }
+    });
+
     await prisma.order.update({
       where: {
         id,
@@ -218,6 +228,10 @@ export async function DELETE(
       },
       data: { deletedAt: new Date() },
     });
+
+    if (order?.freightInvoiceId) {
+      await recalculateInvoiceTotals(order.freightInvoiceId);
+    }
 
     return NextResponse.json({ message: 'Order deleted successfully' });
   } catch (error) {

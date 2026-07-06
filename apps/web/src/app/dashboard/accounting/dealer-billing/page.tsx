@@ -143,16 +143,23 @@ export default function DealerBillingPage() {
   const roundOff = grandTotal - rawTotal;
 
   useEffect(() => {
-    async function loadDealers() {
-      const data = await getDealers();
-      setDealers(data);
-      const nextNo = await getNextInvoiceNumber();
-      if (nextNo) setCurrentInvoiceNo(nextNo);
-      
-      const dateStr = await fetchOnlineDate();
-      setInvoiceDate(dateStr);
+    async function loadData() {
+      try {
+        const [dealersData, nextNo, dateStr, company] = await Promise.all([
+          getDealers(),
+          getNextInvoiceNumber(),
+          fetchOnlineDate(),
+          getCompanyBillingDetails()
+        ]);
+        setDealers(dealersData);
+        if (nextNo) setCurrentInvoiceNo(nextNo);
+        setInvoiceDate(dateStr);
+        setCompanyDetails(company);
+      } catch (error) {
+        console.error('Error initializing page data:', error);
+      }
     }
-    loadDealers();
+    loadData();
   }, []);
 
   const handleFetchRecords = async () => {
@@ -195,8 +202,12 @@ export default function DealerBillingPage() {
   const loadInvoicesList = async () => {
     setIsLoadingInvoices(true);
     try {
-      const data = await getSavedInvoices();
+      const [data, company] = await Promise.all([
+        getSavedInvoices(),
+        getCompanyBillingDetails()
+      ]);
       setSavedInvoices(data);
+      setCompanyDetails(company);
     } catch (e) {
       toast.error('Failed to load saved invoices');
     } finally {
@@ -279,6 +290,13 @@ export default function DealerBillingPage() {
     totalAmount: number;
     notes?: string | null;
   }, printReportType: 'consolidated' | 'detailed') => {
+    // Ensure company details are available even if user navigated directly to saved invoices
+    if (!companyDetails) {
+      const freshCompany = await getCompanyBillingDetails();
+      if (freshCompany) setCompanyDetails(freshCompany);
+    }
+    const company = companyDetails || await getCompanyBillingDetails();
+
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -301,24 +319,24 @@ export default function DealerBillingPage() {
 
     let businessY = currentY + 12;
     doc.setFontSize(11);
-    doc.text(companyDetails?.name?.toUpperCase() || 'COMPANY NAME', margin + 2, businessY);
+    doc.text(company?.name?.toUpperCase() || 'COMPANY NAME', margin + 2, businessY);
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     let consignorY = businessY + 4;
-    const supplierLines = doc.splitTextToSize(companyDetails?.address || '', (boxWidth * 0.6) - 5);
+    const supplierLines = doc.splitTextToSize(company?.address || '', (boxWidth * 0.6) - 5);
     doc.text(supplierLines, margin + 2, consignorY);
 
     let supplierInfoY = consignorY + (supplierLines.length * 3.5);
-    doc.text(`GST No :- ${companyDetails?.gstin?.toUpperCase() || '-'}`, margin + 2, supplierInfoY);
-    doc.text(`PAN No. :- ${companyDetails?.pan?.toUpperCase() || '-'}`, margin + 2, supplierInfoY + 4);
-    doc.text(`Bank Name :- ${companyDetails?.bankName?.toUpperCase() || '-'}`, margin + 2, supplierInfoY + 8);
-    doc.text(`A/C No :- ${companyDetails?.accountNo || '-'}`, margin + 2, supplierInfoY + 12);
-    doc.text(`IFSC CODE :- ${companyDetails?.ifscCode?.toUpperCase() || '-'}`, margin + 2, supplierInfoY + 16);
+    doc.text(`GST No :- ${company?.gstin?.toUpperCase() || '-'}`, margin + 2, supplierInfoY);
+    doc.text(`PAN No. :- ${company?.pan?.toUpperCase() || '-'}`, margin + 2, supplierInfoY + 4);
+    doc.text(`Bank Name :- ${company?.bankName?.toUpperCase() || '-'}`, margin + 2, supplierInfoY + 8);
+    doc.text(`A/C No :- ${company?.accountNo || '-'}`, margin + 2, supplierInfoY + 12);
+    doc.text(`IFSC CODE :- ${company?.ifscCode?.toUpperCase() || '-'}`, margin + 2, supplierInfoY + 16);
 
-    if (companyDetails?.logoUrl) {
+    if (company?.logoUrl) {
       try {
-        const logoData = await getBase64Image(companyDetails.logoUrl);
+        const logoData = await getBase64Image(company.logoUrl);
         if (logoData) {
           const imgProps = doc.getImageProperties(logoData);
           const maxLogoW = 50;
@@ -392,9 +410,13 @@ export default function DealerBillingPage() {
         const prodName = record.details[0]?.productName || (isPallet ? (record.loadType === 'PALLET_RETURN' ? 'Empty Pallet Return' : 'Pallet') : 'Yarn');
         const packType = isPallet ? (record.details[0]?.packingType || 'Pallet') : (record.details[0]?.packingType || 'Box');
         
-        const rateOn = record.rateOn || 'weight';
         const price = Number(record.rate || 0);
         const amount = Number(record.subtotal || 0);
+
+        // QTY: total boxes for BOX loads, total pallets for PALLET loads
+        const qty = isPallet ? `${record.totalBoxes || 0} Nos` : `${record.totalBoxes || 0} Boxes`;
+        // WEIGHT: always show the weight
+        const weight = `${Number(record.totalWeight || 0).toFixed(2)} KG`;
 
         return [
           (index + 1).toString(),
@@ -403,9 +425,8 @@ export default function DealerBillingPage() {
           (record as any).consignee?.name || (record as any).companyName || '-',
           prodName,
           packType,
-          isPallet 
-            ? (rateOn === 'weight' ? `${Number(record.totalWeight).toFixed(2)} KG` : `${record.totalBoxes} Nos`) 
-            : (rateOn === 'box' ? `${record.totalBoxes} Boxes` : `${Number(record.totalWeight).toFixed(2)} KG`),
+          qty,
+          weight,
           price.toFixed(2),
           amount.toFixed(2)
         ];
@@ -413,21 +434,22 @@ export default function DealerBillingPage() {
 
       autoTable(doc, {
         startY: currentY,
-        head: [['SR.', 'DATE', 'LR/CH.NO', 'CUSTOMER NAME', 'DESCRIPTION OF GOODS', 'TYPE', 'QTY / WEIGHT', 'UNIT RATE', 'AMOUNT']],
+        head: [['SR.', 'DATE', 'LR/CH.NO', 'CUSTOMER NAME', 'DESCRIPTION', 'TYPE', 'QTY', 'WEIGHT', 'RATE', 'AMOUNT']],
         body: tableData,
         theme: 'grid',
-        headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
-        bodyStyles: { textColor: [0, 0, 0], fontSize: 8, halign: 'center' },
+        headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },
+        bodyStyles: { textColor: [0, 0, 0], fontSize: 7, halign: 'center' },
         columnStyles: {
-          0: { cellWidth: 8, halign: 'center' },
-          1: { cellWidth: 20, halign: 'center' },
-          2: { cellWidth: 25, halign: 'center' },
-          3: { cellWidth: 32, halign: 'left' },
-          4: { cellWidth: 35, halign: 'left' },
+          0: { cellWidth: 7, halign: 'center' },
+          1: { cellWidth: 18, halign: 'center' },
+          2: { cellWidth: 22, halign: 'center' },
+          3: { cellWidth: 28, halign: 'left' },
+          4: { cellWidth: 30, halign: 'left' },
           5: { cellWidth: 13, halign: 'center' },
-          6: { cellWidth: 20, halign: 'center' },
-          7: { cellWidth: 15, halign: 'right' },
-          8: { cellWidth: 22, halign: 'right' },
+          6: { cellWidth: 16, halign: 'center' },
+          7: { cellWidth: 18, halign: 'center' },
+          8: { cellWidth: 15, halign: 'right' },
+          9: { cellWidth: 23, halign: 'right' },
         },
         margin: { left: margin, right: margin }
       });
@@ -457,25 +479,27 @@ export default function DealerBillingPage() {
         (index + 1).toString(),
         item.description,
         item.type,
-        item.type === 'Pallet' ? `${item.totalQty} Nos` : `${formatWeight(item.totalWeight)} KG`,
+        item.type === 'Pallet' ? `${item.totalQty} Nos` : `${item.totalQty} Boxes`,
+        `${formatWeight(item.totalWeight)} KG`,
         item.unitPrice.toFixed(2),
         item.subtotal.toFixed(2)
       ]);
 
       autoTable(doc, {
         startY: currentY,
-        head: [['SR.', 'DESCRIPTION OF GOODS', 'TYPE', 'QTY / WEIGHT', 'UNIT RATE', 'AMOUNT']],
+        head: [['SR.', 'DESCRIPTION OF GOODS', 'TYPE', 'QTY', 'WEIGHT', 'UNIT RATE', 'AMOUNT']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
         bodyStyles: { fontSize: 8, halign: 'center' },
         columnStyles: {
           0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 80, halign: 'left' },
+          1: { cellWidth: 65, halign: 'left' },
           2: { cellWidth: 20, halign: 'center' },
-          3: { cellWidth: 25, halign: 'center' },
-          4: { cellWidth: 25, halign: 'right' },
-          5: { cellWidth: 30, halign: 'right' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 22, halign: 'center' },
+          5: { cellWidth: 23, halign: 'right' },
+          6: { cellWidth: 30, halign: 'right' },
         },
         margin: { left: margin, right: margin }
       });
@@ -546,13 +570,13 @@ export default function DealerBillingPage() {
     doc.setFont('helvetica', 'normal');
     doc.text('Receiver\'s Signature:', margin + 2, currentY + 7);
 
-    const companyTitle = `FOR, ${companyDetails?.name?.toUpperCase() || 'COMPANY NAME'}`;
+    const companyTitle = `FOR, ${company?.name?.toUpperCase() || 'COMPANY NAME'}`;
     doc.setFont('helvetica', 'bold');
     doc.text(companyTitle, pageWidth - margin - 2, currentY + 10, { align: 'right' });
 
-    if (companyDetails?.signatureUrl) {
+    if (company?.signatureUrl) {
       try {
-        const sigData = await getBase64Image(companyDetails.signatureUrl);
+        const sigData = await getBase64Image(company.signatureUrl);
         if (sigData) {
           const sigProps = doc.getImageProperties(sigData);
           const maxSigW = 30;
@@ -571,7 +595,7 @@ export default function DealerBillingPage() {
 
     currentY += 35;
 
-    const termsText = companyDetails?.printTerms || '1. Goods once sold will not be taken back.\n2. Subject to local Jurisdiction.';
+    const termsText = company?.printTerms || '1. Goods once sold will not be taken back.\n2. Subject to local Jurisdiction.';
     doc.setFontSize(7);
     const termLines = doc.splitTextToSize(termsText, boxWidth - 4);
     const termsHeight = (termLines.length * 3.5) + 6;
@@ -591,7 +615,7 @@ export default function DealerBillingPage() {
     doc.setFontSize(9);
     doc.setTextColor(100);
     doc.setFont('helvetica', 'normal');
-    doc.text(`If you have any questions about this invoice, please contact: ${companyDetails?.phone || '9173101711'}`, pageWidth / 2, currentY + 6, { align: 'center' });
+    doc.text(`If you have any questions about this invoice, please contact: ${company?.phone || '9173101711'}`, pageWidth / 2, currentY + 6, { align: 'center' });
 
     doc.save(`${inv.dealer?.name || 'Dealer'}_Invoice_${inv.invoiceNo.replace(/\//g, '_')}.pdf`);
   };
@@ -1071,7 +1095,8 @@ export default function DealerBillingPage() {
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">LR / CH.No</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Customer</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Item Details</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Weight/Qty</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Qty</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">Weight</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800">GST Details</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-800 text-right">Amount</th>
                         </tr>
@@ -1093,11 +1118,13 @@ export default function DealerBillingPage() {
                               <td className="px-6 py-4 text-xs font-black text-slate-900">
                                 {(() => {
                                   const isPallet = record.loadType === 'PALLET' || record.loadType === 'PALLET_RETURN';
-                                  const rateOn = record.rateOn || 'weight';
-                                  return isPallet 
-                                    ? (rateOn === 'weight' ? `${record.totalWeight || 0} Kg` : `${record.totalBoxes || 0} Nos`) 
-                                    : (rateOn === 'box' ? `${record.totalBoxes || 0} Boxes` : `${record.totalWeight || 0} Kg`);
+                                  return isPallet
+                                    ? `${record.totalBoxes || 0} Nos`
+                                    : `${record.totalBoxes || 0} Boxes`;
                                 })()}
+                              </td>
+                              <td className="px-6 py-4 text-xs font-black text-slate-900">
+                                {`${Number(record.totalWeight || 0).toFixed(2)} KG`}
                               </td>
                               <td className="px-6 py-4">
                                 {(() => {

@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth-utils';
 import { prisma } from '@freightflow/db';
 import { PalletSchema } from '@freightflow/shared';
 import { z } from 'zod';
+import { recalculateInvoiceTotals } from '@/app/actions/accounting/dealer-billing';
 
 export async function GET(
   request: Request,
@@ -195,7 +196,7 @@ export async function DELETE(
     // Verify ownership before mutating — prevents cross-tenant data access
     const existing = await prisma.orderPallet.findUnique({
       where: { id },
-      select: { tenantId: true },
+      select: { tenantId: true, freightInvoiceId: true },
     });
     if (!existing || existing.tenantId !== session.user.tenantId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -205,6 +206,10 @@ export async function DELETE(
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    if (existing?.freightInvoiceId) {
+      await recalculateInvoiceTotals(existing.freightInvoiceId);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
