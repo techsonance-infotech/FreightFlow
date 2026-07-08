@@ -26,6 +26,7 @@ const ROLE_REQUIREMENTS: Record<string, string[]> = {
   '/dashboard/billing': ['tenant_owner', 'fleet_owner', 'accountant', 'ops_manager'],
   '/dashboard/hr': ['tenant_owner', 'fleet_owner', 'hr_manager'],
   '/dashboard/compliance': ['tenant_owner', 'fleet_owner', 'accountant', 'auditor'],
+  '/dashboard/settings/backup': ['tenant_owner', 'super_admin'],
   '/dashboard/settings': ['tenant_owner', 'fleet_owner'],
   '/dashboard/masters': ['tenant_owner', 'fleet_owner', 'ops_manager', 'accountant', 'hr_manager', 'maintenance_supervisor'],
   '/dashboard/fleet': ['tenant_owner', 'fleet_owner', 'ops_manager', 'maintenance_supervisor'],

@@ -91,6 +91,9 @@ model Tenant {
   maintenanceSchedules MaintenanceSchedule[]
   chequeBooks          ChequeBook[]
   financialYears       FinancialYear[]
+  backupJobs           BackupJob[]
+  backupRestoreJobs    BackupRestoreJob[]
+  backupSchedules      BackupSchedule[]
 
   @@map("tenants")
 }
@@ -411,6 +414,9 @@ model Company {
   maintenanceSchedules   MaintenanceSchedule[]
   chequeBooks            ChequeBook[]
   financialYears         FinancialYear[]
+  backupJobs             BackupJob[]
+  backupRestoreJobs      BackupRestoreJob[]
+  backupSchedules        BackupSchedule[]
 
   @@index([tenantId])
   @@map("companies")
@@ -461,13 +467,15 @@ model User {
   company Company? @relation(fields: [companyId], references: [id])
   branch  Branch?  @relation(fields: [branchId], references: [id])
 
-  employees        Employee[]
-  auditLogs        AuditLog[]
-  licenseRequests  LicenseRequest[]
-  supportMessages  SupportMessage[]
-  supportTickets   SupportTicket[]
-  notifications    SystemNotification[]
-  otpVerifications OtpVerification[]
+  employees              Employee[]
+  auditLogs              AuditLog[]
+  licenseRequests        LicenseRequest[]
+  supportMessages        SupportMessage[]
+  supportTickets         SupportTicket[]
+  notifications          SystemNotification[]
+  otpVerifications       OtpVerification[]
+  backupJobsCreated      BackupJob[]        @relation("BackupCreator")
+  restoreJobsRequested   BackupRestoreJob[] @relation("RestoreRequester")
 
   @@index([tenantId])
   @@index([companyId])
@@ -2073,4 +2081,92 @@ model FinancialYear {
 
   @@index([tenantId, companyId])
   @@map("accounting_financial_years")
+}
+
+// ============================================
+// BACKUP & RESTORE MODULE
+// ============================================
+
+model BackupJob {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  companyId       String    @map("company_id") @db.Uuid
+  createdBy       String    @map("created_by") @db.Uuid
+  name            String    @db.VarChar(255)
+  type            String    @default("manual") @db.VarChar(20) // manual, automatic, pre_restore
+  status          String    @default("queued") @db.VarChar(20) // queued, preparing, compressing, encrypting, uploading, completed, failed, cancelled
+  progress        Int       @default(0) // 0-100
+  storagePath     String?   @map("storage_path") @db.Text
+  storageProvider String    @default("supabase") @map("storage_provider") @db.VarChar(20)
+  fileSize        BigInt?   @map("file_size") // bytes
+  originalSize    BigInt?   @map("original_size") // uncompressed bytes
+  checksum        String?   @db.VarChar(64) // SHA-256
+  encrypted       Boolean   @default(true)
+  schemaVersion   String?   @map("schema_version") @db.VarChar(20)
+  appVersion      String?   @map("app_version") @db.VarChar(20)
+  dbVersion       String?   @map("db_version") @db.VarChar(20)
+  includes        Json?     @default("[]") // what data is included in the backup
+  retentionExpiry DateTime? @map("retention_expiry") @db.Timestamptz()
+  errorMessage    String?   @map("error_message") @db.Text
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator User    @relation("BackupCreator", fields: [createdBy], references: [id])
+
+  restoreJobs BackupRestoreJob[]
+
+  @@index([tenantId])
+  @@index([companyId, status])
+  @@index([tenantId, type])
+  @@map("backup_jobs")
+}
+
+model BackupRestoreJob {
+  id               String    @id @default(uuid()) @db.Uuid
+  backupId         String    @map("backup_id") @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  companyId        String    @map("company_id") @db.Uuid
+  requestedBy      String    @map("requested_by") @db.Uuid
+  status           String    @default("queued") @db.VarChar(20) // queued, validating, snapshot_creating, restoring, verifying, completed, failed, rolled_back
+  progress         Int       @default(0)
+  restoreType      String    @default("full") @map("restore_type") @db.VarChar(20) // full, database, documents, config, master_data, users, transactions
+  snapshotBackupId String?   @map("snapshot_backup_id") @db.Uuid
+  errorMessage     String?   @map("error_message") @db.Text
+  startedAt        DateTime? @map("started_at") @db.Timestamptz()
+  completedAt      DateTime? @map("completed_at") @db.Timestamptz()
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  backup    BackupJob @relation(fields: [backupId], references: [id], onDelete: Cascade)
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requester User      @relation("RestoreRequester", fields: [requestedBy], references: [id])
+
+  @@index([tenantId])
+  @@index([backupId])
+  @@map("backup_restore_jobs")
+}
+
+model BackupSchedule {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  companyId     String    @map("company_id") @db.Uuid
+  enabled       Boolean   @default(false)
+  frequency     String    @default("daily") @db.VarChar(20) // daily, weekly, monthly, custom
+  cron          String?   @db.VarChar(100)
+  timezone      String    @default("Asia/Kolkata") @db.VarChar(50)
+  retentionDays Int       @default(30) @map("retention_days")
+  backupType    String    @default("full") @map("backup_type") @db.VarChar(20) // full, incremental
+  nextRun       DateTime? @map("next_run") @db.Timestamptz()
+  lastRun       DateTime? @map("last_run") @db.Timestamptz()
+  updatedBy     String?   @map("updated_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, companyId])
+  @@map("backup_schedules")
 }
