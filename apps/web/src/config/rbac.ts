@@ -189,6 +189,7 @@ export const NAV_ITEMS: NavGroup[] = [
           { id: 'settings-users', label: 'Users & Team', icon: 'users', path: '/dashboard/settings/users', allowedRoles: ['tenant_owner', 'fleet_owner', 'hr_manager'], category: 'admin' },
           { id: 'settings-audit', label: 'Audit Trail', icon: 'scroll', path: '/dashboard/settings/audit-log', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },
           { id: 'settings-security', label: 'Security', icon: 'shield', path: '/dashboard/settings/security', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },
+          { id: 'settings-backup', label: 'Backup & Restore', icon: 'database', path: '/dashboard/settings/backup', allowedRoles: ['tenant_owner', 'super_admin'], category: 'admin' },
           { id: 'settings-billing', label: 'Billing', icon: 'credit-card', path: '/dashboard/settings/billing', allowedRoles: ['tenant_owner', 'fleet_owner'], category: 'admin' },
         ]
       }
