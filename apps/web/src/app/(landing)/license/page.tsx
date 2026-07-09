@@ -1,8 +1,12 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Software License Agreement — FreightFlow',
+  description: 'Read the Software License Agreement for FreightFlow. Understand the terms, restrictions, and proprietary rights governing your use of our SaaS logistics platform.',
+};
 
 export default function LicensePage() {
   return (

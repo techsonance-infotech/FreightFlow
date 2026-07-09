@@ -1,7 +1,11 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
+
+export const metadata: Metadata = {
+  title: 'Insights, Guides & Compliance Articles — FreightFlow Blog',
+  description: 'Read practical articles on statutory GST compliance, transport tax laws, driver registries, PostgreSQL security architecture, and logistics efficiency.',
+};
 
 export default function BlogPage() {
   const posts = [
@@ -34,8 +38,43 @@ export default function BlogPage() {
     },
   ];
 
+  const blogJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    'name': 'The FreightFlow Blog',
+    'description': 'Practical articles on statutory compliance, transport tax laws, driver registries, and logistics efficiency.',
+    'url': 'https://freightflow.techsonance.co.in/blog',
+    'publisher': {
+      '@type': 'Organization',
+      'name': 'Techsonance InfoTech LLP',
+      'logo': {
+        '@type': 'ImageObject',
+        'url': 'https://freightflow.techsonance.co.in/favicon_io/android-chrome-512x512.png'
+      }
+    },
+    'blogPost': posts.map(post => ({
+      '@type': 'BlogPosting',
+      '@id': `https://freightflow.techsonance.co.in/blog#post-${post.id}`,
+      'headline': post.title,
+      'description': post.excerpt,
+      'datePublished': post.id === 1 ? '2026-06-28T00:00:00Z' : post.id === 2 ? '2026-06-15T00:00:00Z' : '2026-05-30T00:00:00Z',
+      'author': {
+        '@type': 'Organization',
+        'name': 'FreightFlow Team'
+      },
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'Techsonance InfoTech LLP'
+      }
+    }))
+  };
+
   return (
     <main className="overflow-x-hidden min-h-screen flex flex-col bg-[#050D1E]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }}
+      />
       <Nav />
 
       {/* Hero Section */}

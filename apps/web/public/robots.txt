@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /onboarding/
+Disallow: /auth/
+Disallow: /_next/
+
+Sitemap: https://freightflow.techsonance.co.in/sitemap.xml

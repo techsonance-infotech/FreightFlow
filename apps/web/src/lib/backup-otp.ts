@@ -113,18 +113,18 @@ export async function requestBackupOTP(purpose: BackupOtpPurpose) {
     throw new Error(`Too many OTP requests. Please wait ${OTP_RATE_WINDOW_MINUTES} minutes before trying again.`);
   }
 
-  // Check lockout
-  const lockoutCheck = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT id, attempts FROM otp_verifications 
-     WHERE user_id = $1::uuid AND type = $2 AND is_used = false 
-     AND created_at > $3
-     ORDER BY created_at DESC LIMIT 1`,
+  // Check lockout: count recent failed verifications for this purpose
+  const lockoutCheck = await prisma.$queryRawUnsafe<{ count: bigint }[]>(
+    `SELECT COUNT(*) as count FROM otp_verifications 
+     WHERE user_id = $1::uuid AND type = $2 AND is_used = true 
+     AND created_at > $3`,
     userId,
     `backup_${purpose.toLowerCase()}`,
-    windowStart
+    new Date(Date.now() - LOCKOUT_MINUTES * 60 * 1000)
   );
 
-  if (lockoutCheck.length > 0 && lockoutCheck[0].attempts >= MAX_OTP_ATTEMPTS) {
+  const failedCount = Number(lockoutCheck[0]?.count || 0);
+  if (failedCount >= MAX_OTP_ATTEMPTS) {
     throw new Error(`Too many failed attempts. Please wait ${LOCKOUT_MINUTES} minutes before trying again.`);
   }
 
@@ -176,7 +176,7 @@ export async function verifyBackupOTP(purpose: BackupOtpPurpose, otpCode: string
 
   // Find the latest unused OTP for this user/purpose
   const results = await prisma.$queryRawUnsafe<any[]>(
-    `SELECT id, otp, attempts FROM otp_verifications 
+    `SELECT id, otp FROM otp_verifications 
      WHERE user_id = $1::uuid AND type = $2 AND target_id = $3 AND is_used = false AND expires_at > NOW()
      ORDER BY created_at DESC LIMIT 1`,
     userId,
@@ -190,20 +190,30 @@ export async function verifyBackupOTP(purpose: BackupOtpPurpose, otpCode: string
     throw new Error('No valid verification code found. Please request a new one.');
   }
 
-  // Check if locked out
-  if (verification.attempts >= MAX_OTP_ATTEMPTS) {
+  // Check recent failed attempts (used OTPs for this purpose within lockout window)
+  const recentFails = await prisma.$queryRawUnsafe<{ count: bigint }[]>(
+    `SELECT COUNT(*) as count FROM otp_verifications 
+     WHERE user_id = $1::uuid AND type = $2 AND is_used = true 
+     AND created_at > $3`,
+    userId,
+    otpType,
+    new Date(Date.now() - LOCKOUT_MINUTES * 60 * 1000)
+  );
+  const failedAttempts = Number(recentFails[0]?.count || 0);
+
+  if (failedAttempts >= MAX_OTP_ATTEMPTS) {
     throw new Error(`Too many failed attempts. Please wait ${LOCKOUT_MINUTES} minutes and request a new code.`);
   }
 
   // Verify OTP
   if (verification.otp !== otpCode) {
-    // Increment attempts
+    // Mark this OTP as used (consumed by a failed attempt)
     await prisma.$executeRawUnsafe(
-      `UPDATE otp_verifications SET attempts = attempts + 1 WHERE id = $1::uuid`,
+      `UPDATE otp_verifications SET is_used = true WHERE id = $1::uuid`,
       verification.id
     );
 
-    const remaining = MAX_OTP_ATTEMPTS - (verification.attempts + 1);
+    const remaining = MAX_OTP_ATTEMPTS - (failedAttempts + 1);
     if (remaining <= 0) {
       throw new Error(`Too many failed attempts. Your verification has been locked for ${LOCKOUT_MINUTES} minutes.`);
     }
