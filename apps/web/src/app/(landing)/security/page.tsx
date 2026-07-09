@@ -1,8 +1,12 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
 import { ShieldCheck, Lock, Building, Database } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Bank-Grade Security Architecture — FreightFlow',
+  description: 'FreightFlow employs enterprise isolation, audited gateway connections, automated database backups, and encrypted transport layers to secure your supply chain data.',
+};
 
 export default function SecurityPage() {
   const points = [

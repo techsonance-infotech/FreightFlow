@@ -1,7 +1,11 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
+
+export const metadata: Metadata = {
+  title: 'Changelog & Platform Releases — FreightFlow',
+  description: 'Stay up to date with the latest features, statutory compliance updates, driver registries, and performance improvements shipped to FreightFlow.',
+};
 
 export default function ChangelogPage() {
   const changelogData = [

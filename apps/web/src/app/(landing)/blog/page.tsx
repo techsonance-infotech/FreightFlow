@@ -1,15 +1,22 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
 
+export const metadata: Metadata = {
+  title: 'Insights, Guides & Compliance Articles — FreightFlow Blog',
+  description: 'Read practical articles on statutory GST compliance, transport tax laws, driver registries, PostgreSQL security architecture, and logistics efficiency.',
+};
+
 export default function BlogPage() {
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://freightflow.techsonance.co.in').replace(/\/$/, '');
+
   const posts = [
     {
       id: 1,
       title: 'Automating GST e-Invoice & e-Way Bill Gateways',
       excerpt: 'Learn how direct API integrations with the NIC portal can reduce dispatch delays and completely eliminate manual registration errors.',
       date: 'June 28, 2026',
+      isoDate: '2026-06-28T00:00:00Z',
       readTime: '5 min read',
       tag: 'Compliance',
       color: 'text-ff-teal-400 bg-ff-teal-500/10 border-ff-teal-500/20',
@@ -19,6 +26,7 @@ export default function BlogPage() {
       title: 'How Multi-Tenant Databases Ensure Freight Security',
       excerpt: 'A deep dive into PostgreSQL Row-Level Security (RLS) and encryption protocols securing shipper directories in shared database structures.',
       date: 'June 15, 2026',
+      isoDate: '2026-06-15T00:00:00Z',
       readTime: '6 min read',
       tag: 'Security',
       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
@@ -28,14 +36,51 @@ export default function BlogPage() {
       title: 'Mitigating TDS Leakage Under Section 194C',
       excerpt: 'Transporter TDS deductions can become complex. Discover how automated registries and automatic PAN validation streamline transport accounting.',
       date: 'May 30, 2026',
+      isoDate: '2026-05-30T00:00:00Z',
       readTime: '4 min read',
       tag: 'Finance & Tax',
       color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
     },
   ];
 
+  const blogJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    'name': 'The FreightFlow Blog',
+    'description': 'Practical articles on statutory compliance, transport tax laws, driver registries, and logistics efficiency.',
+    'url': `${baseUrl}/blog`,
+    'publisher': {
+      '@type': 'Organization',
+      'name': 'Techsonance InfoTech LLP',
+      'logo': {
+        '@type': 'ImageObject',
+        'url': `${baseUrl}/favicon_io/android-chrome-512x512.png`
+      }
+    },
+    'blogPost': posts.map(post => ({
+      '@type': 'BlogPosting',
+      '@id': `${baseUrl}/blog#post-${post.id}`,
+      'headline': post.title,
+      'description': post.excerpt,
+      'datePublished': post.isoDate,
+      'author': {
+        '@type': 'Organization',
+        'name': 'FreightFlow Team'
+      },
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'Techsonance InfoTech LLP'
+      }
+    }))
+  };
+
+
   return (
     <main className="overflow-x-hidden min-h-screen flex flex-col bg-[#050D1E]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }}
+      />
       <Nav />
 
       {/* Hero Section */}

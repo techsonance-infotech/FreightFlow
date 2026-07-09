@@ -1,7 +1,13 @@
 import type { Metadata } from 'next';
 import LandingWrapper from '@/components/landing/LandingWrapper';
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://freightflow.techsonance.co.in';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  alternates: {
+    canonical: './',
+  },
   title: 'FreightFlow — Every Freight. Every Route. One Platform.',
   description:
     'Create LRs in 30 seconds. Auto-generate GST invoices. Track shipments, drivers & payments. Logistics & Supply Chain Intelligence for Indian transport businesses.',
@@ -14,6 +20,7 @@ export const metadata: Metadata = {
     title: 'FreightFlow — Every Freight. Every Route. One Platform.',
     description: 'Create LRs in 30 seconds. Auto-generate GST invoices. Built for Indian transport businesses.',
     type: 'website',
+    url: siteUrl,
   },
 };
 
@@ -22,12 +29,14 @@ export default function LandingLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://freightflow.techsonance.co.in').replace(/\/$/, '');
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'SoftwareApplication',
-        '@id': 'https://freightflow.in/#software',
+        '@id': `${baseUrl}/#software`,
         'name': 'FreightFlow',
         'applicationCategory': 'BusinessApplication',
         'operatingSystem': 'All',
@@ -47,7 +56,7 @@ export default function LandingLayout({
           'url': 'https://techsonance.co.in',
           'logo': {
             '@type': 'ImageObject',
-            'url': 'https://freightflow.in/favicon_io/android-chrome-512x512.png',
+            'url': `${baseUrl}/favicon_io/android-chrome-512x512.png`,
           },
           'sameAs': [
             'https://linkedin.com/company/techsonance-infotech/',
@@ -58,7 +67,7 @@ export default function LandingLayout({
       },
       {
         '@type': 'FAQPage',
-        '@id': 'https://freightflow.in/#faq',
+        '@id': `${baseUrl}/#faq`,
         'mainEntity': [
           {
             '@type': 'Question',
@@ -91,3 +100,4 @@ export default function LandingLayout({
     </LandingWrapper>
   );
 }
+
