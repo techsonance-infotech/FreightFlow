@@ -13,9 +13,27 @@ export default function AboutClient() {
   const contentSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let tl: any;
+    let bobTween: any;
+
     const init = async () => {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        const elements = [
+          eyebrowRef.current,
+          titleRef.current,
+          subtitleRef.current,
+          statsCardRef.current,
+          contentSectionRef.current,
+        ];
+        elements.forEach((el) => {
+          if (el) el.style.opacity = '1';
+        });
+        return;
+      }
+
       const { gsap } = await import('@/lib/gsap');
-      const tl = gsap.timeline({ delay: 0.2 });
+      tl = gsap.timeline({ delay: 0.2 });
 
       tl.fromTo(eyebrowRef.current, { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' })
         .fromTo(titleRef.current, { opacity: 0, y: 25 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.3')
@@ -24,7 +42,7 @@ export default function AboutClient() {
         .fromTo(contentSectionRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '-=0.2');
 
       if (statsCardRef.current) {
-        gsap.to(statsCardRef.current, {
+        bobTween = gsap.to(statsCardRef.current, {
           y: -8,
           duration: 3,
           ease: 'sine.inOut',
@@ -34,6 +52,11 @@ export default function AboutClient() {
       }
     };
     init();
+
+    return () => {
+      if (tl) tl.kill();
+      if (bobTween) bobTween.kill();
+    };
   }, []);
 
   const values = [
@@ -73,6 +96,7 @@ export default function AboutClient() {
           <div className="md:col-span-7 space-y-6 text-left">
             <span 
               ref={eyebrowRef}
+              style={{ opacity: 0 }}
               className="inline-flex items-center text-ff-teal-300 font-extrabold text-[11px] sm:text-xs uppercase tracking-widest bg-ff-teal-500/10 px-3.5 py-1.5 rounded-full border border-ff-teal-500/30 shadow-lg shadow-ff-teal-500/10"
             >
               About Us
@@ -80,6 +104,7 @@ export default function AboutClient() {
             
             <h1 
               ref={titleRef}
+              style={{ opacity: 0 }}
               className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight"
             >
               Logistics & Supply Chain <span className="text-transparent bg-clip-text bg-gradient-to-r from-ff-teal-400 to-ff-teal-300 drop-shadow-sm">Intelligence</span>
@@ -87,6 +112,7 @@ export default function AboutClient() {
             
             <p 
               ref={subtitleRef}
+              style={{ opacity: 0 }}
               className="text-white/70 text-base sm:text-lg lg:text-xl leading-relaxed font-sans font-medium"
             >
               FreightFlow is a unified multi-tenant software built to streamline transport operations, accounting, and compliance for Indian logistics fleets.
@@ -97,6 +123,7 @@ export default function AboutClient() {
           <div className="md:col-span-5 flex justify-center">
             <div 
               ref={statsCardRef}
+              style={{ opacity: 0 }}
               className="w-full max-w-sm bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden group hover:border-white/20 transition-all duration-500"
             >
               {/* Card glowing badge */}
@@ -142,6 +169,7 @@ export default function AboutClient() {
       {/* Mission & Story Content */}
       <section 
         ref={contentSectionRef}
+        style={{ opacity: 0 }}
         className="py-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-12 relative z-10"
       >
         <div className="grid md:grid-cols-2 gap-12 items-center">
