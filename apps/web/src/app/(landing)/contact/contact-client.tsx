@@ -4,15 +4,31 @@ import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
 import { useState } from 'react';
 import { Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import { submitContactForm } from '@/app/actions/contact';
 
 export default function ContactClient() {
   const [formState, setFormState] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setFormState({ name: '', email: '', subject: '', message: '' });
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await submitContactForm(formState);
+      if (res.error) {
+        setError(res.error);
+      } else {
+        setSubmitted(true);
+        setFormState({ name: '', email: '', subject: '', message: '' });
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -106,58 +122,73 @@ export default function ContactClient() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Full Name</label>
+                    <label htmlFor="contact-name" className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Full Name</label>
                     <input 
+                      id="contact-name"
                       type="text" 
                       required 
                       value={formState.name}
                       onChange={(e) => setFormState({ ...formState, name: e.target.value })}
                       placeholder="Your Name"
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-ff-teal-500/50 transition-colors"
+                      disabled={submitting}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Email Address</label>
+                    <label htmlFor="contact-email" className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Email Address</label>
                     <input 
+                      id="contact-email"
                       type="email" 
                       required 
                       value={formState.email}
                       onChange={(e) => setFormState({ ...formState, email: e.target.value })}
                       placeholder="you@company.com"
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-ff-teal-500/50 transition-colors"
+                      disabled={submitting}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Subject</label>
+                    <label htmlFor="contact-subject" className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Subject</label>
                     <input 
+                      id="contact-subject"
                       type="text" 
                       required 
                       value={formState.subject}
                       onChange={(e) => setFormState({ ...formState, subject: e.target.value })}
                       placeholder="Demo booking, billing queries, etc."
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-ff-teal-500/50 transition-colors"
+                      disabled={submitting}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Message</label>
+                    <label htmlFor="contact-message" className="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">Message</label>
                     <textarea 
+                      id="contact-message"
                       required 
                       rows={4}
                       value={formState.message}
                       onChange={(e) => setFormState({ ...formState, message: e.target.value })}
                       placeholder="Briefly describe what we can help you with..."
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-ff-teal-500/50 transition-colors resize-none"
+                      disabled={submitting}
                     />
                   </div>
 
+                  {error && (
+                    <div className="text-red-400 text-xs font-semibold bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                      {error}
+                    </div>
+                  )}
+
                   <button 
                     type="submit"
-                    className="w-full bg-ff-amber-500 hover:bg-ff-amber-600 text-ff-navy-950 font-bold text-sm py-3 rounded-lg transition-all duration-300 shadow-lg shadow-ff-amber-500/10 hover:shadow-ff-amber-500/20"
+                    disabled={submitting}
+                    className="w-full bg-ff-amber-500 hover:bg-ff-amber-600 text-ff-navy-950 font-bold text-sm py-3 rounded-lg transition-all duration-300 shadow-lg shadow-ff-amber-500/10 hover:shadow-ff-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Submit Message
+                    {submitting ? 'Submitting...' : 'Submit Message'}
                   </button>
                 </form>
               )}
@@ -170,3 +201,4 @@ export default function ContactClient() {
     </main>
   );
 }
+

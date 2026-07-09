@@ -8,12 +8,15 @@ export const metadata: Metadata = {
 };
 
 export default function BlogPage() {
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://freightflow.techsonance.co.in').replace(/\/$/, '');
+
   const posts = [
     {
       id: 1,
       title: 'Automating GST e-Invoice & e-Way Bill Gateways',
       excerpt: 'Learn how direct API integrations with the NIC portal can reduce dispatch delays and completely eliminate manual registration errors.',
       date: 'June 28, 2026',
+      isoDate: '2026-06-28T00:00:00Z',
       readTime: '5 min read',
       tag: 'Compliance',
       color: 'text-ff-teal-400 bg-ff-teal-500/10 border-ff-teal-500/20',
@@ -23,6 +26,7 @@ export default function BlogPage() {
       title: 'How Multi-Tenant Databases Ensure Freight Security',
       excerpt: 'A deep dive into PostgreSQL Row-Level Security (RLS) and encryption protocols securing shipper directories in shared database structures.',
       date: 'June 15, 2026',
+      isoDate: '2026-06-15T00:00:00Z',
       readTime: '6 min read',
       tag: 'Security',
       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
@@ -32,6 +36,7 @@ export default function BlogPage() {
       title: 'Mitigating TDS Leakage Under Section 194C',
       excerpt: 'Transporter TDS deductions can become complex. Discover how automated registries and automatic PAN validation streamline transport accounting.',
       date: 'May 30, 2026',
+      isoDate: '2026-05-30T00:00:00Z',
       readTime: '4 min read',
       tag: 'Finance & Tax',
       color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
@@ -43,21 +48,21 @@ export default function BlogPage() {
     '@type': 'Blog',
     'name': 'The FreightFlow Blog',
     'description': 'Practical articles on statutory compliance, transport tax laws, driver registries, and logistics efficiency.',
-    'url': 'https://freightflow.techsonance.co.in/blog',
+    'url': `${baseUrl}/blog`,
     'publisher': {
       '@type': 'Organization',
       'name': 'Techsonance InfoTech LLP',
       'logo': {
         '@type': 'ImageObject',
-        'url': 'https://freightflow.techsonance.co.in/favicon_io/android-chrome-512x512.png'
+        'url': `${baseUrl}/favicon_io/android-chrome-512x512.png`
       }
     },
     'blogPost': posts.map(post => ({
       '@type': 'BlogPosting',
-      '@id': `https://freightflow.techsonance.co.in/blog#post-${post.id}`,
+      '@id': `${baseUrl}/blog#post-${post.id}`,
       'headline': post.title,
       'description': post.excerpt,
-      'datePublished': post.id === 1 ? '2026-06-28T00:00:00Z' : post.id === 2 ? '2026-06-15T00:00:00Z' : '2026-05-30T00:00:00Z',
+      'datePublished': post.isoDate,
       'author': {
         '@type': 'Organization',
         'name': 'FreightFlow Team'
@@ -68,6 +73,7 @@ export default function BlogPage() {
       }
     }))
   };
+
 
   return (
     <main className="overflow-x-hidden min-h-screen flex flex-col bg-[#050D1E]">

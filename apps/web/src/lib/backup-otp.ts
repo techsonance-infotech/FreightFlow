@@ -116,10 +116,10 @@ export async function requestBackupOTP(purpose: BackupOtpPurpose) {
   // Check lockout: count recent failed verifications for this purpose
   const lockoutCheck = await prisma.$queryRawUnsafe<{ count: bigint }[]>(
     `SELECT COUNT(*) as count FROM otp_verifications 
-     WHERE user_id = $1::uuid AND type = $2 AND is_used = true 
+     WHERE user_id = $1::uuid AND type = $2 
      AND created_at > $3`,
     userId,
-    `backup_${purpose.toLowerCase()}`,
+    `backup_${purpose.toLowerCase()}_failed`,
     new Date(Date.now() - LOCKOUT_MINUTES * 60 * 1000)
   );
 
@@ -190,13 +190,13 @@ export async function verifyBackupOTP(purpose: BackupOtpPurpose, otpCode: string
     throw new Error('No valid verification code found. Please request a new one.');
   }
 
-  // Check recent failed attempts (used OTPs for this purpose within lockout window)
+  // Check recent failed attempts (failed verifications for this purpose within lockout window)
   const recentFails = await prisma.$queryRawUnsafe<{ count: bigint }[]>(
     `SELECT COUNT(*) as count FROM otp_verifications 
-     WHERE user_id = $1::uuid AND type = $2 AND is_used = true 
+     WHERE user_id = $1::uuid AND type = $2 
      AND created_at > $3`,
     userId,
-    otpType,
+    `${otpType}_failed`,
     new Date(Date.now() - LOCKOUT_MINUTES * 60 * 1000)
   );
   const failedAttempts = Number(recentFails[0]?.count || 0);
@@ -213,6 +213,19 @@ export async function verifyBackupOTP(purpose: BackupOtpPurpose, otpCode: string
       verification.id
     );
 
+    // Record the failed attempt as a separate record
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO otp_verifications (id, user_id, type, otp, target_id, expires_at, is_used, created_at)
+       VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, NOW())`,
+      crypto.randomUUID(),
+      userId,
+      `${otpType}_failed`,
+      otpCode,
+      tenantId,
+      new Date(Date.now() + 60 * 1000),
+      true
+    );
+
     const remaining = MAX_OTP_ATTEMPTS - (failedAttempts + 1);
     if (remaining <= 0) {
       throw new Error(`Too many failed attempts. Your verification has been locked for ${LOCKOUT_MINUTES} minutes.`);
@@ -225,6 +238,7 @@ export async function verifyBackupOTP(purpose: BackupOtpPurpose, otpCode: string
     `UPDATE otp_verifications SET is_used = true WHERE id = $1::uuid`,
     verification.id
   );
+
 
   // Create a temporary authorization token (5-minute validity)
   const authToken = await encrypt(
