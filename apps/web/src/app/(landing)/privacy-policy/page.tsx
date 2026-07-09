@@ -1,8 +1,12 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy — FreightFlow',
+  description: 'Read the Privacy Policy for FreightFlow. Understand how we collect, store, verify, and protect your logistics and financial data under strict multi-tenant PostgreSQL RLS protocols.',
+};
 
 export default function PrivacyPolicyPage() {
   return (

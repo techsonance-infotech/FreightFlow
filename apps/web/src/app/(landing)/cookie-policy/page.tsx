@@ -1,8 +1,12 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Cookie Policy — FreightFlow',
+  description: 'Read the Cookie Policy for FreightFlow. Understand how we use cookies and similar tracking technologies to secure sessions and personalize operations.',
+};
 
 export default function CookiePolicyPage() {
   return (

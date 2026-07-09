@@ -1,8 +1,12 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Nav from '@/components/landing/Nav';
 import Footer from '@/components/landing/Footer';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service — FreightFlow',
+  description: 'Read the Terms of Service for FreightFlow. Understand the rules, accounts, billing, data ownership, and compliance regulations governing our logistics SaaS platform.',
+};
 
 export default function TermsOfServicePage() {
   return (
