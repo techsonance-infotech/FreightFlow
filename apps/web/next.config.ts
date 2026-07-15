@@ -10,6 +10,7 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@freightflow/db"],
   serverExternalPackages: ['@prisma/client', '@freightflow/db', 'prisma'],
 };
 
