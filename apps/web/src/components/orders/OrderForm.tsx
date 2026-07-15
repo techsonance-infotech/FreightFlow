@@ -186,12 +186,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     if (!isDealerChanged) return;
     const dealer = masters.dealers.find(d => d.id === watchedDealerId);
     if (dealer) {
-      if (dealer.address) {
-        setValue('fromAddress', dealer.address, { shouldDirty: true });
-      }
-      if (dealer.location) {
-        setValue('fromLocation', dealer.location, { shouldDirty: true });
-      }
+      setValue('fromAddress', dealer.address || '', { shouldDirty: true });
+      setValue('fromLocation', dealer.location || '', { shouldDirty: true });
     }
   }, [watchedDealerId, masters.dealers, initialData?.id, initialData?.dealerId]);
 
@@ -201,12 +197,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     if (!isConsigneeChanged) return;
     const consignee = masters.consignees.find(c => c.id === watchedConsigneeId);
     if (consignee) {
-      if (consignee.address) {
-        setValue('toAddress', consignee.address, { shouldDirty: true });
-      }
-      if (consignee.location) {
-        setValue('toLocation', consignee.location, { shouldDirty: true });
-      }
+      setValue('toAddress', consignee.address || '', { shouldDirty: true });
+      setValue('toLocation', consignee.location || '', { shouldDirty: true });
     }
   }, [watchedConsigneeId, masters.consignees, initialData?.id, initialData?.consigneeId]);
 
@@ -225,10 +217,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
       try {
         setLoadingMasters(true);
         const [dealers, consignees, vehicles, products, productUnits] = await Promise.all([
-          fetch('/api/v1/masters/dealers?limit=100').then((r) => r.json()),
-          fetch('/api/v1/masters/consignees?limit=100').then((r) => r.json()),
-          fetch('/api/v1/masters/vehicles?limit=100').then((r) => r.json()),
-          fetch('/api/v1/masters/products?limit=100').then((r) => r.json()),
+          fetch('/api/v1/masters/dealers?limit=5000').then((r) => r.json()),
+          fetch('/api/v1/masters/consignees?limit=5000').then((r) => r.json()),
+          fetch('/api/v1/masters/vehicles?limit=5000').then((r) => r.json()),
+          fetch('/api/v1/masters/products?limit=5000').then((r) => r.json()),
           fetch('/api/v1/masters/product-units').then((r) => r.json()),
         ]);
         setMasters({

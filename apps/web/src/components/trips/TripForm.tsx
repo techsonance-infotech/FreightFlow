@@ -47,10 +47,10 @@ export const TripForm = () => {
     const fetchMasters = async () => {
       try {
         const [vehicles, drivers, orders, pallets] = await Promise.all([
-          fetch('/api/v1/masters/vehicles?limit=100').then(r => r.json()),
-          fetch('/api/v1/masters/drivers?limit=100').then(r => r.json()),
-          fetch('/api/v1/orders?limit=100&unassigned=true').then(r => r.json()), 
-          fetch('/api/v1/pallets?limit=100&unassigned=true&type=OUTWARD').then(r => r.json()),
+          fetch('/api/v1/masters/vehicles?limit=5000').then(r => r.json()),
+          fetch('/api/v1/masters/drivers?limit=5000').then(r => r.json()),
+          fetch('/api/v1/orders?limit=5000&unassigned=true').then(r => r.json()), 
+          fetch('/api/v1/pallets?limit=5000&unassigned=true&type=OUTWARD').then(r => r.json()),
         ]);
         
         setMasters({
