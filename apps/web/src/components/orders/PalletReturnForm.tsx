@@ -154,10 +154,10 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
     async function loadMasters() {
       try {
         const [dealersRes, consigneesRes, vehiclesRes, palletMastersRes] = await Promise.all([
-          fetch('/api/v1/masters/dealers?limit=100').then(r => r.json()),
-          fetch('/api/v1/masters/consignees?limit=100').then(r => r.json()),
-          fetch('/api/v1/masters/vehicles?limit=100').then(r => r.json()),
-          fetch('/api/v1/masters/pallets?limit=100').then(r => r.json()),
+          fetch('/api/v1/masters/dealers?limit=5000').then(r => r.json()),
+          fetch('/api/v1/masters/consignees?limit=5000').then(r => r.json()),
+          fetch('/api/v1/masters/vehicles?limit=5000').then(r => r.json()),
+          fetch('/api/v1/masters/pallets?limit=5000').then(r => r.json()),
         ]);
         const loadedDealers = dealersRes.data || [];
         setDealers(loadedDealers);
@@ -229,15 +229,11 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
     if (!isDealerChanged) return;
     const dealer = dealers.find(d => d.id === selectedPalletDealerId);
     if (dealer && dealer.isPalletReturn === true) {
-      if (dealer.address) {
-        setValue('fromAddress', dealer.address, { shouldDirty: true });
-        setValue('toAddress', dealer.address, { shouldDirty: true });
-      }
+      setValue('fromAddress', dealer.address || '', { shouldDirty: true });
+      setValue('toAddress', dealer.address || '', { shouldDirty: true });
       const dealerLocation = dealer.area || (dealer as any).location || '';
-      if (dealerLocation) {
-        setValue('fromLocation', dealerLocation, { shouldDirty: true });
-        setValue('toLocation', dealerLocation, { shouldDirty: true });
-      }
+      setValue('fromLocation', dealerLocation, { shouldDirty: true });
+      setValue('toLocation', dealerLocation, { shouldDirty: true });
     }
   }, [selectedPalletDealerId, dealers, initialData?.id, initialData?.metadata, initialData?.dealerId]);
 

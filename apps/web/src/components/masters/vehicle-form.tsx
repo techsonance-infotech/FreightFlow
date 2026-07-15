@@ -58,7 +58,7 @@ export function VehicleForm({ initialData, onSuccess, onCancel }: VehicleFormPro
     // Fetch drivers for assignment
     const fetchDrivers = async () => {
       try {
-        const res = await fetch('/api/v1/masters/labour?skillCategory=Driver&limit=100');
+        const res = await fetch('/api/v1/masters/labour?skillCategory=Driver&limit=5000');
         const result = await res.json();
         if (res.ok) setDrivers(result.data);
       } catch (err) {

@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 const secret = new TextEncoder().encode(
@@ -59,7 +59,20 @@ import { cache } from 'react';
 
 export const getSession = cache(async () => {
   const cookieStore = await cookies();
-  const session = cookieStore.get('session')?.value;
+  let session = cookieStore.get('session')?.value;
+
+  if (!session) {
+    try {
+      const headersList = await headers();
+      const authHeader = headersList.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        session = authHeader.substring(7);
+      }
+    } catch (e) {
+      // Ignore if headers() fails in static render routes
+    }
+  }
+
   if (!session) return null;
   const decoded = await decrypt(session);
   return decoded;

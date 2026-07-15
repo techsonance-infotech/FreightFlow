@@ -7,15 +7,14 @@ import { BranchListSection } from '@/components/dashboard/branch-list-section';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-export default async function OrganizationSettingsPage({
-  searchParams
-}: {
-  searchParams: { id?: string }
+export default async function OrganizationSettingsPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  const searchParams = await props.searchParams;
   const session = await getSession();
   if (!session || !session.user) redirect('/login');
 
-  const companyId = searchParams.id || session.user.companyId;
+  const companyId = (searchParams.id as string) || session.user.companyId;
 
   if (!companyId) redirect('/dashboard/settings/organizations');
 

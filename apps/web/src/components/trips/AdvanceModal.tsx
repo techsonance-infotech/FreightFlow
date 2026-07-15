@@ -36,7 +36,7 @@ export function AdvanceModal({ isOpen, onClose, onSuccess }: AdvanceModalProps) 
     if (!isOpen) return;
     Promise.all([
       fetch('/api/v1/masters/drivers?limit=200').then(r => r.json()),
-      fetch('/api/v1/trips?limit=100&status=in_transit').then(r => r.json()),
+      fetch('/api/v1/trips?limit=5000&status=in_transit').then(r => r.json()),
     ]).then(([d, t]) => {
       setDrivers(d.data || []);
       setTrips(t.data || []);

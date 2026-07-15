@@ -160,10 +160,10 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
     async function loadMasters() {
       try {
         const [dealersRes, consigneesRes, vehiclesRes, palletsRes] = await Promise.all([
-          fetch('/api/v1/masters/dealers?limit=100').then(r => r.json()),
-          fetch('/api/v1/masters/consignees?limit=100').then(r => r.json()),
-          fetch('/api/v1/masters/vehicles?limit=100').then(r => r.json()),
-          fetch('/api/v1/masters/pallets').then(r => r.json()),
+          fetch('/api/v1/masters/dealers?limit=5000').then(r => r.json()),
+          fetch('/api/v1/masters/consignees?limit=5000').then(r => r.json()),
+          fetch('/api/v1/masters/vehicles?limit=5000').then(r => r.json()),
+          fetch('/api/v1/masters/pallets?limit=5000').then(r => r.json()),
         ]);
         setDealers(dealersRes.data || []);
         setConsignees(consigneesRes.data || []);
@@ -231,12 +231,8 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
     if (!isDealerChanged) return;
     const dealer = dealers.find(d => d.id === watchedDealerId);
     if (dealer) {
-      if (dealer.address) {
-        setValue('fromAddress', dealer.address, { shouldDirty: true });
-      }
-      if (dealer.location) {
-        setValue('fromLocation', dealer.location, { shouldDirty: true });
-      }
+      setValue('fromAddress', dealer.address || '', { shouldDirty: true });
+      setValue('fromLocation', dealer.location || '', { shouldDirty: true });
     }
   }, [watchedDealerId, dealers, initialData?.id, initialData?.dealerId]);
 
@@ -246,12 +242,8 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
     if (!isConsigneeChanged) return;
     const consignee = consignees.find(c => c.id === watchedConsigneeId);
     if (consignee) {
-      if (consignee.address) {
-        setValue('toAddress', consignee.address, { shouldDirty: true });
-      }
-      if (consignee.location) {
-        setValue('toLocation', consignee.location, { shouldDirty: true });
-      }
+      setValue('toAddress', consignee.address || '', { shouldDirty: true });
+      setValue('toLocation', consignee.location || '', { shouldDirty: true });
     }
   }, [watchedConsigneeId, consignees, initialData?.id, initialData?.consigneeId]);
 
