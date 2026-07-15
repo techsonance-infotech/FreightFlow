@@ -69,7 +69,7 @@ export default async function ExecutiveDashboard() {
           icon={<IndianRupee className="h-4 w-4" />}
           color="emerald"
           footer="Gross Collections"
-          link="/dashboard/accounts/ledger"
+          link="/dashboard/accounting/ledger"
         />
         <KPICard
           title="Receivables"
