@@ -10,7 +10,8 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['@prisma/client', '@freightflow/db', 'prisma'],
+  transpilePackages: ["@freightflow/db"],
+  serverExternalPackages: ['@prisma/client', 'prisma'],
   outputFileTracingRoot: path.join(__dirname, '../../'),
 };
 
