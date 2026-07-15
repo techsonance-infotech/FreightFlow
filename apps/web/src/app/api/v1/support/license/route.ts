@@ -4,7 +4,7 @@ import { prisma } from '@freightflow/db';
 import { z } from 'zod';
 
 const CreateLicenseSchema = z.object({
-  planType: z.string().min(1),
+  planType: z.enum(['basic', 'pro', 'enterprise']),
 });
 
 // GET /api/v1/support/license - Get the active license request and message thread
@@ -48,35 +48,41 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validatedData = CreateLicenseSchema.parse(body);
 
-    const existing = await prisma.licenseRequest.findFirst({
-      where: { tenantId: user.tenantId, status: 'pending' }
-    });
-
-    if (existing) {
-      return NextResponse.json({ error: 'You already have a pending license request.' }, { status: 400 });
-    }
-
-    const licenseReq = await prisma.licenseRequest.create({
-      data: {
-        tenantId: user.tenantId,
-        userId: user.id,
-        planType: validatedData.planType,
-        status: 'pending'
+    const licenseReq = await prisma.$transaction(async (tx) => {
+      const existing = await tx.licenseRequest.findFirst({
+        where: { tenantId: user.tenantId, status: 'pending' }
+      });
+      if (existing) {
+        throw Object.assign(new Error('DUPLICATE_PENDING'), { code: 'DUPLICATE_PENDING' });
       }
-    });
-
-    await prisma.supportMessage.create({
-      data: {
-        requestId: licenseReq.id,
-        message: `License upgrade requested for ${validatedData.planType.toUpperCase()} plan. An admin will connect with you shortly.`,
-        isAction: true,
-      }
+      
+      const req = await tx.licenseRequest.create({
+        data: {
+          tenantId: user.tenantId,
+          userId: user.id,
+          planType: validatedData.planType,
+          status: 'pending'
+        }
+      });
+      
+      await tx.supportMessage.create({
+        data: {
+          requestId: req.id,
+          message: `License upgrade requested for ${validatedData.planType.toUpperCase()} plan. An admin will connect with you shortly.`,
+          isAction: true,
+        }
+      });
+      
+      return req;
     });
 
     return NextResponse.json(licenseReq, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    if (error.code === 'DUPLICATE_PENDING') {
+      return NextResponse.json({ error: 'You already have a pending license request.' }, { status: 400 });
     }
     console.error('[API_LICENSE_POST]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

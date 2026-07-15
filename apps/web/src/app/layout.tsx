@@ -39,7 +39,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <head>
         <link rel="icon" href="/favicon.ico" />
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#2563eb" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={`${inter.className} min-h-screen antialiased`}>
