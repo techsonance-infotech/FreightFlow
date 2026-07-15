@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 const MessageSchema = z.object({
   requestId: z.string().min(1),
-  messageText: z.string().min(1),
+  messageText: z.string().trim().min(1),
 });
 
 export async function POST(request: Request) {

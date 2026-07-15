@@ -9,21 +9,45 @@ export function UpdatePrompt() {
   const [worker, setWorker] = useState<ServiceWorker | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                setWorker(newWorker);
-                setShowPrompt(true);
-              }
-            });
+    let registration: ServiceWorkerRegistration | null = null;
+
+    const onUpdateFound = () => {
+      if (!registration) return;
+      const newWorker = registration.installing;
+      if (newWorker) {
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            setWorker(newWorker);
+            setShowPrompt(true);
           }
         });
+      }
+    };
+
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        registration = reg;
+        reg.addEventListener('updatefound', onUpdateFound);
       });
     }
+
+    return () => {
+      if (registration) {
+        registration.removeEventListener('updatefound', onUpdateFound);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    let refreshing = false;
+    const onControllerChange = () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
   }, []);
 
   const handleUpdate = () => {
@@ -31,7 +55,6 @@ export function UpdatePrompt() {
       worker.postMessage({ type: 'SKIP_WAITING' });
     }
     setShowPrompt(false);
-    window.location.reload();
   };
 
   if (!showPrompt) return null;

@@ -10,6 +10,7 @@ interface SyncDB extends DBSchema {
       headers: any;
       body: string;
       timestamp: number;
+      retryCount?: number;
     };
     indexes: { 'by-date': number };
   };
@@ -17,7 +18,7 @@ interface SyncDB extends DBSchema {
 
 let dbPromise: Promise<IDBPDatabase<SyncDB>> | null = null;
 
-function getDB() {
+export function getDB() {
   if (typeof window === 'undefined') return null;
   
   if (!dbPromise) {
@@ -26,6 +27,9 @@ function getDB() {
         const store = db.createObjectStore('syncQueue', { keyPath: 'id' });
         store.createIndex('by-date', 'timestamp');
       },
+    }).catch((err) => {
+      dbPromise = null;
+      throw err;
     });
   }
   return dbPromise;
@@ -43,6 +47,7 @@ export async function addToSyncQueue(request: { url: string; method: string; hea
     headers: request.headers || {},
     body: typeof request.body === 'string' ? request.body : JSON.stringify(request.body || {}),
     timestamp: Date.now(),
+    retryCount: 0,
   });
 
   // Try to register background sync if available
@@ -72,22 +77,37 @@ export async function processSyncQueue() {
 
   for (const item of allItems) {
     try {
+      const fetchHeaders = { ...item.headers };
+      if (item.method === 'POST' || item.method === 'PUT') {
+        fetchHeaders['Idempotency-Key'] = item.id;
+      }
+
       const response = await fetch(item.url, {
         method: item.method,
-        headers: {
-          ...item.headers,
-          'Content-Type': 'application/json',
-        },
+        headers: fetchHeaders,
         body: item.body,
       });
 
-      if (response.ok) {
+      if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429)) {
         await db.delete('syncQueue', item.id);
-        successCount++;
+        if (response.ok) successCount++;
+      } else {
+        // Transient error (5xx, 429, 408, or network failure)
+        item.retryCount = (item.retryCount || 0) + 1;
+        if (item.retryCount >= 5) {
+          await db.delete('syncQueue', item.id);
+        } else {
+          await db.put('syncQueue', item);
+        }
       }
     } catch (err) {
       console.error(`Failed to sync item ${item.id}:`, err);
-      // Keep it in the queue for the next attempt
+      item.retryCount = (item.retryCount || 0) + 1;
+      if (item.retryCount >= 5) {
+        await db.delete('syncQueue', item.id);
+      } else {
+        await db.put('syncQueue', item);
+      }
     }
   }
   

@@ -59,10 +59,10 @@
     "xlsx": "^0.18.5",
     "yaml": "^2.8.3",
     "zod": "^3.24.0",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.0",
+    "@prisma/client": "^6.6.0"
   },
   "devDependencies": {
-    "@prisma/client": "^6.6.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22",
