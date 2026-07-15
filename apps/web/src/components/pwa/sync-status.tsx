@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { CloudOff, RefreshCw } from 'lucide-react';
-import { processSyncQueue } from '@/lib/pwa/sync-queue';
+import { processSyncQueue, getDB } from '@/lib/pwa/sync-queue';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -12,9 +12,9 @@ export function SyncStatus() {
 
   const checkQueue = async () => {
     if (typeof window !== 'undefined') {
-      const { openDB } = await import('idb');
       try {
-        const db = await openDB('freightflow-sync-db', 1);
+        const db = await getDB();
+        if (!db) return;
         const tx = db.transaction('syncQueue', 'readonly');
         const store = tx.objectStore('syncQueue');
         const count = await store.count();

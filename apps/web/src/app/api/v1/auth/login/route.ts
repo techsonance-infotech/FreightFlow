@@ -2,15 +2,35 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@freightflow/db';
 import bcrypt from 'bcryptjs';
 import { encrypt } from '@/lib/auth-utils';
+import { z } from 'zod';
+import { redis } from '@/lib/redis';
+
+const LoginSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(1),
+  rememberMe: z.boolean().optional().default(false),
+});
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const email = body.email?.trim().toLowerCase();
-    const password = body.password;
+    const parsed = LoginSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Please enter both a valid email and password.' }, { status: 400 });
+    }
+    const { email, password, rememberMe } = parsed.data;
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Please enter both email and password.' }, { status: 400 });
+    // Basic rate limiting
+    if (redis) {
+      const ip = request.headers.get('x-forwarded-for') || 'unknown';
+      const rateLimitKey = `ratelimit:login:${ip}:${email}`;
+      const attempts = await redis.incr(rateLimitKey);
+      if (attempts === 1) {
+        await redis.expire(rateLimitKey, 60 * 15); // 15 minutes window
+      }
+      if (attempts > 10) {
+        return NextResponse.json({ error: 'Too many login attempts. Please try again later.' }, { status: 429 });
+      }
     }
 
     // Find user in database
@@ -59,8 +79,8 @@ export async function POST(request: Request) {
       permissions: user.permissions,
     };
 
-    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days expiration for mobile session
-    const token = await encrypt({ user: userPayload, expires, rememberMe: true }, '7d');
+    const expires = new Date(Date.now() + (rememberMe ? 7 * 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
+    const token = await encrypt({ user: userPayload, expires, rememberMe }, rememberMe ? '7d' : '1h');
 
     return NextResponse.json({
       success: true,

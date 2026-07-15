@@ -14,7 +14,7 @@ declare const self: any;
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
-  skipWaiting: true,
+  skipWaiting: false,
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
@@ -79,7 +79,10 @@ self.addEventListener('notificationclick', (event: any) => {
   
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Focus existing window if it matches the URL exactly, or just open a new window
+      const client = windowClients.find(c => c.url === urlToOpen && 'focus' in c);
+      if (client) {
+        return client.focus();
+      }
       if (self.clients.openWindow) {
         return self.clients.openWindow(urlToOpen);
       }
@@ -96,6 +99,9 @@ self.addEventListener('sync', (event: any) => {
       (async () => {
         // Send a message to active clients to process their IndexedDB queue
         const clients = await self.clients.matchAll();
+        if (clients.length === 0) {
+          throw new Error('No active clients available to process the sync queue');
+        }
         clients.forEach(client => {
           client.postMessage({ type: 'SYNC_OFFLINE_MUTATIONS' });
         });
