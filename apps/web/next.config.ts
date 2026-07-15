@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@freightflow/db"],
   serverExternalPackages: ['@prisma/client', 'prisma'],
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  outputFileTracingIncludes: {
+    '/': [
+      '../../node_modules/.prisma/client/libquery_engine-rhel-openssl-*.so.node',
+      '../../node_modules/.prisma/client/schema.prisma',
+      '../../node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client/libquery_engine-rhel-openssl-*.so.node',
+      '../../node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client/schema.prisma',
+    ],
+  },
 };
 
 export default withSerwist(nextConfig);
