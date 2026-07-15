@@ -1,9 +1,16 @@
 import type { NextConfig } from "next";
-
+import withSerwistInit from "@serwist/next";
 import path from 'path';
+
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === 'development',
+  reloadOnOnline: false,
+});
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['@prisma/client', '@freightflow/db', 'prisma'],
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
