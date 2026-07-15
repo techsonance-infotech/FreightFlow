@@ -49,7 +49,6 @@ export async function addToSyncQueue(request: { url: string; method: string; hea
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     try {
       const registration = await navigator.serviceWorker.ready;
-      // @ts-ignore
       await registration.sync.register('freightflow-offline-sync');
     } catch (err) {
       console.error('Failed to register background sync:', err);
