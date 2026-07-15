@@ -74,8 +74,8 @@ export const PalletForm: React.FC<PalletFormProps> = ({ initialData, isEditing }
     const fetchMasters = async () => {
       try {
         const [dealers, vehicles] = await Promise.all([
-          fetch('/api/v1/masters/dealers?limit=100').then((r) => r.json()),
-          fetch('/api/v1/masters/vehicles?limit=100').then((r) => r.json()),
+          fetch('/api/v1/masters/dealers?limit=5000').then((r) => r.json()),
+          fetch('/api/v1/masters/vehicles?limit=5000').then((r) => r.json()),
         ]);
         setMasters({
           dealers: dealers.data || [],

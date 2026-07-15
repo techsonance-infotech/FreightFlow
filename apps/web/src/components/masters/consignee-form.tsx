@@ -34,7 +34,7 @@ export const ConsigneeForm: React.FC<ConsigneeFormProps> = ({ initialData, onSuc
     const fetchDealers = async () => {
       try {
         setLoadingDealers(true);
-        const res = await fetch('/api/v1/masters/dealers?limit=100').then((r) => r.json());
+        const res = await fetch('/api/v1/masters/dealers?limit=5000').then((r) => r.json());
         if (res.data) {
           setDealers(res.data);
         }

@@ -15,7 +15,7 @@ interface LorryReceiptPrintTemplateProps {
   copyType: string;
 }
 
-export function LorryReceiptPrintTemplate({ order, company, copyType }: LorryReceiptPrintTemplateProps) {
+function LorryReceiptPrintTemplate({ order, company, copyType }: LorryReceiptPrintTemplateProps) {
   const primaryColor = company?.primaryColor || '#1e3a8a';
 
   const formatCurrency = (paise: number) => {
