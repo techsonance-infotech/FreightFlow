@@ -53,7 +53,11 @@ pnpm-debug.log*
 *.tar.gz
 
 # Documentation
-docs/
+# We allow docs/ to track project deployment and architecture documentation.
+# docs/
+
+# Vercel
+.vercel/
 
 # Ignore images/files uploaded to root by User/AI
 /*.png
