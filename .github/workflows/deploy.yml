@@ -1,0 +1,156 @@
+name: Production Deployment to Vercel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build & Deploy to Vercel Hobby
+    runs-on: ubuntu-latest
+    
+    # Secure execution environment
+    permissions:
+      contents: read
+
+    steps:
+      - name: Start Build & Deploy Timer
+        id: start-timer
+        run: echo "start_time=$(date +%s)" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Detect Package Manager
+        id: detect-pm
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            echo "pm=pnpm" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=pnpm install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+            echo "exec_cmd=pnpm" >> "$GITHUB_OUTPUT"
+            echo "lockfile=pnpm-lock.yaml" >> "$GITHUB_OUTPUT"
+          elif [ -f "yarn.lock" ]; then
+            echo "pm=yarn" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=yarn install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+            echo "exec_cmd=yarn" >> "$GITHUB_OUTPUT"
+            echo "lockfile=yarn.lock" >> "$GITHUB_OUTPUT"
+          elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+            echo "pm=bun" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=bun install --frozen-lockfile" >> "$GITHUB_OUTPUT"
+            echo "exec_cmd=bun" >> "$GITHUB_OUTPUT"
+            echo "lockfile=bun.lockb" >> "$GITHUB_OUTPUT"
+          else
+            echo "pm=npm" >> "$GITHUB_OUTPUT"
+            echo "install_cmd=npm ci" >> "$GITHUB_OUTPUT"
+            echo "exec_cmd=npm run" >> "$GITHUB_OUTPUT"
+            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Setup pnpm
+        if: steps.detect-pm.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup bun
+        if: steps.detect-pm.outputs.pm == 'bun'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+          cache: ${{ steps.detect-pm.outputs.pm != 'bun' && steps.detect-pm.outputs.pm || '' }}
+
+      - name: Restore dependency cache and node_modules
+        id: cache-dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.local/share/pnpm/store/v3
+            ~/.yarn/cache
+            ~/.bun/install/cache
+            node_modules
+            **/node_modules
+          key: ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-${{ hashFiles(steps.detect-pm.outputs.lockfile) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ steps.detect-pm.outputs.pm }}-
+
+      - name: Install Dependencies
+        run: ${{ steps.detect-pm.outputs.install_cmd }}
+
+      - name: Run Code Quality Checks (TypeScript & ESLint)
+        run: |
+          ${{ steps.detect-pm.outputs.exec_cmd }} lint
+          ${{ steps.detect-pm.outputs.exec_cmd }} type-check
+
+      - name: Run Tests (Conditional check)
+        id: run-tests
+        run: |
+          # Find test files in the workspace (excluding node_modules)
+          TEST_FILES=$(find . -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.test.js" -o -name "*.test.jsx" -o -name "*.spec.ts" -o -name "*.spec.tsx" -o -name "*.spec.js" -o -name "*.spec.jsx" | grep -v "node_modules" || true)
+          if [ -n "$TEST_FILES" ]; then
+            echo "Tests found, running test suite..."
+            ${{ steps.detect-pm.outputs.exec_cmd }} test
+          else
+            echo "No test files found. Skipping tests."
+          fi
+        shell: bash
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build Project Artifacts via Vercel CLI
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy Project prebuilt output to Vercel
+        id: vercel-deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> "$GITHUB_ENV"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Calculate Duration and Output Summary
+        if: always()
+        run: |
+          END_TIME=$(date +%s)
+          START_TIME=${{ steps.start-timer.outputs.start_time }}
+          DURATION=$((END_TIME - START_TIME))
+          
+          # Convert duration to MM:SS
+          MINUTES=$((DURATION / 60))
+          SECONDS=$((DURATION % 60))
+          DURATION_STR="${MINUTES}m ${SECONDS}s"
+          
+          echo "### Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment URL**: ${{ env.DEPLOYMENT_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit SHA**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build & Deploy Duration**: $DURATION_STR" >> $GITHUB_STEP_SUMMARY
+          
+          # Also print to logs
+          echo "======================================"
+          echo "DEPLOYMENT SUMMARY"
+          echo "======================================"
+          echo "Deployment URL: ${{ env.DEPLOYMENT_URL }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Deployment Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "Build & Deploy Duration: $DURATION_STR"
+          echo "======================================"
+        shell: bash
