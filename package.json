@@ -4,9 +4,10 @@
   "private": true,
   "description": "FreightFlow — Multi-Tenant SaaS Transport Management Platform",
   "scripts": {
-    "postinstall": "prisma generate --schema=packages/db/prisma/schema.prisma",
+    "postinstall": "prisma generate --schema=packages/db/prisma/schema.prisma && pnpm setup:hooks",
+    "setup:hooks": "chmod +x scripts/prevent-direct-push.sh && mkdir -p .git/hooks && cp scripts/prevent-direct-push.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push",
     "dev": "dotenv -e .env -- turbo dev",
-    "build": "turbo build",
+    "build": "dotenv -e .env -- turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "test": "turbo test",
