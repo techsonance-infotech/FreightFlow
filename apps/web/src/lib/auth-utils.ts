@@ -2,22 +2,28 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies, headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'fallback-secret-for-development-do-not-use-in-production'
-);
+function getJwtSecret(): Uint8Array {
+  const envSecret = process.env.JWT_SECRET;
+  if (!envSecret && process.env.NODE_ENV === 'production') {
+    console.warn('[SECURITY WARNING]: process.env.JWT_SECRET is missing! Using fallback secret.');
+  }
+  return new TextEncoder().encode(
+    envSecret || 'fallback-secret-for-development-do-not-use-in-production'
+  );
+}
 
 export async function encrypt(payload: any, expiration: string = '1h') {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(expiration)
-    .sign(secret);
+    .sign(getJwtSecret());
 }
 
 export async function decrypt(input: string): Promise<any> {
   if (!input) return null;
   try {
-    const { payload } = await jwtVerify(input, secret, {
+    const { payload } = await jwtVerify(input, getJwtSecret(), {
       algorithms: ['HS256'],
     });
     return payload;
