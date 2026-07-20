@@ -7,9 +7,12 @@ export class TripEngine {
    * Revenue = Sum of freight from all assigned LRs.
    * Costs = Sum of all trip expenses.
    */
-  static async calculateTripPnL(tripId: string) {
-    const trip = await prisma.trip.findUnique({
-      where: { id: tripId },
+  static async calculateTripPnL(tripId: string, tenantId?: string) {
+    const trip = await prisma.trip.findFirst({
+      where: {
+        id: tripId,
+        ...(tenantId ? { tenantId } : {}),
+      },
       include: {
         orders: {
           select: { totalAmount: true, subtotal: true },
@@ -66,10 +69,12 @@ export class TripEngine {
       });
 
       // Optionally update trip status to 'in_transit' if it was 'loaded'
-      const trip = await tx.trip.findUnique({ where: { id: params.tripId } });
+      const trip = await tx.trip.findFirst({
+        where: { id: params.tripId, tenantId: params.tenantId },
+      });
       if (trip?.status === 'loaded') {
-        await tx.trip.update({
-          where: { id: params.tripId },
+        await tx.trip.updateMany({
+          where: { id: params.tripId, tenantId: params.tenantId },
           data: { status: 'in_transit' },
         });
       }
@@ -91,8 +96,8 @@ export class TripEngine {
     extraCharges?: number;
   }) {
     return await prisma.$transaction(async (tx) => {
-      const trip = await tx.trip.findUnique({
-        where: { id: params.tripId },
+      const trip = await tx.trip.findFirst({
+        where: { id: params.tripId, tenantId: params.tenantId },
         include: { expenses: true },
       });
 

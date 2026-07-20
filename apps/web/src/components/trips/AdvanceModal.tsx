@@ -18,19 +18,32 @@ export function AdvanceModal({ isOpen, onClose, onSuccess }: AdvanceModalProps) 
   const [drivers, setDrivers] = useState<any[]>([]);
   const [trips, setTrips] = useState<any[]>([]);
 
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<any>({
     resolver: zodResolver(DriverAdvanceSchema),
     defaultValues: {
       mode: 'cash',
-      date: new Date().toISOString().split('T')[0],
+      date: '',
       amount: 0,
     },
   });
+
+  useEffect(() => {
+    if (isMounted) {
+      setValue('date', new Date().toISOString().split('T')[0]);
+    }
+  }, [isMounted, setValue]);
 
   useEffect(() => {
     if (!isOpen) return;
