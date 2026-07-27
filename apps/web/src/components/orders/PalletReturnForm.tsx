@@ -921,7 +921,9 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[120px]">Code</th>
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-24 text-center">Qty *</th>
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-center">Unit Rate *</th>
-                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-center">Return Charges *</th>
+                    {settings?.enableSeparateReturnBilling === true && (
+                      <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-center">Return Charges *</th>
+                    )}
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-right">Total Amount *</th>
                     <th className="px-8 py-6 w-20"></th>
                   </tr>
@@ -1093,18 +1095,20 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                             />
                           </div>
                         </td>
-                        <td className="px-4 py-8 align-top">
-                          <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-4">
-                            <span className="text-xs font-black text-slate-400 mr-2">₹</span>
-                            <input 
-                              type="number" 
-                              step="0.01"
-                              {...register(`palletDetails.${index}.returnRate` as any, { valueAsNumber: true })} 
-                              className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
-                              min="0"
-                            />
-                          </div>
-                        </td>
+                        {settings?.enableSeparateReturnBilling === true && (
+                          <td className="px-4 py-8 align-top">
+                            <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-4">
+                              <span className="text-xs font-black text-slate-400 mr-2">₹</span>
+                              <input 
+                                type="number" 
+                                step="0.01"
+                                {...register(`palletDetails.${index}.returnRate` as any, { valueAsNumber: true })} 
+                                className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
+                                min="0"
+                              />
+                            </div>
+                          </td>
+                        )}
                         <td className="px-4 py-8 align-top text-right">
                           <div className="h-12 flex items-center justify-end pr-4">
                             <span className="text-base font-black text-slate-800 tracking-tight">₹{rowTotal}</span>
