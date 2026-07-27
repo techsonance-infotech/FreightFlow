@@ -189,16 +189,17 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
   // 4. Goods Table (Compact & starts exactly at startY + 55)
   autoTable(doc, {
     startY: startY + 55,
-    head: [['Sr.', 'Description of Goods', 'Code', 'Weight (KG)', 'Qty', 'UOM']],
+    head: [['Sr.', 'Description of Goods', 'Code', 'DCPI #', 'Weight (KG)', 'Qty', 'UOM']],
     body: (pallet.palletDetails || []).map((item: any, idx: number) => [
       idx + 1,
       `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
       item.code || '-',
+      item.dcpiNo || '-',
       formatWeight(item.weight),
       item.boxQty || item.qty || 0,
       item.uom || 'UNIT'
     ]),
-    foot: [['', 'TOTAL', '', `${formatWeight(totalWt)} KG`, totalBoxQty, '']],
+    foot: [['', 'TOTAL', '', '', `${formatWeight(totalWt)} KG`, totalBoxQty, '']],
     showFoot: 'lastPage',
     theme: 'grid',
     styles: { lineColor: [180, 180, 180], lineWidth: 0.15 },
@@ -207,11 +208,12 @@ async function renderCopy(doc: jsPDF, pallet: any, company: any, copyTitle: stri
     footStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 100 },
-      2: { cellWidth: 15, halign: 'center' },
-      3: { cellWidth: 25, halign: 'center' },
-      4: { cellWidth: 20, halign: 'center' },
+      1: { cellWidth: 85 },
+      2: { cellWidth: 12, halign: 'center' },
+      3: { cellWidth: 18, halign: 'center' },
+      4: { cellWidth: 25, halign: 'center' },
       5: { cellWidth: 20, halign: 'center' },
+      6: { cellWidth: 20, halign: 'center' },
     },
     margin: { left: margin, right: margin }
   });
