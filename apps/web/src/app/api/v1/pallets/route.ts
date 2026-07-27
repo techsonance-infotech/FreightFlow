@@ -204,6 +204,8 @@ export async function POST(request: Request) {
             boxQty: d.qty,
             weight: d.weight || 0,
             rate: d.rate,
+            dcpiNo: d.dcpiNo || null,
+            returnRate: d.returnRate || 0,
           })),
         },
       },

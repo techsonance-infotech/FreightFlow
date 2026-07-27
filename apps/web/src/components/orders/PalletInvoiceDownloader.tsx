@@ -31,13 +31,13 @@ export function PalletInvoiceDownloader({
     e.stopPropagation();
     setLoading(true);
     try {
-      const { pallet, company } = await getPalletInvoiceData(palletId);
+      const { pallet, company, settings } = await getPalletInvoiceData(palletId);
       
       let doc;
       let filename;
       
       if (variant === 'invoice') {
-        doc = await generatePalletPDF(pallet, company);
+        doc = await generatePalletPDF(pallet, company, settings);
         filename = `Pallet_Invoice_${lrNo || pallet.lrNo || palletId}.pdf`;
       } else {
         doc = await generatePalletReceiptPDF(pallet, company);

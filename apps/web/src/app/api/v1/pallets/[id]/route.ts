@@ -161,6 +161,8 @@ export async function PATCH(
             boxQty: d.qty,
             weight: d.weight || 0,
             rate: d.rate,
+            dcpiNo: d.dcpiNo || null,
+            returnRate: d.returnRate || 0,
           })),
         },
       },

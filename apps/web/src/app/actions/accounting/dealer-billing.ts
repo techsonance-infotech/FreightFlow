@@ -43,12 +43,23 @@ export async function getDealerRecords(
 ) {
   try {
     let targetCompanyId = companyId;
+    let targetTenantId = '';
+    const session = await getSession();
     if (!targetCompanyId) {
-      const session = await getSession();
       targetCompanyId = session?.user?.companyId;
     }
+    targetTenantId = session?.user?.tenantId || '';
 
     if (!targetCompanyId) return [];
+
+    let settings: any = {};
+    if (targetTenantId) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: targetTenantId },
+        select: { settings: true }
+      });
+      settings = (tenant?.settings as any) || {};
+    }
 
     const query: any = {
       where: {
@@ -120,29 +131,38 @@ export async function getDealerRecords(
       })),
     }));
 
-    const unifiedPallet = palletRecords.map(r => ({
-      ...r,
-      loadType: r.type === 'RETURN' ? ('PALLET_RETURN' as const) : ('PALLET' as const),
-      cgstPct: Number(r.cgstPct || 0),
-      sgstPct: Number(r.sgstPct || 0),
-      igstPct: Number(r.igstPct || 0),
-      cgstAmount: Number(r.cgstAmount || 0) / 100,
-      sgstAmount: Number(r.sgstAmount || 0) / 100,
-      igstAmount: Number(r.igstAmount || 0) / 100,
-      subtotal: Number(r.subtotal || 0) / 100,
-      totalAmount: Number(r.totalAmount || 0) / 100,
-      freight: Number(r.freight || 0) / 100,
-      hamali: Number(r.hamali || 0) / 100,
-      totalWeight: Number(r.totalWeight || 0),
-      rate: Number(r.rate || 0) / 100, // Convert paise to rupees
-      gstPct: Number(r.gstPct || 0),
-      details: (r.palletDetails || []).map((d: any) => ({
-        productName: d.palletDisplayId || (r.type === 'RETURN' ? 'Empty Pallet Return' : 'Pallet'),
-        weight: Number(d.weight || d.qty || 0), 
-        boxCount: d.qty,
-        packingType: r.type === 'RETURN' ? 'Pallet Return' : 'Pallet',
-      })),
-    }));
+    const isSeparateBilling = settings.enableSeparateReturnBilling === true;
+    const unifiedPallet = palletRecords.map(r => {
+      let rate = Number(r.rate || 0) / 100;
+      if (isSeparateBilling && r.type === 'RETURN') {
+        const totalQty = (r.palletDetails || []).reduce((acc: number, d: any) => acc + (d.qty || 0), 0);
+        const totalReturnCharges = (r.palletDetails || []).reduce((acc: number, d: any) => acc + ((d.qty || 0) * (d.returnRate || 0)), 0);
+        rate = totalQty > 0 ? (totalReturnCharges / totalQty) / 100 : 0;
+      }
+      return {
+        ...r,
+        loadType: r.type === 'RETURN' ? ('PALLET_RETURN' as const) : ('PALLET' as const),
+        cgstPct: Number(r.cgstPct || 0),
+        sgstPct: Number(r.sgstPct || 0),
+        igstPct: Number(r.igstPct || 0),
+        cgstAmount: Number(r.cgstAmount || 0) / 100,
+        sgstAmount: Number(r.sgstAmount || 0) / 100,
+        igstAmount: Number(r.igstAmount || 0) / 100,
+        subtotal: Number(r.subtotal || 0) / 100,
+        totalAmount: Number(r.totalAmount || 0) / 100,
+        freight: Number(r.freight || 0) / 100,
+        hamali: Number(r.hamali || 0) / 100,
+        totalWeight: Number(r.totalWeight || 0),
+        rate,
+        gstPct: Number(r.gstPct || 0),
+        details: (r.palletDetails || []).map((d: any) => ({
+          productName: d.palletDisplayId || (r.type === 'RETURN' ? 'Empty Pallet Return' : 'Pallet'),
+          weight: Number(d.weight || d.qty || 0), 
+          boxCount: d.qty,
+          packingType: r.type === 'RETURN' ? 'Pallet Return' : 'Pallet',
+        })),
+      };
+    });
 
     return JSON.parse(JSON.stringify([...unifiedStandard, ...unifiedPallet].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()

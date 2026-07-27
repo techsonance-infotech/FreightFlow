@@ -9,7 +9,7 @@ export async function getPalletInvoiceData(palletId: string) {
     throw new Error('Unauthorized');
   }
 
-  const [pallet, company] = await Promise.all([
+  const [pallet, company, tenant] = await Promise.all([
     prisma.orderPallet.findUnique({
       where: { 
         id: palletId,
@@ -25,6 +25,10 @@ export async function getPalletInvoiceData(palletId: string) {
     }),
     prisma.company.findUnique({
       where: { id: session.user.companyId }
+    }),
+    prisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { settings: true }
     })
   ]);
 
@@ -64,5 +68,5 @@ export async function getPalletInvoiceData(palletId: string) {
     })),
   };
 
-  return { pallet: serializedPallet, company };
+  return { pallet: serializedPallet, company, settings: tenant?.settings || {} };
 }

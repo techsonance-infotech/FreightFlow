@@ -108,9 +108,10 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
         ? initialData.palletDetails.map((p: any) => ({
             ...p,
             rate: p.rate / 100,
-            weight: p.weight !== undefined ? Number(p.weight) : 0
+            weight: p.weight !== undefined ? Number(p.weight) : 0,
+            returnRate: p.returnRate !== undefined ? p.returnRate / 100 : 0
           }))
-        : [{ palletDisplayId: '', qty: 1, rate: 0, weight: 0, consigneeName: '' }],
+        : [{ palletDisplayId: '', qty: 1, rate: 0, returnRate: 0, weight: 0, consigneeName: '', dcpiNo: '' }],
       isGstRequired: initialData?.isGstRequired ?? (
         Number(initialData?.cgstPct) > 0 || 
         Number(initialData?.sgstPct) > 0 || 
@@ -328,6 +329,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
           boxQty: parseInt(p.qty as any) || 0,
           weight: parseFloat(p.weight as any) || 0,
           rate: Math.round(parseFloat(data.rate as any) * 100),
+          returnRate: 0,
         })),
       };
 
@@ -972,7 +974,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
             </div>
             <Button 
               type="button" 
-              onClick={() => appendPallet({ palletDisplayId: '', code: '', qty: 1, rate: 0, weight: 0, consigneeName: '' })}
+              onClick={() => appendPallet({ palletDisplayId: '', code: '', qty: 1, rate: 0, returnRate: 0, weight: 0, consigneeName: '', dcpiNo: '' })}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-8 py-4 h-auto text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 flex items-center gap-3 transition-all hover:-translate-y-0.5"
             >
               <Plus className="h-4 w-4" /> Add Row
@@ -988,6 +990,7 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[200px]">Code</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-32 text-center">Weight (KG) *</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-32 text-center">Qty *</th>
+                  <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-right">DCPI #</th>
                   <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-40 text-right">Amount</th>
                   <th className="px-8 py-6 w-20"></th>
                 </tr>
@@ -1099,6 +1102,15 @@ export function OrderPalletForm({ initialData, onSuccess, onCancel }: OrderPalle
                         />
                       </div>
                       {errors.palletDetails?.[index]?.qty && <p className="text-[9px] font-bold text-rose-500 mt-1 text-center">{errors.palletDetails[index]?.qty?.message}</p>}
+                    </td>
+                    <td className="px-4 py-8 align-top text-right">
+                      <div className="relative group/field inline-block w-full">
+                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300" />
+                        <input 
+                          {...register(`palletDetails.${index}.dcpiNo` as const)} 
+                          className="w-full h-10 pl-8 pr-3 bg-slate-50/30 border border-slate-100 rounded-xl font-bold text-slate-500 text-right focus:bg-white focus:border-blue-100 focus:ring-0 transition-all text-xs outline-none" 
+                        />
+                      </div>
                     </td>
                     <td className="px-4 py-8 align-top text-right">
                       <div className="h-12 flex items-center justify-end pr-4">

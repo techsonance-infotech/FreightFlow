@@ -40,7 +40,7 @@ async function getBase64Image(imgUrl: string): Promise<{ data: string; width: nu
   });
 }
 
-export async function generatePalletPDF(pallet: any, company: any) {
+export async function generatePalletPDF(pallet: any, company: any, settings?: any) {
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -205,49 +205,159 @@ export async function generatePalletPDF(pallet: any, company: any) {
 
   currentY += 43;
 
-  // 5. Main Goods Table
-  autoTable(doc, {
-    startY: currentY,
-    head: [['Sr.', 'Description Of Goods', 'Code', 'Weight (KG)', 'Qty.', 'UOM', 'Rate', 'Total (Rs.)']],
-    body: (pallet.palletDetails || []).map((item: any, idx: number) => {
-      const unitRate = (pallet.rate || item.rate || 0);
-      const qty = item.boxQty || item.qty || 0;
-      const weight = item.weight || 0;
-      const rowTotalPaise = pallet.rateOn === 'weight' ? (weight * unitRate) : (qty * unitRate);
-      const rowTotal = rowTotalPaise / 100;
-      return [
-        idx + 1,
-        `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
-        item.code || '-',
-        formatWeight(weight),
-        qty,
-        item.uom || 'UNIT',
-        (unitRate / 100).toFixed(2),
-        rowTotal.toFixed(2)
-      ];
-    }),
-    theme: 'grid',
-    styles: { lineColor: [180, 180, 180], lineWidth: 0.15 },
-    headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 9, fontStyle: 'bold', halign: 'center' },
-    bodyStyles: { fontSize: 8.5 },
-    columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 65 },
-      2: { cellWidth: 15, halign: 'center' },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 15, halign: 'center' },
-      5: { cellWidth: 15, halign: 'center' },
-      6: { cellWidth: 25, halign: 'right' },
-      7: { cellWidth: 25, halign: 'right' },
-    },
-    margin: { left: margin, right: margin }
-  });
+  // 5. Main Goods Table(s)
+  const isSeparateBilling = settings?.enableSeparateReturnBilling === true && pallet.type === 'RETURN';
 
-  currentY = (doc as any).lastAutoTable.finalY + 5;
+  if (isSeparateBilling) {
+    // Render Table 1: Goods Details (using item.rate for value)
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Sr.', 'Description Of Goods', 'Code', 'DCPI #', 'Weight (KG)', 'Qty.', 'UOM', 'Rate', 'Total (Rs.)']],
+      body: (pallet.palletDetails || []).map((item: any, idx: number) => {
+        const unitRate = item.rate || 0;
+        const qty = item.boxQty || item.qty || 0;
+        const weight = item.weight || 0;
+        const rowTotal = (qty * unitRate) / 100;
+        return [
+          idx + 1,
+          item.palletDisplayId || 'PALLET UNIT',
+          item.code || '-',
+          item.dcpiNo || '-',
+          formatWeight(weight),
+          qty,
+          item.uom || 'UNIT',
+          (unitRate / 100).toFixed(2),
+          rowTotal.toFixed(2)
+        ];
+      }),
+      theme: 'grid',
+      styles: { lineColor: [180, 180, 180], lineWidth: 0.15 },
+      headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 9, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { fontSize: 8.5 },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 12, halign: 'center' },
+        3: { cellWidth: 18, halign: 'center' },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 15, halign: 'center' },
+        6: { cellWidth: 15, halign: 'center' },
+        7: { cellWidth: 25, halign: 'right' },
+        8: { cellWidth: 25, halign: 'right' },
+      },
+      margin: { left: margin, right: margin }
+    });
+
+    const section1Total = (pallet.palletDetails || []).reduce((acc: number, item: any) => {
+      const qty = item.boxQty || item.qty || 0;
+      const unitRate = item.rate || 0;
+      return acc + (qty * unitRate / 100);
+    }, 0);
+
+    currentY = (doc as any).lastAutoTable.finalY + 4;
+
+    // Section 1 Summary Box
+    doc.setDrawColor(150);
+    doc.rect(margin, currentY, boxWidth, 12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text(`Total Challan Value In Rs.(In Figures) :- ${section1Total.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
+    doc.text(`Total Invoice Amount in Words : ${numberToWords(Math.floor(section1Total))} only`, margin + 2, currentY + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Return Of returnable packing matearial', margin + 2, currentY + 9);
+
+    currentY += 16;
+
+    // Render Table 2: Consignee Collections (using returnRate / Pallet Return Charges)
+    const consigneeMap = new Map<string, { qty: number, rate: number, total: number }>();
+    for (const item of pallet.palletDetails) {
+      const cName = item.consigneeName || 'Self';
+      const returnRate = item.returnRate || 0; // paise
+      const qty = item.boxQty || item.qty || 0;
+      const existing = consigneeMap.get(cName);
+      if (existing) {
+        existing.qty += qty;
+        existing.total += (qty * returnRate);
+      } else {
+        consigneeMap.set(cName, {
+          qty,
+          rate: returnRate,
+          total: (qty * returnRate)
+        });
+      }
+    }
+    const consigneeRows = Array.from(consigneeMap.entries()).map(([name, data]) => [
+      name,
+      data.qty,
+      (data.rate / 100).toFixed(2),
+      (data.total / 100).toFixed(2)
+    ]);
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [['consigneeName', 'Qty', 'Rate', 'Total(Rs.)']],
+      body: consigneeRows,
+      theme: 'grid',
+      styles: { lineColor: [180, 180, 180], lineWidth: 0.15 },
+      headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 9, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { fontSize: 8.5 },
+      columnStyles: {
+        0: { cellWidth: 100 },
+        1: { cellWidth: 25, halign: 'center' },
+        2: { cellWidth: 25, halign: 'right' },
+        3: { cellWidth: 30, halign: 'right' },
+      },
+      margin: { left: margin, right: margin }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 5;
+  } else {
+    // Existing single table layout with DCPI # column added
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Sr.', 'Description Of Goods', 'Code', 'DCPI #', 'Weight (KG)', 'Qty.', 'UOM', 'Rate', 'Total (Rs.)']],
+      body: (pallet.palletDetails || []).map((item: any, idx: number) => {
+        const unitRate = (pallet.rate || item.rate || 0);
+        const qty = item.boxQty || item.qty || 0;
+        const weight = item.weight || 0;
+        const rowTotalPaise = pallet.rateOn === 'weight' ? (weight * unitRate) : (qty * unitRate);
+        const rowTotal = rowTotalPaise / 100;
+        return [
+          idx + 1,
+          `${item.palletDisplayId || 'PALLET UNIT'}${item.consigneeName ? ` - ${item.consigneeName}` : ''}`,
+          item.code || '-',
+          item.dcpiNo || '-',
+          formatWeight(weight),
+          qty,
+          item.uom || 'UNIT',
+          (unitRate / 100).toFixed(2),
+          rowTotal.toFixed(2)
+        ];
+      }),
+      theme: 'grid',
+      styles: { lineColor: [180, 180, 180], lineWidth: 0.15 },
+      headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 9, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { fontSize: 8.5 },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 12, halign: 'center' },
+        3: { cellWidth: 18, halign: 'center' },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 15, halign: 'center' },
+        6: { cellWidth: 15, halign: 'center' },
+        7: { cellWidth: 25, halign: 'right' },
+        8: { cellWidth: 25, halign: 'right' },
+      },
+      margin: { left: margin, right: margin }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 5;
+  }
 
   // 6. Box 4: Totals & Summary
   const hasGst = (Number(pallet.cgstAmount) > 0 || Number(pallet.sgstAmount) > 0 || Number(pallet.igstAmount) > 0);
-  const summaryBoxHeight = hasGst ? 25 : 15;
+  const summaryBoxHeight = isSeparateBilling ? (hasGst ? 32 : 24) : (hasGst ? 25 : 15);
   doc.setDrawColor(150);
   doc.rect(margin, currentY, boxWidth, summaryBoxHeight);
   const subtotal = (Number(pallet.subtotal) || 0) / 100;
@@ -256,8 +366,28 @@ export async function generatePalletPDF(pallet: any, company: any) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
 
-  if (hasGst) {
-    doc.text(`Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
+  if (isSeparateBilling) {
+    const section1Total = (pallet.palletDetails || []).reduce((acc: number, item: any) => {
+      const qty = item.boxQty || item.qty || 0;
+      const unitRate = item.rate || 0;
+      return acc + (qty * unitRate / 100);
+    }, 0);
+
+    // Left side: Pallet asset details total
+    doc.text(`Total Pallet Asset Value: Rs. ${section1Total.toFixed(2)}`, margin + 2, currentY + 5);
+    doc.text(`Total Invoice Amount in Words (Charges) :`, margin + 2, currentY + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const wordsLines = doc.splitTextToSize(`${numberToWords(Math.floor(totalAmount))} only`, boxWidth / 2 - 10);
+    wordsLines.forEach((wLine: string, wIdx: number) => {
+      doc.text(wLine, margin + 2, currentY + 14 + (wIdx * 3.5));
+    });
+    doc.text('Return Of returnable packing matearial', margin + 2, currentY + summaryBoxHeight - 3);
+
+    // Right side: Billing charges totals
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text(`Return Charges Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
     
     let taxY = currentY + 9;
     if (Number(pallet.cgstAmount) > 0) {
@@ -274,16 +404,37 @@ export async function generatePalletPDF(pallet: any, company: any) {
     }
 
     doc.setFontSize(9.5);
-    doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 22, { align: 'right' });
+    doc.text(`Total Return Charges Billing In Rs. :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + summaryBoxHeight - 3, { align: 'right' });
   } else {
-    doc.setFontSize(9.5);
-    doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 11, { align: 'right' });
+    if (hasGst) {
+      doc.text(`Subtotal: ${subtotal.toFixed(2)}`, pageWidth - margin - 2, currentY + 5, { align: 'right' });
+      
+      let taxY = currentY + 9;
+      if (Number(pallet.cgstAmount) > 0) {
+        doc.text(`CGST (${Number(pallet.cgstPct)}%): ${(Number(pallet.cgstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+        taxY += 4;
+      }
+      if (Number(pallet.sgstAmount) > 0) {
+        doc.text(`SGST (${Number(pallet.sgstPct)}%): ${(Number(pallet.sgstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+        taxY += 4;
+      }
+      if (Number(pallet.igstAmount) > 0) {
+        doc.text(`IGST (${Number(pallet.igstPct)}%): ${(Number(pallet.igstAmount) / 100).toFixed(2)}`, pageWidth - margin - 2, taxY, { align: 'right' });
+        taxY += 4;
+      }
+
+      doc.setFontSize(9.5);
+      doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 22, { align: 'right' });
+    } else {
+      doc.setFontSize(9.5);
+      doc.text(`Total Challan Value In Rs.(In Figures) :- ${totalAmount.toFixed(2)}`, pageWidth - margin - 2, currentY + 11, { align: 'right' });
+    }
+    
+    doc.setFontSize(8.5);
+    doc.text(`Total Invoice Amount in Words : ${numberToWords(Math.floor(totalAmount))} only`, margin + 2, currentY + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Return Of returnable packing matearial', margin + 2, currentY + 10);
   }
-  
-  doc.setFontSize(8.5);
-  doc.text(`Total Invoice Amount in Words : ${numberToWords(Math.floor(totalAmount))} only`, margin + 2, currentY + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Return Of returnable packing matearial', margin + 2, currentY + 10);
 
   currentY += summaryBoxHeight + 5;
 
