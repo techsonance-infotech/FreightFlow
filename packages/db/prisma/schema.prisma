@@ -1204,6 +1204,8 @@ model PalletDetail {
   consigneeName   String? @map("consignee_name") @db.VarChar(255)
   qty             Int     @default(0)
   rate            Int     @default(0) // paise
+  dcpiNo          String? @map("dcpi_no") @db.VarChar(50)
+  returnRate      Int     @default(0) @map("return_rate")
 
   pallet  OrderPallet @relation(fields: [palletId], references: [id], onDelete: Cascade)
   company Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)

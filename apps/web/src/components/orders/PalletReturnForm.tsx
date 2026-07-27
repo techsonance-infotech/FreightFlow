@@ -23,6 +23,7 @@ import { VehicleForm } from '@/components/masters/vehicle-form';
 import { PalletMasterForm } from '@/components/masters/pallet-master-form';
 import { toast } from 'sonner';
 import { PalletInvoiceDownloader } from './PalletInvoiceDownloader';
+import { getTenantSettings } from '@/app/actions/settings/business';
 
 interface PalletReturnFormProps {
   initialData?: any;
@@ -62,6 +63,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
   const [isPalletModalOpen, setIsPalletModalOpen] = useState(false);
   const [isConsigneeModalOpen, setIsConsigneeModalOpen] = useState(false);
   const [successPallet, setSuccessPallet] = useState<any>(null);
+  const [settings, setSettings] = useState<any>({});
   
   const [dealerSearch, setDealerSearch] = useState('');
   const [palletDealerSearch, setPalletDealerSearch] = useState('');
@@ -108,9 +110,10 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
       palletDetails: initialData?.palletDetails?.length > 0 
         ? initialData.palletDetails.map((p: any) => ({
             ...p,
-            rate: p.rate / 100 
+            rate: p.rate / 100,
+            returnRate: p.returnRate !== undefined ? p.returnRate / 100 : 0
           }))
-        : [{ palletDisplayId: '', qty: 1, rate: 0, consigneeName: '' }],
+        : [{ palletDisplayId: '', qty: 1, rate: 0, returnRate: 0, consigneeName: '' }],
       isGstRequired: initialData?.isGstRequired ?? (
         (initialData?.cgstAmount && initialData.cgstAmount > 0) ||
         (initialData?.sgstAmount && initialData.sgstAmount > 0) ||
@@ -147,23 +150,26 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
     sgstAmount: 0,
     igstAmount: 0,
     totalAmount: 0,
-    margin: 0
+    margin: 0,
+    palletValueSubtotal: 0
   });
 
   useEffect(() => {
     async function loadMasters() {
       try {
-        const [dealersRes, consigneesRes, vehiclesRes, palletMastersRes] = await Promise.all([
+        const [dealersRes, consigneesRes, vehiclesRes, palletMastersRes, settingsData] = await Promise.all([
           fetch('/api/v1/masters/dealers?limit=5000').then(r => r.json()),
           fetch('/api/v1/masters/consignees?limit=5000').then(r => r.json()),
           fetch('/api/v1/masters/vehicles?limit=5000').then(r => r.json()),
           fetch('/api/v1/masters/pallets?limit=5000').then(r => r.json()),
+          getTenantSettings().catch(() => ({})),
         ]);
         const loadedDealers = dealersRes.data || [];
         setDealers(loadedDealers);
         setConsignees(consigneesRes.data || []);
         setVehicles(vehiclesRes.data || []);
         setPalletMasters(palletMastersRes.data || []);
+        setSettings(settingsData || {});
 
         if (initialData?.dealerId) {
           const match = loadedDealers.find((d: any) => d.id === initialData.dealerId);
@@ -242,11 +248,21 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
     const totalQty = watchedPallets.reduce((acc: number, curr: any) => acc + (parseInt(curr.qty as any) || 0), 0);
     const totalReturns = watchedPallets.length;
     
-    // Total value calculated directly from the payload table
-    const subtotal = watchedPallets.reduce((acc: number, curr: any) => {
+    const isSeparateBilling = settings?.enableSeparateReturnBilling === true;
+
+    const palletValueSubtotal = watchedPallets.reduce((acc: number, curr: any) => {
       const q = parseInt(curr.qty as any) || 0;
       const r = parseFloat(curr.rate as any) || 0;
       return acc + (q * r);
+    }, 0);
+
+    // Total value calculated directly from the payload table
+    const subtotal = watchedPallets.reduce((acc: number, curr: any) => {
+      const q = parseInt(curr.qty as any) || 0;
+      const rateToUse = isSeparateBilling 
+        ? (parseFloat(curr.returnRate as any) || 0)
+        : (parseFloat(curr.rate as any) || 0);
+      return acc + (q * rateToUse);
     }, 0);
 
     let cgst = 0, sgst = 0, igst = 0;
@@ -270,9 +286,10 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
       sgstAmount: sgst,
       igstAmount: igst,
       totalAmount,
-      margin: subtotal
+      margin: subtotal,
+      palletValueSubtotal
     });
-  }, [watchedPallets, watchedGstType, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedIsGstRequired]);
+  }, [watchedPallets, watchedGstType, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedIsGstRequired, settings]);
 
   const onSubmit = async (data: Pallet) => {
     try {
@@ -308,6 +325,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
           ...p,
           qty: parseInt(p.qty as any) || 0,
           rate: p.rate ? Math.round(parseFloat(p.rate as any) * 100) : 0,
+          returnRate: p.returnRate ? Math.round(parseFloat(p.returnRate as any) * 100) : 0,
         })),
         consigneeDetails: [] // Optional since we are using palletDetails
       };
@@ -886,7 +904,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
               </div>
               <Button 
                 type="button" 
-                onClick={() => appendPallet({ palletDisplayId: '', code: '', qty: 1, rate: 0, consigneeName: '' } as any)}
+                onClick={() => appendPallet({ palletDisplayId: '', code: '', qty: 1, rate: 0, returnRate: 0, consigneeName: '' } as any)}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-8 py-4 h-auto text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 flex items-center gap-3 transition-all hover:-translate-y-0.5"
               >
                 <Plus className="h-4 w-4" /> Add Row
@@ -903,6 +921,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-[120px]">Code</th>
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-24 text-center">Qty *</th>
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-center">Unit Rate *</th>
+                    <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-center">Return Charges *</th>
                     <th className="px-4 py-6 text-[10px] font-black uppercase tracking-widest w-36 text-right">Total Amount *</th>
                     <th className="px-8 py-6 w-20"></th>
                   </tr>
@@ -910,7 +929,10 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                 <tbody className="divide-y divide-slate-50">
                   {palletFields.map((field, index) => {
                     const rowQty = Number(watchedPallets[index]?.qty) || 0;
-                    const rowRate = Number(watchedPallets[index]?.rate) || 0;
+                    const isSeparateBilling = settings?.enableSeparateReturnBilling === true;
+                    const rowRate = isSeparateBilling
+                      ? (Number(watchedPallets[index]?.returnRate) || 0)
+                      : (Number(watchedPallets[index]?.rate) || 0);
                     const rowTotal = (rowQty * rowRate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                     return (
@@ -1071,6 +1093,18 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                             />
                           </div>
                         </td>
+                        <td className="px-4 py-8 align-top">
+                          <div className="bg-slate-50/50 rounded-2xl border border-slate-100 focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner h-12 flex items-center px-4">
+                            <span className="text-xs font-black text-slate-400 mr-2">₹</span>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              {...register(`palletDetails.${index}.returnRate` as any, { valueAsNumber: true })} 
+                              className="w-full bg-transparent border-none font-black text-slate-900 text-center focus:ring-0 text-base outline-none" 
+                              min="0"
+                            />
+                          </div>
+                        </td>
                         <td className="px-4 py-8 align-top text-right">
                           <div className="h-12 flex items-center justify-end pr-4">
                             <span className="text-base font-black text-slate-800 tracking-tight">₹{rowTotal}</span>
@@ -1106,8 +1140,16 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
                       {totals.totalQty} <span className="text-sm text-slate-400 font-bold ml-1 uppercase">Units</span>
                     </p>
                   </div>
+                  {settings?.enableSeparateReturnBilling === true && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Pallet Asset Value</p>
+                      <p className="text-4xl font-black text-slate-700 tracking-tighter">
+                        ₹{totals.palletValueSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-2">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Amount</p>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">{settings?.enableSeparateReturnBilling === true ? 'Total Return Charges' : 'Total Amount'}</p>
                     <p className="text-4xl font-black text-blue-600 tracking-tighter">
                       ₹{totals.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>

@@ -47,6 +47,8 @@ export const PalletDetailSchema = z.object({
   weight: z.coerce.number().min(0).default(0),
   boxQty: z.number().int().optional(),
   consigneeName: z.string().default(''),
+  dcpiNo: z.string().optional().nullable().or(z.literal('')),
+  returnRate: z.coerce.number().min(0).default(0),
 });
 
 export const PalletConsigneeDetailSchema = z.object({

@@ -99,6 +99,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
           <tr className="bg-slate-50 text-slate-800 border-b border-slate-300">
             <th className="p-2 text-[10px] font-bold uppercase tracking-widest border-r border-slate-300 w-10 text-center">Sr.</th>
             <th className="p-2 text-[10px] font-bold uppercase tracking-widest border-r border-slate-300">Pallet Identifier</th>
+            <th className="p-2 text-[10px] font-bold uppercase tracking-widest border-r border-slate-300 text-center">DCPI #</th>
             <th className="p-2 text-[10px] font-bold uppercase tracking-widest border-r border-slate-300 text-center">Box Qty</th>
             <th className="p-2 text-[10px] font-bold uppercase tracking-widest border-r border-slate-300 text-center">Weight (KG)</th>
             <th className="p-2 text-[10px] font-bold uppercase tracking-widest">Consignee Destination</th>
@@ -109,6 +110,7 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
             <tr key={i} className={`border-b border-slate-200 font-semibold text-slate-800 ${rowHeight}`}>
               <td className={`border-r border-slate-200 text-center text-slate-750 ${tableCellPadding}`}>{i + 1}</td>
               <td className={`border-r border-slate-200 uppercase tracking-wider text-slate-800 ${tableCellPadding}`}>{item.palletDisplayId || `PALLET-${i+1}`}</td>
+              <td className={`border-r border-slate-200 text-center text-slate-800 ${tableCellPadding}`}>{item.dcpiNo || '-'}</td>
               <td className={`border-r border-slate-200 text-center text-slate-800 ${tableCellPadding}`}>{item.boxQty}</td>
               <td className={`border-r border-slate-200 text-center text-slate-800 ${tableCellPadding}`}>{formatWeight(item.weight)}</td>
               <td className={`uppercase truncate max-w-[120px] text-slate-800 ${tableCellPadding}`}>{item.consigneeName || 'Self'}</td>
@@ -121,12 +123,13 @@ export const PalletReceiptTemplate: React.FC<PalletReceiptTemplateProps> = ({ da
                <td className="border-r border-slate-100"></td>
                <td className="border-r border-slate-100"></td>
                <td className="border-r border-slate-100"></td>
+               <td className="border-r border-slate-100"></td>
                <td></td>
             </tr>
           ))}
           {/* TOTAL ROW */}
           <tr className="bg-slate-50 text-slate-900 border-t border-slate-300">
-            <td className={`border-r border-slate-300 text-center font-bold ${tableCellPadding}`} colSpan={2}>
+            <td className={`border-r border-slate-300 text-center font-bold ${tableCellPadding}`} colSpan={3}>
               TOTAL
             </td>
             <td className={`border-r border-slate-300 text-center font-bold ${tableCellPadding}`}>

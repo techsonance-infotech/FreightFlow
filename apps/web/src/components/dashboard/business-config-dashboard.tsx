@@ -122,6 +122,26 @@ export function BusinessConfigDashboard({ initialSettings }: BusinessConfigDashb
                 <ConfigField label="Financial Year Start Month" name="fiscalMonth" value={formData.fiscalMonth || '4'} onChange={handleChange} type="number" placeholder="4 (April)" />
               </div>
             </ConfigSection>
+
+            <ConfigSection title="Pallet Return Configuration" description="Enable special billing logic for empty pallet returns.">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="flex flex-col justify-end">
+                  <label className="flex items-center gap-3 cursor-pointer p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition-colors">
+                    <input 
+                      type="checkbox" 
+                      name="enableSeparateReturnBilling" 
+                      checked={formData.enableSeparateReturnBilling || false} 
+                      onChange={handleChange} 
+                      className="h-5 w-5 rounded text-blue-600 focus:ring-blue-500" 
+                    />
+                    <div>
+                      <span className="text-sm font-bold text-slate-700 block">Separate Return Billing</span>
+                      <span className="text-[10px] font-black uppercase text-slate-400">Bill returns based on transportation return charges instead of unit rate</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </ConfigSection>
           </div>
         )}
 
