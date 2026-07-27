@@ -1596,6 +1596,7 @@ model Trip {
   pallets        OrderPallet[]
 
   @@index([tenantId])
+  @@index([tenantId, status, createdAt])
   @@index([companyId, status])
   @@index([vehicleId])
   @@index([driverId])
