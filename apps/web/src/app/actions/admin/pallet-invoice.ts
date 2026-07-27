@@ -26,10 +26,12 @@ export async function getPalletInvoiceData(palletId: string) {
     prisma.company.findUnique({
       where: { id: session.user.companyId }
     }),
-    prisma.tenant.findUnique({
-      where: { id: session.user.tenantId },
-      select: { settings: true }
-    })
+    session.user.tenantId
+      ? prisma.tenant.findUnique({
+          where: { id: session.user.tenantId },
+          select: { settings: true }
+        })
+      : Promise.resolve(null)
   ]);
 
   if (!pallet) {

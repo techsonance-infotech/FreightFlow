@@ -134,10 +134,26 @@ export async function getDealerRecords(
     const isSeparateBilling = settings.enableSeparateReturnBilling === true;
     const unifiedPallet = palletRecords.map(r => {
       let rate = Number(r.rate || 0) / 100;
+      let subtotal = Number(r.subtotal || 0) / 100;
+      let cgstAmount = Number(r.cgstAmount || 0) / 100;
+      let sgstAmount = Number(r.sgstAmount || 0) / 100;
+      let igstAmount = Number(r.igstAmount || 0) / 100;
+      let totalAmount = Number(r.totalAmount || 0) / 100;
+
       if (isSeparateBilling && r.type === 'RETURN') {
         const totalQty = (r.palletDetails || []).reduce((acc: number, d: any) => acc + (d.qty || 0), 0);
-        const totalReturnCharges = (r.palletDetails || []).reduce((acc: number, d: any) => acc + ((d.qty || 0) * (d.returnRate || 0)), 0);
-        rate = totalQty > 0 ? (totalReturnCharges / totalQty) / 100 : 0;
+        const totalReturnChargesPaise = (r.palletDetails || []).reduce((acc: number, d: any) => acc + ((d.qty || 0) * (d.returnRate || 0)), 0);
+        rate = totalQty > 0 ? (totalReturnChargesPaise / totalQty) / 100 : 0;
+        
+        subtotal = totalReturnChargesPaise / 100;
+        const cgstPct = Number(r.cgstPct || 0);
+        const sgstPct = Number(r.sgstPct || 0);
+        const igstPct = Number(r.igstPct || 0);
+        
+        cgstAmount = (subtotal * cgstPct) / 100;
+        sgstAmount = (subtotal * sgstPct) / 100;
+        igstAmount = (subtotal * igstPct) / 100;
+        totalAmount = subtotal + cgstAmount + sgstAmount + igstAmount;
       }
       return {
         ...r,
@@ -145,11 +161,11 @@ export async function getDealerRecords(
         cgstPct: Number(r.cgstPct || 0),
         sgstPct: Number(r.sgstPct || 0),
         igstPct: Number(r.igstPct || 0),
-        cgstAmount: Number(r.cgstAmount || 0) / 100,
-        sgstAmount: Number(r.sgstAmount || 0) / 100,
-        igstAmount: Number(r.igstAmount || 0) / 100,
-        subtotal: Number(r.subtotal || 0) / 100,
-        totalAmount: Number(r.totalAmount || 0) / 100,
+        cgstAmount,
+        sgstAmount,
+        igstAmount,
+        subtotal,
+        totalAmount,
         freight: Number(r.freight || 0) / 100,
         hamali: Number(r.hamali || 0) / 100,
         totalWeight: Number(r.totalWeight || 0),

@@ -289,7 +289,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
       margin: subtotal,
       palletValueSubtotal
     });
-  }, [watchedPallets, watchedGstType, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedIsGstRequired]);
+  }, [watchedPallets, watchedGstType, watchedCgstPct, watchedSgstPct, watchedIgstPct, watchedIsGstRequired, settings]);
 
   const onSubmit = async (data: Pallet) => {
     try {
