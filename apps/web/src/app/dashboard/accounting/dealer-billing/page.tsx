@@ -147,7 +147,7 @@ export default function DealerBillingPage() {
       try {
         const [dealersData, nextNo, dateStr, company] = await Promise.all([
           getDealers(),
-          getNextInvoiceNumber(),
+          getNextInvoiceNumber(loadType),
           fetchOnlineDate(),
           getCompanyBillingDetails()
         ]);
@@ -161,6 +161,20 @@ export default function DealerBillingPage() {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    async function updateInvoiceNo() {
+      try {
+        setRecords([]);
+        setConsolidatedItems([]);
+        const nextNo = await getNextInvoiceNumber(loadType);
+        if (nextNo) setCurrentInvoiceNo(nextNo);
+      } catch (error) {
+        console.error('Error fetching next invoice number on loadType change:', error);
+      }
+    }
+    updateInvoiceNo();
+  }, [loadType]);
 
   const handleFetchRecords = async () => {
     if (!selectedDealerId) {
@@ -187,7 +201,7 @@ export default function DealerBillingPage() {
       processConsolidatedData(data);
       setCurrentPage(1); 
 
-      const nextNo = await getNextInvoiceNumber();
+      const nextNo = await getNextInvoiceNumber(loadType);
       if (nextNo) setCurrentInvoiceNo(nextNo);
 
       toast.success(`Found ${data.length} records`);
@@ -725,7 +739,7 @@ export default function DealerBillingPage() {
       toast.success('Invoice generated and saved successfully');
       setRecords([]);
       
-      const nextNo = await getNextInvoiceNumber();
+      const nextNo = await getNextInvoiceNumber(loadType);
       if (nextNo) setCurrentInvoiceNo(nextNo);
 
       // Switch to Saved tab and refresh list
@@ -748,7 +762,7 @@ export default function DealerBillingPage() {
       if (res.success) {
         toast.success('Invoice deleted successfully');
         loadInvoicesList();
-        const nextNo = await getNextInvoiceNumber();
+        const nextNo = await getNextInvoiceNumber(loadType);
         if (nextNo) setCurrentInvoiceNo(nextNo);
       } else {
         toast.error(res.error || 'Failed to delete invoice');

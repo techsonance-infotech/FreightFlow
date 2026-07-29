@@ -24,7 +24,8 @@ export async function GET(request: Request) {
 
     // Fetch Next Invoice Number if requested
     if (searchParams.get('nextNumber') === 'true') {
-      const nextNo = await AccountingEngine.getNextInvoiceNumber(tenantId, companyId);
+      const isPalletReturn = searchParams.get('isPalletReturn') === 'true';
+      const nextNo = await AccountingEngine.getNextInvoiceNumber(tenantId, companyId, isPalletReturn);
       return NextResponse.json({ data: nextNo });
     }
 

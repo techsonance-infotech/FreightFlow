@@ -371,8 +371,17 @@ export class AccountingEngine {
   /**
    * Generates the next sequential invoice number based on the financial year (Apr 1 - Mar 31).
    */
-  static async getNextInvoiceNumber(tenantId: string, companyId: string, tx?: any) {
-    const db = tx || prisma;
+  static async getNextInvoiceNumber(tenantId: string, companyId: string, isPalletReturnOrTx?: boolean | any, tx?: any) {
+    let isPalletReturn = false;
+    let activeTx = tx;
+
+    if (typeof isPalletReturnOrTx === 'boolean') {
+      isPalletReturn = isPalletReturnOrTx;
+    } else if (isPalletReturnOrTx && typeof isPalletReturnOrTx === 'object') {
+      activeTx = isPalletReturnOrTx;
+    }
+
+    const db = activeTx || prisma;
     const now = new Date();
     const month = now.getMonth(); // 0-indexed
     const year = now.getFullYear();
@@ -396,9 +405,9 @@ export class AccountingEngine {
       where: {
         tenantId,
         companyId,
-        invoiceNo: {
-          startsWith: prefix
-        }
+        invoiceNo: isPalletReturn 
+          ? { startsWith: prefix, endsWith: '/PR' }
+          : { startsWith: prefix, not: { endsWith: '/PR' } }
       },
       orderBy: {
         createdAt: 'desc'
@@ -410,15 +419,24 @@ export class AccountingEngine {
 
     let nextSeq = 1;
     if (lastInvoice && lastInvoice.invoiceNo) {
-      const parts = lastInvoice.invoiceNo.split('/');
-      const lastSeqStr = parts[parts.length - 1];
-      const lastSeq = parseInt(lastSeqStr);
-      if (!isNaN(lastSeq)) {
-        nextSeq = lastSeq + 1;
+      if (isPalletReturn) {
+        const match = lastInvoice.invoiceNo.match(/^INV\/\d{2,4}-\d{2}\/(\d+)\/PR$/);
+        if (match) {
+          nextSeq = parseInt(match[1]) + 1;
+        }
+      } else {
+        const parts = lastInvoice.invoiceNo.split('/');
+        const lastSeqStr = parts[parts.length - 1];
+        const lastSeq = parseInt(lastSeqStr);
+        if (!isNaN(lastSeq)) {
+          nextSeq = lastSeq + 1;
+        }
       }
     }
 
-    return `${prefix}${nextSeq.toString().padStart(3, '0')}`;
+    return isPalletReturn 
+      ? `${prefix}${nextSeq.toString().padStart(3, '0')}/PR`
+      : `${prefix}${nextSeq.toString().padStart(3, '0')}`;
   }
 
   /**
