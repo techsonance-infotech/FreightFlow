@@ -89,7 +89,9 @@ export async function getDealerEntryRecords(
       lrNo: r.lrNo || '-',
       billNo: (r.metadata as any)?.invoiceNo || '-',
       dealerName: r.dealer?.name || 'Walk-in',
-      consigneeName: r.consignee?.name || 'Direct Customer',
+      consigneeName: r.consignee?.name || (r.palletDetails?.length > 0
+        ? Array.from(new Set(r.palletDetails.map((d: any) => d.consigneeName).filter(Boolean))).join(', ')
+        : '') || 'Direct Customer',
       loadType: r.type === 'RETURN' ? 'PALLET_RETURN' : 'PALLET',
       weight: Number(r.totalWeight || 0),
       boxes: r.totalBoxes || 0,

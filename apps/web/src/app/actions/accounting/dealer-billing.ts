@@ -155,8 +155,15 @@ export async function getDealerRecords(
         igstAmount = (subtotal * igstPct) / 100;
         totalAmount = subtotal + cgstAmount + sgstAmount + igstAmount;
       }
+
+      let computedConsigneeName = r.consignee?.name;
+      if (!computedConsigneeName && r.type === 'RETURN' && r.palletDetails?.length > 0) {
+        computedConsigneeName = Array.from(new Set(r.palletDetails.map((d: any) => d.consigneeName).filter(Boolean))).join(', ');
+      }
+
       return {
         ...r,
+        consignee: computedConsigneeName ? { name: computedConsigneeName } : r.consignee,
         loadType: r.type === 'RETURN' ? ('PALLET_RETURN' as const) : ('PALLET' as const),
         cgstPct: Number(r.cgstPct || 0),
         sgstPct: Number(r.sgstPct || 0),
@@ -226,7 +233,7 @@ export async function getCompanyBillingDetails(companyId?: string) {
   }
 }
 
-export async function getNextInvoiceNumber() {
+export async function getNextInvoiceNumber(loadType?: 'BOX' | 'PALLET' | 'BOTH' | 'PALLET_RETURN') {
   try {
     const session = await getSession();
     const companyId = session?.user?.companyId;
@@ -240,18 +247,27 @@ export async function getNextInvoiceNumber() {
     const fyString = `${fyStart.toString().slice(-2)}-${fyEnd.toString().slice(-2)}`;
     const prefix = `INV/${fyString}/`;
 
+    const isPalletReturn = loadType === 'PALLET_RETURN';
+
     // Fetch all active invoice numbers for this company in the current FY
     const invoices = await prisma.freightInvoice.findMany({
       where: {
         companyId,
-        invoiceNo: { startsWith: prefix }
+        invoiceNo: isPalletReturn
+          ? { startsWith: prefix, endsWith: '/PR' }
+          : { startsWith: prefix, not: { endsWith: '/PR' } }
       },
       select: { invoiceNo: true }
     });
 
     const activeSeqs = invoices.map(inv => {
-      const parts = inv.invoiceNo.split('/');
-      return parseInt(parts[parts.length - 1]);
+      if (isPalletReturn) {
+        const match = inv.invoiceNo.match(/^INV\/\d{2}-\d{2}\/(\d+)\/PR$/);
+        return match ? parseInt(match[1]) : NaN;
+      } else {
+        const parts = inv.invoiceNo.split('/');
+        return parseInt(parts[parts.length - 1]);
+      }
     }).filter(seq => !isNaN(seq));
 
     let nextSeq = 1;
@@ -259,7 +275,9 @@ export async function getNextInvoiceNumber() {
       nextSeq++;
     }
 
-    return `${prefix}${nextSeq.toString().padStart(3, '0')}`;
+    return isPalletReturn
+      ? `${prefix}${nextSeq.toString().padStart(3, '0')}/PR`
+      : `${prefix}${nextSeq.toString().padStart(3, '0')}`;
   } catch (e) {
     console.error('Error fetching next invoice number:', e);
     return null;
@@ -319,30 +337,41 @@ async function validateInvoiceNumber(tx: any, companyId: string, invoiceNo: stri
     return { valid: false, error: `Invoice number "${trimmed}" already exists.` };
   }
 
-  // 2. Format sequence check: INV/YY-YY/SEQ
-  const match = trimmed.match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
+  // 2. Format sequence check: INV/YY-YY/SEQ or INV/YY-YY/SEQ/PR
+  const isPalletReturn = trimmed.endsWith('/PR');
+  const match = isPalletReturn
+    ? trimmed.match(/^INV\/\d{2}-\d{2}\/(\d+)\/PR$/)
+    : trimmed.match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
+
   if (match) {
     const seq = parseInt(match[1], 10);
-    const prefix = trimmed.substring(0, trimmed.lastIndexOf('/') + 1); // e.g. "INV/24-25/"
+    const prefixMatch = trimmed.match(/^INV\/\d{2}-\d{2}\//);
+    const prefix = prefixMatch ? prefixMatch[0] : '';
 
     // Fetch all active sequences under this prefix
     const invoices = await tx.freightInvoice.findMany({
       where: {
         companyId,
-        invoiceNo: { startsWith: prefix },
+        invoiceNo: isPalletReturn
+          ? { startsWith: prefix, endsWith: '/PR' }
+          : { startsWith: prefix, not: { endsWith: '/PR' } },
         id: excludeInvoiceId ? { not: excludeInvoiceId } : undefined
       },
       select: { invoiceNo: true }
     });
 
     const seqs = invoices.map((inv: any) => {
-      const m = inv.invoiceNo.trim().match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
+      const m = isPalletReturn
+        ? inv.invoiceNo.trim().match(/^INV\/\d{2}-\d{2}\/(\d+)\/PR$/)
+        : inv.invoiceNo.trim().match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
       return m ? parseInt(m[1], 10) : null;
     }).filter((s: any) => s !== null && !isNaN(s));
 
     const maxSeq = seqs.length > 0 ? Math.max(...seqs) : 0;
     if (seq <= maxSeq) {
-      const formattedMax = `${prefix}${maxSeq.toString().padStart(3, '0')}`;
+      const formattedMax = isPalletReturn
+        ? `${prefix}${maxSeq.toString().padStart(3, '0')}/PR`
+        : `${prefix}${maxSeq.toString().padStart(3, '0')}`;
       return {
         valid: false,
         error: `Only invoice numbers greater than the previous valid invoice number (${formattedMax}) are allowed.`
@@ -546,30 +575,36 @@ export async function getSavedInvoices() {
         }))
       }));
 
-      const unifiedPallets = inv.pallets.map(r => ({
-        id: r.id,
-        date: r.date,
-        lrNo: r.lrNo || '',
-        loadType: r.type === 'RETURN' ? ('PALLET_RETURN' as const) : ('PALLET' as const),
-        totalWeight: Number(r.totalWeight || 0),
-        totalBoxes: r.totalBoxes,
-        rateOn: r.rateOn,
-        rate: Number(r.rate || 0) / 100,
-        subtotal: Number(r.subtotal || 0) / 100,
-        cgstPct: Number(r.cgstPct || 0),
-        sgstPct: Number(r.sgstPct || 0),
-        igstPct: Number(r.igstPct || 0),
-        cgstAmount: Number(r.cgstAmount || 0) / 100,
-        sgstAmount: Number(r.sgstAmount || 0) / 100,
-        igstAmount: Number(r.igstAmount || 0) / 100,
-        totalAmount: Number(r.totalAmount || 0) / 100,
-        consignee: r.consignee,
-        companyName: r.companyName,
-        details: r.palletDetails.map(d => ({
-          productName: d.palletDisplayId || (r.type === 'RETURN' ? 'Empty Pallet Return' : 'Pallet'),
-          packingType: r.type === 'RETURN' ? 'Pallet Return' : 'Pallet',
-        }))
-      }));
+      const unifiedPallets = inv.pallets.map(r => {
+        let computedConsigneeName = r.consignee?.name;
+        if (!computedConsigneeName && r.type === 'RETURN' && r.palletDetails?.length > 0) {
+          computedConsigneeName = Array.from(new Set(r.palletDetails.map((d: any) => d.consigneeName).filter(Boolean))).join(', ');
+        }
+        return {
+          id: r.id,
+          date: r.date,
+          lrNo: r.lrNo || '',
+          loadType: r.type === 'RETURN' ? ('PALLET_RETURN' as const) : ('PALLET' as const),
+          totalWeight: Number(r.totalWeight || 0),
+          totalBoxes: r.totalBoxes,
+          rateOn: r.rateOn,
+          rate: Number(r.rate || 0) / 100,
+          subtotal: Number(r.subtotal || 0) / 100,
+          cgstPct: Number(r.cgstPct || 0),
+          sgstPct: Number(r.sgstPct || 0),
+          igstPct: Number(r.igstPct || 0),
+          cgstAmount: Number(r.cgstAmount || 0) / 100,
+          sgstAmount: Number(r.sgstAmount || 0) / 100,
+          igstAmount: Number(r.igstAmount || 0) / 100,
+          totalAmount: Number(r.totalAmount || 0) / 100,
+          consignee: computedConsigneeName ? { name: computedConsigneeName } : r.consignee,
+          companyName: r.companyName,
+          details: r.palletDetails.map(d => ({
+            productName: d.palletDisplayId || (r.type === 'RETURN' ? 'Empty Pallet Return' : 'Pallet'),
+            packingType: r.type === 'RETURN' ? 'Pallet Return' : 'Pallet',
+          }))
+        };
+      });
 
       enriched.push({
         id: inv.id,
