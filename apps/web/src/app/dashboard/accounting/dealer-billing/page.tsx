@@ -165,6 +165,8 @@ export default function DealerBillingPage() {
   useEffect(() => {
     async function updateInvoiceNo() {
       try {
+        setRecords([]);
+        setConsolidatedItems([]);
         const nextNo = await getNextInvoiceNumber(loadType);
         if (nextNo) setCurrentInvoiceNo(nextNo);
       } catch (error) {

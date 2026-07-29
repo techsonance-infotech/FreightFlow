@@ -420,7 +420,7 @@ export class AccountingEngine {
     let nextSeq = 1;
     if (lastInvoice && lastInvoice.invoiceNo) {
       if (isPalletReturn) {
-        const match = lastInvoice.invoiceNo.match(/^INV\/\d{2}-\d{2}\/(\d+)\/PR$/);
+        const match = lastInvoice.invoiceNo.match(/^INV\/\d{2,4}-\d{2}\/(\d+)\/PR$/);
         if (match) {
           nextSeq = parseInt(match[1]) + 1;
         }
