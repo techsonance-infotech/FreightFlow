@@ -262,7 +262,7 @@ export async function getNextInvoiceNumber(loadType?: 'BOX' | 'PALLET' | 'BOTH' 
 
     const activeSeqs = invoices.map(inv => {
       if (isPalletReturn) {
-        const match = inv.invoiceNo.match(/^INV\/\d{2}-\d{2}\/(\d+)\/PR$/);
+        const match = inv.invoiceNo.match(/^INV\/\d{2,4}-\d{2}\/(\d+)\/PR$/);
         return match ? parseInt(match[1]) : NaN;
       } else {
         const parts = inv.invoiceNo.split('/');
@@ -270,10 +270,8 @@ export async function getNextInvoiceNumber(loadType?: 'BOX' | 'PALLET' | 'BOTH' 
       }
     }).filter(seq => !isNaN(seq));
 
-    let nextSeq = 1;
-    while (activeSeqs.includes(nextSeq)) {
-      nextSeq++;
-    }
+    const maxSeq = activeSeqs.length > 0 ? Math.max(...activeSeqs) : 0;
+    const nextSeq = maxSeq + 1;
 
     return isPalletReturn
       ? `${prefix}${nextSeq.toString().padStart(3, '0')}/PR`
@@ -340,12 +338,12 @@ async function validateInvoiceNumber(tx: any, companyId: string, invoiceNo: stri
   // 2. Format sequence check: INV/YY-YY/SEQ or INV/YY-YY/SEQ/PR
   const isPalletReturn = trimmed.endsWith('/PR');
   const match = isPalletReturn
-    ? trimmed.match(/^INV\/\d{2}-\d{2}\/(\d+)\/PR$/)
-    : trimmed.match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
+    ? trimmed.match(/^INV\/\d{2,4}-\d{2}\/(\d+)\/PR$/)
+    : trimmed.match(/^INV\/\d{2,4}-\d{2}\/(\d+)$/);
 
   if (match) {
     const seq = parseInt(match[1], 10);
-    const prefixMatch = trimmed.match(/^INV\/\d{2}-\d{2}\//);
+    const prefixMatch = trimmed.match(/^INV\/\d{2,4}-\d{2}\//);
     const prefix = prefixMatch ? prefixMatch[0] : '';
 
     // Fetch all active sequences under this prefix
@@ -362,8 +360,8 @@ async function validateInvoiceNumber(tx: any, companyId: string, invoiceNo: stri
 
     const seqs = invoices.map((inv: any) => {
       const m = isPalletReturn
-        ? inv.invoiceNo.trim().match(/^INV\/\d{2}-\d{2}\/(\d+)\/PR$/)
-        : inv.invoiceNo.trim().match(/^INV\/\d{2}-\d{2}\/(\d+)$/);
+        ? inv.invoiceNo.trim().match(/^INV\/\d{2,4}-\d{2}\/(\d+)\/PR$/)
+        : inv.invoiceNo.trim().match(/^INV\/\d{2,4}-\d{2}\/(\d+)$/);
       return m ? parseInt(m[1], 10) : null;
     }).filter((s: any) => s !== null && !isNaN(s));
 
