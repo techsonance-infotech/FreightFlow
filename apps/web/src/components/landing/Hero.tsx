@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import IsometricPallet from './IsometricPallet';
 import IsometricBox from './IsometricBox';
 import DashboardShowcase from './DashboardShowcase';
+import CompanyMarquee from './CompanyMarquee';
 import { triggerDemoModal } from '@/hooks/useDemoModal';
 
 export default function Hero() {
@@ -203,14 +204,8 @@ export default function Hero() {
             </form>
           </div>
 
-          {/* Client logos */}
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-6 sm:gap-10 opacity-50 filter grayscale hover:grayscale-0 transition-all duration-300">
-            {['SHREE SHIVAY', 'AARAMBH FX', 'SALTBOX', 'NIMBL FLEET', 'SHIPPINGTREE', 'WSI LOGISTICS'].map((brand) => (
-              <span key={brand} className="text-[11px] sm:text-xs font-black tracking-widest text-slate-700 uppercase">
-                {brand}
-              </span>
-            ))}
-          </div>
+          {/* Client logos marquee */}
+          <CompanyMarquee />
         </div>
 
         {/* ================= LAYER 4: DASHBOARD CARD ================= */}
