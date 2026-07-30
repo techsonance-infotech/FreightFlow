@@ -32,35 +32,88 @@ import {
 } from 'lucide-react';
 
 export default function DashboardShowcase() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [activeNav, setActiveNav] = useState('Mission Control');
+  const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const directionRef = useRef<number>(1);
+  const isPausingAtBoundaryRef = useRef<boolean>(false);
 
-  // Auto-scroll inside fixed height dashboard
+  // IntersectionObserver: Only start auto-scroll when user reaches/views the hero dashboard section
   useEffect(() => {
-    if (!isAutoScrolling) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.2 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Smooth Auto-Scroll Loop logic
+  useEffect(() => {
+    if (!isAutoScrolling || !isVisible) return;
 
     const el = scrollRef.current;
     if (!el) return;
 
-    let direction = 1;
-    const speed = 0.5;
+    const speed = 0.6;
 
     const timer = setInterval(() => {
-      if (!el) return;
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
-        direction = -1;
-      } else if (el.scrollTop <= 5) {
-        direction = 1;
+      if (!el || isPausingAtBoundaryRef.current) return;
+
+      const maxScroll = el.scrollHeight - el.clientHeight;
+
+      // When reaching bottom boundary
+      if (directionRef.current === 1 && el.scrollTop >= maxScroll - 4) {
+        isPausingAtBoundaryRef.current = true;
+        setTimeout(() => {
+          directionRef.current = -1;
+          isPausingAtBoundaryRef.current = false;
+        }, 1200); // 1.2s pause at bottom
+        return;
       }
-      el.scrollTop += speed * direction;
-    }, 30);
+
+      // When reaching top boundary
+      if (directionRef.current === -1 && el.scrollTop <= 4) {
+        isPausingAtBoundaryRef.current = true;
+        setTimeout(() => {
+          directionRef.current = 1;
+          isPausingAtBoundaryRef.current = false;
+        }, 1200); // 1.2s pause at top
+        return;
+      }
+
+      el.scrollTop += speed * directionRef.current;
+    }, 25);
 
     return () => clearInterval(timer);
-  }, [isAutoScrolling]);
+  }, [isAutoScrolling, isVisible]);
+
+  // Handle manual user scrolling (mouse wheel, touch, scroll bar drag)
+  const handleManualScroll = () => {
+    // Pause auto-scroll immediately on manual scroll
+    setIsAutoScrolling(false);
+
+    if (userScrollTimeoutRef.current) {
+      clearTimeout(userScrollTimeoutRef.current);
+    }
+
+    // Resume auto-scroll after 2.5 seconds of no manual scrolling
+    userScrollTimeoutRef.current = setTimeout(() => {
+      setIsAutoScrolling(true);
+    }, 2500);
+  };
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200/90 bg-[#0B1220] text-slate-100 select-none">
+    <div ref={containerRef} className="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200/90 bg-[#0B1220] text-slate-100 select-none">
       {/* Outer Window Header Bar */}
       <div className="px-5 py-3 border-b border-slate-800/80 bg-[#070D18] flex items-center justify-between gap-4">
         {/* Left Mac Window Controls + Active Entity */}
@@ -175,6 +228,9 @@ export default function DashboardShowcase() {
         {/* Scrollable Main Content Area */}
         <main
           ref={scrollRef}
+          onScroll={handleManualScroll}
+          onWheel={handleManualScroll}
+          onTouchMove={handleManualScroll}
           onMouseEnter={() => setIsAutoScrolling(false)}
           onMouseLeave={() => setIsAutoScrolling(true)}
           className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin scroll-smooth"
