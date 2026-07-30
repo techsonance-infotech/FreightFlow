@@ -255,7 +255,7 @@ export default function PainSection() {
           const parent = track.parentElement;
           const paddingLeft = parent ? parseFloat(getComputedStyle(parent).paddingLeft) || 32 : 32;
           const lastChildRight = lastChild.offsetLeft + lastChild.offsetWidth;
-          
+
           // Calculate exact shift required so the last card is fully visible with equal margin
           const requiredShift = lastChildRight - (window.innerWidth - paddingLeft * 2) + 48;
           return -Math.max(0, requiredShift);
@@ -316,11 +316,11 @@ export default function PainSection() {
               <InfinityIcon className="w-5 h-5 stroke-[2.5]" />
             </div>
 
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Optimize spend for greater savings.
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight leading-tight">
+              Smarter Freight Intelligence. Greater Bottom-Line Savings.
             </h2>
             <p className="text-slate-500 text-base sm:text-lg font-medium mt-2">
-              Consolidate spend and unlock savings up to{' '}
+              Consolidate freight spends, benchmark rates, and unlock cost savings up to{' '}
               <span className="text-blue-600 font-extrabold underline decoration-blue-300">18%</span>.
             </p>
           </div>
@@ -332,9 +332,8 @@ export default function PainSection() {
                 <button
                   key={idx}
                   onClick={() => scrollToCard(idx)}
-                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                    activeIndex === idx ? 'w-6 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400'
-                  }`}
+                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${activeIndex === idx ? 'w-6 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400'
+                    }`}
                   aria-label={`Go to card ${idx + 1}`}
                 />
               ))}
@@ -343,9 +342,8 @@ export default function PainSection() {
             <button
               onClick={() => scrollToCard(Math.max(0, activeIndex - 1))}
               disabled={activeIndex === 0}
-              className={`w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center shadow-xs transition-all cursor-pointer ${
-                activeIndex === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50 hover:border-slate-300 text-slate-700'
-              }`}
+              className={`w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center shadow-xs transition-all cursor-pointer ${activeIndex === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50 hover:border-slate-300 text-slate-700'
+                }`}
               aria-label="Scroll Left"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -353,9 +351,8 @@ export default function PainSection() {
             <button
               onClick={() => scrollToCard(Math.min(CHALLENGES.length - 1, activeIndex + 1))}
               disabled={activeIndex === CHALLENGES.length - 1}
-              className={`w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center shadow-xs transition-all cursor-pointer ${
-                activeIndex === CHALLENGES.length - 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50 hover:border-slate-300 text-slate-700'
-              }`}
+              className={`w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center shadow-xs transition-all cursor-pointer ${activeIndex === CHALLENGES.length - 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50 hover:border-slate-300 text-slate-700'
+                }`}
               aria-label="Scroll Right"
             >
               <ChevronRight className="w-5 h-5" />
@@ -375,11 +372,10 @@ export default function PainSection() {
             return (
               <div
                 key={item.id}
-                className={`w-[80vw] sm:w-[380px] md:w-[440px] lg:w-[480px] shrink-0 rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-6 shadow-sm transition-all duration-300 flex flex-col justify-between group ${
-                  isFocused
+                className={`w-[80vw] sm:w-[380px] md:w-[440px] lg:w-[480px] shrink-0 rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-6 shadow-sm transition-all duration-300 flex flex-col justify-between group ${isFocused
                     ? 'ring-2 ring-blue-500/20 border-blue-300 shadow-xl scale-[1.01]'
                     : 'opacity-90 hover:opacity-100 hover:border-slate-300'
-                }`}
+                  }`}
               >
                 <div>
                   {/* Upper Preview Area */}
