@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   FileText,
   Truck,
@@ -12,530 +12,633 @@ import {
   Printer,
   Search,
   Settings,
-  ChevronLeft,
-  ChevronRight,
   MapPin,
   Calendar,
-  CreditCard
+  CreditCard,
+  Bell,
+  Moon,
+  ChevronDown,
+  Download,
+  ArrowUpRight,
+  PieChart,
+  Activity,
+  Layers,
+  Users,
+  Compass,
+  DollarSign,
+  Play,
+  Pause,
+  ArrowDown
 } from 'lucide-react';
 
 export default function DashboardShowcase() {
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isAutoScrolling, setIsAutoScrolling] = useState(true);
+  const [activeNav, setActiveNav] = useState('Mission Control');
 
-  // Auto cycle slides every 3.5 seconds
+  // Auto-scroll inside fixed height dashboard
   useEffect(() => {
-    if (!isAutoPlaying) return;
-    const interval = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % 3);
-    }, 3500);
-    return () => clearInterval(interval);
-  }, [isAutoPlaying]);
+    if (!isAutoScrolling) return;
 
-  const slides = [
-    { id: 0, title: 'LR & Order Management', icon: FileText, label: 'Lorry Receipt & Pallet Dispatch' },
-    { id: 1, title: 'Trip P&L & Settlement', icon: Truck, label: 'Live Trip Profit & Driver Expense' },
-    { id: 2, title: 'GST & Compliance Engine', icon: ShieldCheck, label: 'GSTR-1, RCM & Vehicle Alerts' },
-  ];
+    const el = scrollRef.current;
+    if (!el) return;
 
-  // Helper for main slide container transform and opacity
-  const getSlideStyles = (slideId: number) => {
-    const isActive = activeSlide === slideId;
-    const isPrevious = (activeSlide === 0 && slideId === 2) || (activeSlide === slideId + 1);
+    let direction = 1;
+    const speed = 0.5;
 
-    if (isActive) {
-      return {
-        transform: 'translate3d(0, 0px, 0)',
-        opacity: 1,
-        zIndex: 10,
-        pointerEvents: 'auto' as const,
-        transition: 'transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms cubic-bezier(0.22, 1, 0.36, 1)',
-        willChange: 'transform, opacity',
-      };
-    }
+    const timer = setInterval(() => {
+      if (!el) return;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+        direction = -1;
+      } else if (el.scrollTop <= 5) {
+        direction = 1;
+      }
+      el.scrollTop += speed * direction;
+    }, 30);
 
-    if (isPrevious) {
-      // Outgoing slide moves downward (28px) & fades out
-      return {
-        transform: 'translate3d(0, 28px, 0)',
-        opacity: 0,
-        zIndex: 0,
-        pointerEvents: 'none' as const,
-        transition: 'transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms cubic-bezier(0.22, 1, 0.36, 1)',
-        willChange: 'transform, opacity',
-      };
-    }
-
-    // Incoming slide enters from top (-28px) & fades in
-    return {
-      transform: 'translate3d(0, -28px, 0)',
-      opacity: 0,
-      zIndex: 0,
-      pointerEvents: 'none' as const,
-      transition: 'transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms cubic-bezier(0.22, 1, 0.36, 1)',
-      willChange: 'transform, opacity',
-    };
-  };
-
-  // Helper for internal element staggered cascading entrance
-  const getStaggerStyles = (slideId: number, itemIndex: number) => {
-    const isActive = activeSlide === slideId;
-    const delay = itemIndex * 50; // 50ms stagger per element
-    return {
-      transform: isActive ? 'translate3d(0, 0px, 0)' : 'translate3d(0, -16px, 0)',
-      opacity: isActive ? 1 : 0,
-      transition: `transform 550ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, opacity 550ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms`,
-      willChange: 'transform, opacity',
-    };
-  };
+    return () => clearInterval(timer);
+  }, [isAutoScrolling]);
 
   return (
-    <div
-      className="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200/80 bg-white"
-      style={{
-        boxShadow: '0 25px 70px -15px rgba(15, 23, 42, 0.15), 0 0 1px rgba(15, 23, 42, 0.1)',
-      }}
-      onMouseEnter={() => setIsAutoPlaying(false)}
-      onMouseLeave={() => setIsAutoPlaying(true)}
-      onFocus={() => setIsAutoPlaying(false)}
-      onBlur={() => setIsAutoPlaying(true)}
-    >
-      {/* ================= HEADER BAR ================= */}
-      <div className="px-6 py-3.5 border-b border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-between gap-4">
-        {/* Left branding & date */}
+    <div className="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200/90 bg-[#0B1220] text-slate-100 select-none">
+      {/* Outer Window Header Bar */}
+      <div className="px-5 py-3 border-b border-slate-800/80 bg-[#070D18] flex items-center justify-between gap-4">
+        {/* Left Mac Window Controls + Active Entity */}
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+            <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+            <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+          </div>
+          <div className="h-4 w-px bg-slate-800" />
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-sm">
+            <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center text-white font-black text-[10px]">
               FF
             </div>
-            <span className="font-bold text-slate-900 text-sm tracking-tight">FreightFlow</span>
-          </div>
-          <div className="h-4 w-px bg-slate-200" />
-          <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>Monday, Sept 19</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-slate-900 font-semibold">Welcome, Rajesh Patel</span>
+            <span className="font-extrabold text-white text-xs tracking-tight">FreightFlow</span>
+            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">| Enterprise Suite v4.2</span>
           </div>
         </div>
 
-        {/* Search bar & user controls */}
+        {/* Search bar & User Profile */}
         <div className="flex items-center gap-3">
-          <div className="relative">
+          <div className="relative hidden md:block">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               readOnly
-              value="Search LR #, Vehicle GJ-05, Consignee..."
-              className="pl-8 pr-4 py-1.5 rounded-full text-xs bg-white border border-slate-200 text-slate-600 w-56 sm:w-64 focus:outline-none shadow-xs"
+              value="Search LR, Vehicle, Driver..."
+              className="pl-8 pr-4 py-1.5 rounded-full text-xs bg-slate-900 border border-slate-700/60 text-slate-300 w-56 focus:outline-none"
             />
           </div>
-          <button className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors">
-            <Settings className="w-4 h-4" />
-          </button>
-          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
-            <div className="w-7 h-7 rounded-full bg-blue-100 border border-blue-200 text-blue-700 font-bold text-xs flex items-center justify-center">
-              RP
+
+          <div className="flex items-center gap-2">
+            <button className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 hover:text-white">
+              <Bell className="w-3.5 h-3.5" />
+            </button>
+            <button className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 hover:text-white">
+              <Moon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+            <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+              AR
+            </div>
+            <div className="hidden lg:flex flex-col text-left">
+              <span className="text-xs font-bold text-white leading-none">ANKIT RAJPUT</span>
+              <span className="text-[9px] text-blue-400 font-semibold leading-none mt-0.5">PRIMARY ADMIN</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ================= CONTROLS & MODULE SELECTOR ================= */}
-      <div className="px-6 py-3 border-b border-slate-100 bg-white flex flex-wrap items-center justify-between gap-4">
-        {/* Module Slide Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl">
-          {slides.map((slide) => {
-            const Icon = slide.icon;
-            const isActive = activeSlide === slide.id;
-            return (
-              <button
-                key={slide.id}
-                onClick={() => {
-                  setActiveSlide(slide.id);
-                  setIsAutoPlaying(false);
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-blue-600 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span>{slide.title}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Main Dashboard Layout (Sidebar + Scrollable Content) */}
+      <div className="flex h-[580px] bg-slate-50 text-slate-900 overflow-hidden relative">
+        {/* Left Navigation Sidebar */}
+        <aside className="w-56 shrink-0 bg-[#0A1628] text-slate-300 border-r border-slate-800/60 flex flex-col justify-between p-3 hidden md:flex">
+          <div className="space-y-4">
+            {/* Active Company Selector */}
+            <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between cursor-pointer">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-400" />
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase">ACTIVE ENTITY</span>
+                  <span className="text-xs font-bold text-white tracking-tight">AARAMBH LOGISTICS</span>
+                </div>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </div>
 
-        {/* Company & Location Badges */}
-        <div className="flex items-center gap-3 text-xs font-semibold">
-          <div className="flex items-center gap-1.5 text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-            <MapPin className="w-3.5 h-3.5 text-amber-500" />
-            <span>Surat HQ, Gujarat</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
-            <Building2 className="w-3.5 h-3.5 text-blue-600" />
-            <span>Shree Shivay Roadlines</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= SLIDE CONTENT CONTAINER (FIXED HEIGHT GRID) ================= */}
-      <div className="p-6 bg-slate-50/50 flex flex-col justify-between overflow-hidden">
-        <div className="grid grid-cols-1 grid-rows-1 min-h-[440px] w-full">
-          {/* ================= SLIDE 0: LR & PALLET DISPATCH ================= */}
-          <div
-            style={getSlideStyles(0)}
-            className="col-start-1 row-start-1 flex flex-col justify-between space-y-5"
-          >
-            {/* Top Stat Ribbon with Stagger */}
-            <div
-              style={getStaggerStyles(0, 0)}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4"
-            >
+            {/* Nav Groups */}
+            <div className="space-y-1">
               {[
-                { label: 'Today LRs', val: '47 Created', sub: '₹4.82 Lakh Total Freight', color: 'text-blue-600' },
-                { label: 'Pallets Dispatched', val: '184 Pallets', sub: 'Linked with 12 LRs', color: 'text-emerald-600' },
-                { label: 'Active Trucks', val: '18 / 20 Fleet', sub: 'On Surat-Mumbai Route', color: 'text-purple-600' },
-                { label: 'e-Way Bill Generated', val: '100% Active', sub: 'Direct NIC Portal Sync', color: 'text-amber-600' },
-              ].map((kpi) => (
-                <div key={kpi.label} className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{kpi.label}</span>
-                  <div className={`text-lg font-black mt-0.5 ${kpi.color}`}>{kpi.val}</div>
-                  <div className="text-[10px] text-slate-500 font-medium mt-0.5">{kpi.sub}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Main LR Detail Card with Stagger */}
-            <div
-              style={getStaggerStyles(0, 1)}
-              className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex-1 flex flex-col justify-between"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-black border border-blue-200">
-                    #LR/2026-27/0842
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" /> DISPATCHED
-                  </span>
-                  <span className="text-xs text-slate-400">· Date: 19 Sep 2026</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700">
-                    <Printer className="w-3.5 h-3.5" /> Consignee Copy
+                { name: 'Mission Control', icon: Activity, active: true },
+                { name: 'Lorry Receipts (LR)', icon: FileText },
+                { name: 'Pallet Tracking', icon: Layers },
+                { name: 'Trip Management', icon: Truck },
+                { name: 'Core Accounting', icon: DollarSign },
+                { name: 'GST & Compliance', icon: ShieldCheck },
+                { name: 'HR & Payroll', icon: Users },
+                { name: 'Fleet Management', icon: Compass },
+                { name: 'Reports & BI', icon: TrendingUp },
+                { name: 'Master Registry', icon: Building2 },
+                { name: 'Settings', icon: Settings },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = item.name === activeNav;
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => setActiveNav(item.name)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <span>{item.name}</span>
                   </button>
-                  <button className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700">
-                    <Printer className="w-3.5 h-3.5" /> Driver Copy
-                  </button>
-                  <button className="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                    Print Pallet Slip →
-                  </button>
-                </div>
-              </div>
-
-              {/* LR Party & Freight Details Grid */}
-              <div className="grid md:grid-cols-3 gap-5">
-                {/* Consignor & Consignee */}
-                <div className="space-y-3 p-3.5 rounded-xl bg-slate-50/70 border border-slate-100">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CONSIGNOR (SENDER)</span>
-                    <div className="text-sm font-bold text-slate-900 mt-0.5">TATA Steel Ltd</div>
-                    <div className="text-xs text-slate-500">Hazira Industrial Zone, Surat, Gujarat</div>
-                  </div>
-                  <div className="pt-2 border-t border-slate-200/60">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CONSIGNEE (RECEIVER)</span>
-                    <div className="text-sm font-bold text-slate-900 mt-0.5">Reliance Infra Project Site</div>
-                    <div className="text-xs text-slate-500">Navi Mumbai Special Economic Zone</div>
-                  </div>
-                </div>
-
-                {/* Truck & Pallet Quantities */}
-                <div className="space-y-3 p-3.5 rounded-xl bg-slate-50/70 border border-slate-100">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ASSIGNED VEHICLE</span>
-                    <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-blue-600" />
-                      <span>GJ-05-BX-4921</span>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-200 rounded text-slate-700">16 Wheeler</span>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t border-slate-200/60">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PALLET MANAGEMENT</span>
-                    <div className="text-xs font-bold text-slate-800 mt-1 flex items-center justify-between">
-                      <span>24 Industrial Pallets</span>
-                      <span className="text-blue-600 font-bold">@ ₹450 / Pallet</span>
-                    </div>
-                    <div className="text-[11px] text-emerald-600 font-semibold mt-1">✓ Pallet Slip #PS-8841 Attached</div>
-                  </div>
-                </div>
-
-                {/* Freight Amount & GST */}
-                <div className="space-y-2.5 p-3.5 rounded-xl bg-blue-50/40 border border-blue-100">
-                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">FREIGHT BILLING & GST</span>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-600">Base Freight Charge:</span>
-                    <span className="font-bold text-slate-900">₹28,500</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-600">Pallet Retention Charge:</span>
-                    <span className="font-bold text-slate-900">₹2,400</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-emerald-700 font-semibold">
-                    <span>Driver Advance Paid:</span>
-                    <span>- ₹10,000</span>
-                  </div>
-                  <div className="pt-2 border-t border-blue-200/60 flex justify-between items-center">
-                    <div>
-                      <div className="text-[10px] text-slate-400 font-medium">Net Payable</div>
-                      <div className="text-base font-black text-blue-700">₹20,900</div>
-                    </div>
-                    <div className="text-right">
-                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded">GTA RCM 5% GST</span>
-                      <div className="text-[10px] text-slate-500 mt-0.5">e-Way Bill: #3810-9482</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* ================= SLIDE 1: TRIP P&L & SETTLEMENT ================= */}
-          <div
-            style={getSlideStyles(1)}
-            className="col-start-1 row-start-1 flex flex-col justify-between space-y-5"
-          >
-            {/* Top Summary Banner with Stagger */}
-            <div
-              style={getStaggerStyles(1, 0)}
-              className="p-4 rounded-2xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold">Trip #TR-9924 · Surat HQ to JNPT Mumbai</div>
-                  <div className="text-xs text-slate-400">Driver: Ramesh Kumar (Tata 16-Wheeler) · POD Status: Verified</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-6">
-                <div>
-                  <div className="text-[10px] text-slate-400 uppercase">Trip Revenue</div>
-                  <div className="text-lg font-black text-white">₹42,000</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-400 uppercase">Total Expenses</div>
-                  <div className="text-lg font-black text-rose-400">₹21,240</div>
-                </div>
-                <div className="pl-4 border-l border-slate-800">
-                  <div className="text-[10px] text-emerald-400 uppercase font-bold">Net Trip Profit</div>
-                  <div className="text-xl font-black text-emerald-400">₹20,760 <span className="text-xs text-emerald-300 font-semibold">(49.4%)</span></div>
-                </div>
-              </div>
-            </div>
+          {/* Bottom Entity Footprint */}
+          <div className="pt-3 border-t border-slate-800/80 flex items-center gap-2.5 text-[11px] text-slate-400">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold text-slate-300">SYSTEM ONLINE</span>
+          </div>
+        </aside>
 
-            {/* Expense Breakdown & POD Audit with Stagger */}
-            <div
-              style={getStaggerStyles(1, 1)}
-              className="grid md:grid-cols-2 gap-5 flex-1"
-            >
-              {/* Expense Ledger */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-2.5">
-                <div className="flex justify-between items-center pb-2.5 border-b border-slate-100">
-                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider">TRIP EXPENSE BREAKDOWN</span>
-                  <span className="text-[11px] font-semibold text-blue-600">Auto-Audited via FASTag & Petrol Pump API</span>
+        {/* Scrollable Main Content Area */}
+        <main
+          ref={scrollRef}
+          onMouseEnter={() => setIsAutoScrolling(false)}
+          onMouseLeave={() => setIsAutoScrolling(true)}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin scroll-smooth"
+        >
+          {/* Header Banner */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Mission Control</h1>
+              <p className="text-xs text-slate-500 font-semibold tracking-wider uppercase mt-0.5">
+                FREIGHTFLOW OPERATIONAL ANALYTICS · 08 JULY 2026
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                SYSTEM READY
+              </span>
+              <button className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs transition-all">
+                EXPORT REPORTS
+              </button>
+              <button className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+                + GENERATE NEW LR
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Action Shortcut Cards (4 Grid) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {[
+              { title: 'Fleet Map', subtitle: 'LIVE REGION CONTROL', icon: MapPin, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { title: 'Pallet Audit', subtitle: 'INVENTORY RECOVERY MATRIX', icon: Layers, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+              { title: 'Create LR', subtitle: 'NEW LORRY RECEIPT', icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
+              { title: 'Start Trip', subtitle: 'DISPATCH VEHICLE', icon: Truck, color: 'text-amber-600', bg: 'bg-amber-50' },
+            ].map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.title}
+                  className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between hover:border-blue-300 transition-all cursor-pointer group"
+                >
+                  <div>
+                    <div className="text-xs font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {card.title}
+                    </div>
+                    <div className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-0.5">
+                      {card.subtitle}
+                    </div>
+                  </div>
+                  <div className={`w-8 h-8 rounded-xl ${card.bg} flex items-center justify-center ${card.color}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
                 </div>
-                <div className="space-y-2">
+              );
+            })}
+          </div>
+
+          {/* Key Metric Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: "TODAY'S LRS", value: '3', change: '+12.5% VS LAST 7 DAYS', positive: true },
+              { label: 'DAILY REVENUE', value: '₹2,455.14', change: '+3.8% FROM PREV 24 HOURS', positive: true },
+              { label: 'RECEIVABLES', value: '₹335,205.96', change: '-2.1% OUTSTANDING', positive: false },
+              { label: 'REG ALERTS', value: '0', change: 'NEXT 7 DAYS', neutral: true },
+            ].map((metric) => (
+              <div key={metric.label} className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                <span className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">{metric.label}</span>
+                <div className="text-2xl font-black text-slate-900 mt-1">{metric.value}</div>
+                <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold tracking-tight bg-slate-100 text-slate-700">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mr-1 ${
+                      metric.neutral ? 'bg-slate-400' : metric.positive ? 'bg-emerald-500' : 'bg-rose-500'
+                    }`}
+                  />
+                  {metric.change}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Two-Column Analytics Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column (2 Cols wide on Desktop) */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Today's Lorry Receipts Table */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Today's Lorry Receipts</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">OPERATIONAL OVERVIEW</p>
+                  </div>
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">12 RECORDS</span>
+                </div>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[10px] font-extrabold text-slate-400 uppercase">
+                        <th className="py-2">LR NO</th>
+                        <th className="py-2">PARTY / ROUTE</th>
+                        <th className="py-2">DATE</th>
+                        <th className="py-2 text-right">ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {[
+                        { lr: 'NLR/2026-27/112', party: 'SHARMA ROADLINES', date: '20 Jul' },
+                        { lr: 'NLR/2026-27/111', party: 'AARAMBH LOGISTICS', date: '20 Jul' },
+                        { lr: 'NLR/2026-27/110', party: 'SHREE RAMDEV', date: '20 Jul' },
+                        { lr: 'NLR/2026-27/109', party: 'KALANI TRANSPORTS', date: '19 Jul' },
+                      ].map((row) => (
+                        <tr key={row.lr} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-2.5 font-bold text-blue-600">{row.lr}</td>
+                          <td className="py-2.5 font-semibold text-slate-800">{row.party}</td>
+                          <td className="py-2.5 text-slate-500 font-medium">{row.date}</td>
+                          <td className="py-2.5 text-right">
+                            <div className="inline-flex items-center gap-1 text-slate-400">
+                              <Download className="w-3.5 h-3.5 hover:text-slate-700 cursor-pointer" />
+                              <Printer className="w-3.5 h-3.5 hover:text-slate-700 cursor-pointer" />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Today's Pallet Load Table */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Today's Pallet Load</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">INVENTORY MOVEMENT LOG</p>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">18 BATCHES</span>
+                </div>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[10px] font-extrabold text-slate-400 uppercase">
+                        <th className="py-2">SR NO</th>
+                        <th className="py-2">LR NO</th>
+                        <th className="py-2">DATE</th>
+                        <th className="py-2">RECEIVER</th>
+                        <th className="py-2 text-right">ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {[
+                        { sr: '01', lr: 'LR/PL/2026-27/048', date: '20 Jul', party: 'RELIANCE INFRA LTD', status: 'CONFIRMED' },
+                        { sr: '02', lr: 'LR/PL/2026-27/045', date: '20 Jul', party: 'TATA STEEL HAZIRA', status: 'CONFIRMED' },
+                        { sr: '03', lr: 'LR/PL/2026-27/042', date: '20 Jul', party: 'ADANI LOGISTICS', status: 'IN TRANSIT' },
+                        { sr: '04', lr: 'LR/PL/2026-27/038', date: '19 Jul', party: 'JINDAL POLY LTD', status: 'CONFIRMED' },
+                      ].map((row) => (
+                        <tr key={row.sr} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-2.5 text-slate-400 font-bold">{row.sr}</td>
+                          <td className="py-2.5 font-bold text-blue-600">{row.lr}</td>
+                          <td className="py-2.5 text-slate-500 font-medium">{row.date}</td>
+                          <td className="py-2.5 font-semibold text-slate-800">{row.party}</td>
+                          <td className="py-2.5 text-right">
+                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                              {row.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Route Performance Card */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Route Performance</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">TOP SPEED DESTINATIONS</p>
+                  </div>
+                  <Compass className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="mt-3 space-y-2.5">
                   {[
-                    { title: 'Diesel Fuel Drop (180 Liters @ Surat)', cost: '₹16,740', note: 'KMPL: 3.8 (Normal Range)', status: 'Approved' },
-                    { title: 'FASTag Toll Plazas (8 Plazas on NH-48)', cost: '₹2,450', note: 'Auto-debited from Paytm Bank', status: 'Verified' },
-                    { title: 'Driver Incentive & Meal Allowance', cost: '₹1,200', note: 'Per-trip incentive included', status: 'Paid' },
-                    { title: 'Emergency Maintenance (Tyre Patch)', cost: '₹850', note: 'Receipt photo uploaded by driver', status: 'Approved' },
-                  ].map((exp, i) => (
-                    <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <div>
-                        <div className="text-xs font-bold text-slate-900">{exp.title}</div>
-                        <div className="text-[10px] text-slate-500">{exp.note}</div>
+                    { rank: '01', dest: 'SACHIN', rev: '₹109,922.86', routes: '12 ROUTES' },
+                    { rank: '02', dest: 'LASKANA', rev: '₹101,43.28', routes: '8 ROUTES' },
+                    { rank: '03', dest: 'LASKANA', rev: '₹90,24.28', routes: '6 ROUTES' },
+                    { rank: '04', dest: 'KIM', rev: '₹82,03.36', routes: '4 ROUTES' },
+                    { rank: '05', dest: 'KIM', rev: '₹43,23.28', routes: '2 ROUTES' },
+                  ].map((item) => (
+                    <div key={item.rank + item.dest} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 font-extrabold text-xs flex items-center justify-center">
+                          {item.rank}
+                        </span>
+                        <div>
+                          <div className="text-xs font-black text-slate-900">{item.dest}</div>
+                          <div className="text-[10px] text-slate-500 font-semibold">ACTIVE CORRIDOR</div>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs font-black text-slate-900">{exp.cost}</div>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">{exp.status}</span>
+                        <div className="text-xs font-black text-slate-900">{item.rev}</div>
+                        <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                          {item.routes}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button className="w-full mt-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors shadow-xs">
+                  OPTIMIZE ROUTE MARGINS
+                </button>
+              </div>
+
+              {/* Revenue Performance Chart */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Revenue Performance</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">OPERATIONAL VELOCITY LAST 6 MONTHS</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-600 border border-blue-200">
+                    LIVE TREND
+                  </span>
+                </div>
+                <div className="mt-4 h-36 w-full relative flex items-end">
+                  <svg className="w-full h-full overflow-visible" viewBox="0 0 400 120" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2563EB" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M 0,100 Q 80,85 160,70 T 320,35 L 400,20 L 400,120 L 0,120 Z"
+                      fill="url(#chartGrad)"
+                    />
+                    <path
+                      d="M 0,100 Q 80,85 160,70 T 320,35 L 400,20"
+                      fill="none"
+                      stroke="#2563EB"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="400" cy="20" r="4" fill="#2563EB" />
+                  </svg>
+                </div>
+                <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-2 px-1">
+                  <span>FEB</span>
+                  <span>MAR</span>
+                  <span>APR</span>
+                  <span>MAY</span>
+                  <span>JUN</span>
+                  <span>JUL</span>
+                </div>
+              </div>
+
+              {/* Bottom 3 Donut Charts */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Total Revenue Share */}
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">TOTAL REVENUE SHARE</h4>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">OVERALL MARKET PRESENCE</p>
+                  </div>
+                  <div className="my-3 flex justify-center">
+                    <div className="w-20 h-20 rounded-full border-8 border-blue-600 border-t-emerald-500 border-r-amber-500 border-b-purple-500 flex items-center justify-center text-[10px] font-black text-slate-700">
+                      100%
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-[9px] font-bold text-slate-500">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-600" /> SHARMA ROADLINES</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> AARAMBH LOGISTICS</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Box LR Analytics */}
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">BOX LR ANALYTICS</h4>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">UTILIZATION RATIO</p>
+                  </div>
+                  <div className="my-3 flex justify-center">
+                    <div className="w-20 h-20 rounded-full border-8 border-emerald-500 border-t-emerald-400 border-r-slate-200 border-b-emerald-600 flex items-center justify-center text-[10px] font-black text-slate-700">
+                      68.4%
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-[9px] font-bold text-slate-500">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> 68.4% FTL DISPATCH</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" /> 31.6% PARTIAL LOAD</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pallet Operations */}
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">PALLET OPERATIONS</h4>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">INVENTORY DISTRIBUTION</p>
+                  </div>
+                  <div className="my-3 flex justify-center">
+                    <div className="w-20 h-20 rounded-full border-8 border-amber-500 border-t-blue-500 border-r-indigo-500 border-b-slate-200 flex items-center justify-center text-[10px] font-black text-slate-700">
+                      4,290
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-[9px] font-bold text-slate-500">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> ACTIVE WAREHOUSE</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> IN TRANSIT</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Sidebar Column */}
+            <div className="space-y-6">
+              {/* Financial Pulse */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Financial Pulse</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">CASH FLOW HEALTH</p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500 font-semibold">COLLECTIONS</span>
+                    <span className="font-black text-slate-900">₹2,455.14</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-emerald-500 h-full w-[45%]" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500 font-semibold">RECEIVABLES</span>
+                    <span className="font-black text-slate-900">₹335,205.96</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-amber-500 h-full w-[85%]" />
+                  </div>
+                </div>
+
+                <button className="w-full py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-bold shadow-xs transition-colors">
+                  OPEN LEDGER
+                </button>
+              </div>
+
+              {/* Recent Activity */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Recent Activity</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">LIVE OPERATIONS LOG</p>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { action: 'switch_company', user: 'ANKIT RAJPUT', time: 'ABOUT 2 HOURS AGO' },
+                    { action: 'switch_company', user: 'ANKIT RAJPUT', time: '1 DAY AGO' },
+                    { action: 'switch_company', user: 'ANKIT RAJPUT', time: '1 DAY AGO' },
+                    { action: 'switch_company', user: 'ANKIT RAJPUT', time: '2 DAYS AGO' },
+                  ].map((act, i) => (
+                    <div key={i} className="flex items-start gap-2.5 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-blue-600 mt-1 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-900">{act.action}</div>
+                        <div className="text-[10px] text-slate-400 font-semibold">{act.user} · {act.time}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Driver Advance & POD Verification */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 mb-3">
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wider">PROOF OF DELIVERY (POD)</span>
-                    <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> GPS Verified
-                    </span>
+              {/* Compliance */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Compliance</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">RED FLAG READINESS</p>
                   </div>
-
-                  <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100 flex items-center gap-4 mb-3">
-                    <div className="w-14 h-14 rounded-lg bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400 font-bold text-[10px] shrink-0 overflow-hidden relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-600 opacity-20" />
-                      POD STAMP
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-slate-900">Digital POD Uploaded by Driver App</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">Location: JNPT Gate #3 (GPS: 18.95, 72.94)</div>
-                      <div className="text-[10px] text-blue-700 font-semibold mt-1">Signed by Stores Manager: V. Sharma</div>
-                    </div>
-                  </div>
+                  <ShieldCheck className="w-5 h-5 text-slate-300" />
                 </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <div className="text-xs font-medium text-slate-500">Driver Advance Balance: <span className="font-bold text-slate-900">₹0 Settled</span></div>
-                  <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all">
-                    Settle Driver Account →
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ================= SLIDE 2: GST & COMPLIANCE ENGINE ================= */}
-          <div
-            style={getSlideStyles(2)}
-            className="col-start-1 row-start-1 flex flex-col justify-between space-y-5"
-          >
-            <div className="grid md:grid-cols-3 gap-5 flex-1">
-              {/* GSTR-1 & GSTR-3B Card with Stagger */}
-              <div
-                style={getStaggerStyles(2, 0)}
-                className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-3"
-              >
-                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider">GST COMPLIANCE HUB</span>
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                </div>
-                <div className="space-y-2.5 flex-1 flex flex-col justify-center">
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Monthly Taxable Turnover</div>
-                    <div className="text-lg font-black text-slate-900">₹14,85,000</div>
-                    <div className="text-[10px] text-emerald-600 font-semibold">47 LRs Processed under GTA RCM</div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-blue-50/50 border border-blue-100">
-                    <div className="text-[10px] text-blue-600 font-bold uppercase">GTA RCM Tax Ledger Credit</div>
-                    <div className="text-lg font-black text-blue-700">₹74,250</div>
-                    <div className="text-[10px] text-blue-600 font-medium">Ready for GSTR-1 Auto-Filing</div>
-                  </div>
+                <div className="p-3 rounded-xl bg-slate-50 text-center text-xs font-bold text-slate-500">
+                  NO UPCOMING DEADLINES
                 </div>
               </div>
 
-              {/* TDS & Document Expiry Card with Stagger */}
-              <div
-                style={getStaggerStyles(2, 1)}
-                className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-3"
-              >
-                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider">VEHICLE EXPIRY ALERTS</span>
-                  <AlertTriangle className="w-4 h-4 text-amber-500" />
-                </div>
-                <div className="space-y-2.5 flex-1 flex flex-col justify-center">
-                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200/70 flex items-start gap-2.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="text-xs font-bold text-amber-900">GJ-05-BX-4921 Insurance Expiry</div>
-                      <div className="text-[10px] text-amber-700 font-medium">Expiring in 5 Days (4 Oct 2026)</div>
-                      <span className="inline-block mt-1 text-[9px] font-bold text-amber-800 underline cursor-pointer">Renew Policy Online →</span>
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="text-xs font-bold text-slate-900">GJ-27-TT-1092 Fitness & Permit</div>
-                      <div className="text-[10px] text-slate-500">Valid till Nov 2026 (Compliant)</div>
-                    </div>
+              {/* Settlement Monitor */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Settlement Monitor</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">DRIVER BALANCES</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Financial Ledger & MSME Compliance with Stagger */}
-              <div
-                style={getStaggerStyles(2, 2)}
-                className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3">
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wider">MSME & TDS (SEC 194C)</span>
-                    <CreditCard className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="space-y-2.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">TDS Deduction Reg:</span>
-                      <span className="font-bold text-slate-900">₹29,700</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Form 26Q Export:</span>
-                      <span className="font-bold text-emerald-600">Ready</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">MSME 45-Day Alert:</span>
-                      <span className="font-bold text-slate-900">0 Overdue Invoices</span>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+                  <span className="text-xs font-bold text-amber-900">PENDING MISSIONS</span>
+                  <span className="text-sm font-black text-amber-700">0 Missions</span>
                 </div>
-
-                <button className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-colors mt-3">
-                  Export GST & Compliance Pack (.ZIP)
+                <button className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors">
+                  START SETTLEMENT
                 </button>
               </div>
+
+              {/* Fleet Status Donut */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Fleet Status</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">UTILIZATION</p>
+                </div>
+                <div className="flex justify-center my-2">
+                  <div className="w-24 h-24 rounded-full border-[10px] border-emerald-500 border-t-emerald-400 border-r-slate-200 flex items-center justify-center text-xs font-black text-slate-800">
+                    84%
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[9px] font-bold text-slate-500">
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> ON TRIP</div>
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" /> IDLE</div>
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Footer Branding */}
+          <div className="pt-6 border-t border-slate-200/80 text-center space-y-1">
+            <p className="text-[10px] font-extrabold text-slate-400 tracking-widest uppercase">
+              FREIGHTFLOW © 2026 · LOGISTICS & SUPPLY CHAIN INTELLIGENCE
+            </p>
+            <p className="text-[9px] font-bold text-blue-600 tracking-wider uppercase">
+              PRODUCT BUILT & POWERED BY TECHSONANCE INFOTECH LLP
+            </p>
+          </div>
+        </main>
+      </div>
+
+      {/* Floating Auto-Scroll Toggle & Indicator Bar */}
+      <div className="px-5 py-2.5 bg-[#070D18] border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="font-semibold text-slate-300">Live Dashboard Stream</span>
+          <span className="text-slate-600">•</span>
+          <span className="text-[11px] text-slate-400">Scroll inside frame to explore all modules</span>
         </div>
 
-        {/* ================= BOTTOM PAGINATION NAV ================= */}
-        <div className="pt-4 border-t border-slate-200/60 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {slides.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => {
-                  setActiveSlide(s.id);
-                  setIsAutoPlaying(false);
-                }}
-                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                  activeSlide === s.id ? 'w-8 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400'
-                }`}
-                aria-label={`Go to slide ${s.id + 1}`}
-              />
-            ))}
-          </div>
-
-          <div className="text-xs text-slate-400 font-semibold flex items-center gap-3">
-            <span>Slide {activeSlide + 1} of 3</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  setActiveSlide((prev) => (prev === 0 ? 2 : prev - 1));
-                  setIsAutoPlaying(false);
-                }}
-                className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  setActiveSlide((prev) => (prev + 1) % 3);
-                  setIsAutoPlaying(false);
-                }}
-                className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={() => setIsAutoScrolling(!isAutoScrolling)}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] transition-colors cursor-pointer"
+        >
+          {isAutoScrolling ? (
+            <>
+              <Pause className="w-3 h-3 text-amber-400" /> Pause Auto-Scroll
+            </>
+          ) : (
+            <>
+              <Play className="w-3 h-3 text-emerald-400" /> Resume Auto-Scroll
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
