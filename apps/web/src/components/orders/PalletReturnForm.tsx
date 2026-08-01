@@ -216,7 +216,7 @@ export function PalletReturnForm({ initialData, onSuccess, onCancel }: PalletRet
 
     const fetchNextLr = async () => {
       try {
-        const res = await fetch(`/api/v1/pallets/next-lr?date=${watchedDate}`).then(r => r.json());
+        const res = await fetch(`/api/v1/pallets/next-lr?date=${watchedDate}&type=RETURN`).then(r => r.json());
         if (res?.nextLr && !getValues('lrNo')) {
           setValue('lrNo', res.nextLr, { shouldDirty: true });
         }

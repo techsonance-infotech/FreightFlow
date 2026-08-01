@@ -32,18 +32,17 @@ export async function GET(req: Request) {
       fyEnd = currentYear % 100;
     }
     const fyString = `${fyStart}-${fyEnd.toString().padStart(2, '0')}`;
-    const prefix = `PL/${fyString}/`; // Using PL for Pallets (range: 5001+)
+    const type = searchParams.get('type') || 'OUTWARD';
+    const isReturn = type === 'RETURN';
+    const prefix = `PL/${fyString}/`;
 
     const lastRecord = await prisma.orderPallet.findFirst({
       where: {
         companyId: session.user.companyId,
-        lrNo: {
-          startsWith: prefix,
-        },
+        lrNo: isReturn
+          ? { startsWith: prefix, endsWith: '/PR' }
+          : { startsWith: prefix, not: { endsWith: '/PR' } }
       },
-      // Sort by lrNo descending — since all records share the same prefix length,
-      // lexicographic order correctly finds the highest sequence number.
-      // Using date: 'desc' was unreliable when multiple records share the same date.
       orderBy: {
         lrNo: 'desc',
       },
@@ -52,17 +51,25 @@ export async function GET(req: Request) {
       },
     });
 
-    // PL invoices start at 5001 (LR invoices use 1001–4999) to prevent overlap
-    let nextSequence = 5001;
+    let nextSequence = isReturn ? 1 : 5001;
     if (lastRecord && lastRecord.lrNo) {
-      const parts = lastRecord.lrNo.split('/');
-      const lastSeq = parseInt(parts[parts.length - 1]);
-      if (!isNaN(lastSeq) && lastSeq >= 5001) {
-        nextSequence = lastSeq + 1;
+      if (isReturn) {
+        const match = lastRecord.lrNo.match(/^PL\/\d{2,4}-\d{2}\/(\d+)\/PR$/);
+        if (match) {
+          nextSequence = parseInt(match[1]) + 1;
+        }
+      } else {
+        const parts = lastRecord.lrNo.split('/');
+        const lastSeq = parseInt(parts[parts.length - 1]);
+        if (!isNaN(lastSeq) && lastSeq >= 5001) {
+          nextSequence = lastSeq + 1;
+        }
       }
     }
 
-    const nextLr = `${prefix}${nextSequence}`;
+    const nextLr = isReturn 
+      ? `${prefix}${nextSequence}/PR`
+      : `${prefix}${nextSequence}`;
 
     return NextResponse.json({ nextLr });
   } catch (error) {

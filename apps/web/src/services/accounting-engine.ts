@@ -400,8 +400,8 @@ export class AccountingEngine {
     const fyString = `${fyStartYear}-${fyEndYear.toString().slice(-2)}`;
     const prefix = `INV/${fyString}/`;
 
-    // Find the latest invoice for this tenant/company in this FY
-    const lastInvoice = await db.freightInvoice.findFirst({
+    // Fetch all active invoice numbers for this company in the current FY
+    const invoices = await db.freightInvoice.findMany({
       where: {
         tenantId,
         companyId,
@@ -409,29 +409,24 @@ export class AccountingEngine {
           ? { startsWith: prefix, endsWith: '/PR' }
           : { startsWith: prefix, not: { endsWith: '/PR' } }
       },
-      orderBy: {
-        createdAt: 'desc'
-      },
       select: {
         invoiceNo: true
       }
     });
 
-    let nextSeq = 1;
-    if (lastInvoice && lastInvoice.invoiceNo) {
+    const activeSeqs = invoices.map((inv: any) => {
       if (isPalletReturn) {
-        const match = lastInvoice.invoiceNo.match(/^INV\/\d{2,4}-\d{2}\/(\d+)\/PR$/);
-        if (match) {
-          nextSeq = parseInt(match[1]) + 1;
-        }
+        const match = inv.invoiceNo.match(/^INV\/\d{2,4}-\d{2}\/(\d+)\/PR$/);
+        return match ? parseInt(match[1]) : NaN;
       } else {
-        const parts = lastInvoice.invoiceNo.split('/');
-        const lastSeqStr = parts[parts.length - 1];
-        const lastSeq = parseInt(lastSeqStr);
-        if (!isNaN(lastSeq)) {
-          nextSeq = lastSeq + 1;
-        }
+        const parts = inv.invoiceNo.split('/');
+        return parseInt(parts[parts.length - 1]);
       }
+    }).filter((seq: number) => !isNaN(seq));
+
+    let nextSeq = 1;
+    while (activeSeqs.includes(nextSeq)) {
+      nextSeq++;
     }
 
     return isPalletReturn 
