@@ -25,9 +25,6 @@ export default function LandingPage() {
       <PainSection />
       <WhyFreightFlow />
       <HowItWorks />
-      <Features />
-      <MultiCompany />
-      <SecuritySection />
       <SocialProof />
       <Pricing />
       <FAQ />

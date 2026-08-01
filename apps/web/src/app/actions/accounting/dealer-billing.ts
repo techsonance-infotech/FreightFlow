@@ -270,8 +270,10 @@ export async function getNextInvoiceNumber(loadType?: 'BOX' | 'PALLET' | 'BOTH' 
       }
     }).filter(seq => !isNaN(seq));
 
-    const maxSeq = activeSeqs.length > 0 ? Math.max(...activeSeqs) : 0;
-    const nextSeq = maxSeq + 1;
+    let nextSeq = 1;
+    while (activeSeqs.includes(nextSeq)) {
+      nextSeq++;
+    }
 
     return isPalletReturn
       ? `${prefix}${nextSeq.toString().padStart(3, '0')}/PR`
@@ -365,14 +367,13 @@ async function validateInvoiceNumber(tx: any, companyId: string, invoiceNo: stri
       return m ? parseInt(m[1], 10) : null;
     }).filter((s: any) => s !== null && !isNaN(s));
 
-    const maxSeq = seqs.length > 0 ? Math.max(...seqs) : 0;
-    if (seq <= maxSeq) {
-      const formattedMax = isPalletReturn
-        ? `${prefix}${maxSeq.toString().padStart(3, '0')}/PR`
-        : `${prefix}${maxSeq.toString().padStart(3, '0')}`;
+    if (seqs.includes(seq)) {
+      const formattedSeq = isPalletReturn
+        ? `${prefix}${seq.toString().padStart(3, '0')}/PR`
+        : `${prefix}${seq.toString().padStart(3, '0')}`;
       return {
         valid: false,
-        error: `Only invoice numbers greater than the previous valid invoice number (${formattedMax}) are allowed.`
+        error: `Invoice number "${formattedSeq}" is already in use.`
       };
     }
   }

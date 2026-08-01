@@ -1,0 +1,1316 @@
+FREIGHTFLOW PRO
+फ्रेटफ्लो प्रो
+
+Complete SaaS Implementation Blueprint
+Transport Business Management Platform — Phase-Wise Build Guide for AI Agents
+
+Version 1.0  |  April 2026  |  For AI Agent Implementation
+
+Item
+Detail
+Product Name
+FreightFlow Pro
+Tagline
+Every Trip. Every Rupee. Every Mile — In Control.
+Architecture
+Multi-Tenant SaaS | Licensing | Module-based
+Primary Market
+Indian Road Transport & Logistics Companies
+Implementation Mode
+AI Agent — Phase-wise automated build
+Base Stack
+Next.js + Supabase + Node.js + Prisma
+Document Version
+1.0 — April 2026
+
+1. Product Identity & Branding
+1.1 Product Name
+FREIGHTFLOW PRO
+The name combines 'Freight' (core business domain) + 'Flow' (smooth operations, cash flow, workflow) + 'Pro' (professional SaaS grade). Short, memorable, and domain-specific. The Hindi script 'फ्रेटफ्लो प्रो' supports regional branding for Indian market.
+
+1.2 Logo Design Concept
+The logo concept is designed for high recognition in transport and logistics:
+Primary Mark: A stylised truck silhouette formed from two overlapping arrows — one pointing right (forward movement/delivery) and one curved upward (growth/analytics), creating an 'FF' negative space within
+Color Palette: Deep Navy #0F2B5B (trust, enterprise) + Electric Blue #1E88E5 (technology, speed) + Amber #F57F17 (energy, India)
+Typography: 'FreightFlow' in bold geometric sans-serif (similar to Poppins Bold), 'PRO' in a smaller weight to the right
+Icon-only version: The double-arrow truck icon works at 16x16px favicon and 512x512px app icon
+Dark background variant: White logo on Navy for dashboards; full-color on white for documents
+Tagline below logo: 'Every Trip. Every Rupee. Every Mile — In Control.'
+
+1.3 Brand Voice
+Professional yet approachable — speaks to owner-operators and enterprise fleet managers equally
+Hindi/Gujarati/English trilingual for Indian regional market acceptance
+Trust signals: 'GST Ready', 'e-Way Bill Integrated', 'DPIIT Recognised' badges
+
+2. Technology Stack — Free-Tier First
+All selected technologies have generous free tiers suitable for MVP and early customers. Paid tiers are triggered only at scale.
+
+2.1 Frontend
+Layer
+Technology
+Free Tier
+Why Chosen
+Web App
+Next.js 14 (App Router)
+Vercel Free / Self-host
+SSR+SSG, React, file routing, API routes
+UI Library
+shadcn/ui + Tailwind CSS
+Open Source
+Beautiful, accessible, customisable components
+State Mgmt
+Zustand + React Query (TanStack)
+Open Source
+Lightweight, no boilerplate, server state
+Forms
+React Hook Form + Zod
+Open Source
+Type-safe validation, minimal re-renders
+Charts
+Recharts + Tremor
+Open Source
+Responsive charts, dashboard-ready
+Tables
+TanStack Table v8
+Open Source
+Virtual scroll, sorting, filtering for large datasets
+PDF Generation
+React-PDF / jsPDF
+Open Source
+LR print, invoice PDF, payslip generation
+Icons
+Lucide React
+Open Source
+Consistent icon set
+
+2.2 Backend
+Layer
+Technology
+Free Tier
+Why Chosen
+API Framework
+Node.js + Express / Fastify
+Open Source
+Familiar, fast, large ecosystem
+ORM
+Prisma ORM
+Open Source
+Type-safe DB access, migrations, Supabase-native
+Auth
+Supabase Auth (built-in)
+50,000 MAU free
+JWT, MFA, OAuth, RBAC out of the box
+Queues / Jobs
+BullMQ + Redis (Upstash)
+Upstash 10k req/day free
+Background jobs, payroll runs, report generation
+Email
+Resend
+3,000 emails/month free
+Modern email API, React email templates
+SMS / WhatsApp
+Twilio / MSG91
+Trial credits
+OTP, notifications, WhatsApp Business
+File Upload
+Supabase Storage
+1 GB free
+Documents, POD photos, invoice PDFs
+PDF Render
+Puppeteer / Playwright (serverless)
+Open Source
+Server-side PDF generation
+
+2.3 Database — Supabase (Recommended Primary)
+WHY SUPABASE?
+Supabase provides PostgreSQL (battle-tested ACID), built-in Auth with Row-Level Security (RLS) for multi-tenancy, Realtime subscriptions (live dispatch board), Storage for documents, Edge Functions for serverless compute, and a generous free tier (500MB DB, 2GB storage, 50K MAU). It is purpose-built for exactly this kind of multi-tenant SaaS.
+
+Component
+Supabase Free Tier
+Paid (Pro)
+Notes
+PostgreSQL DB
+500 MB storage
+8 GB+
+Upgrade when DB > 400 MB (est. 500+ tenants)
+Auth (MAU)
+50,000 users/month
+100K+
+More than enough for SaaS launch
+Storage
+2 GB
+100 GB+
+POD photos, docs; upgrade when needed
+Edge Functions
+500K invocations/month
+2M+
+Webhooks, real-time triggers
+Realtime
+200 concurrent
+Unlimited
+Live dispatch board, notifications
+Bandwidth
+2 GB/month
+50 GB+
+File downloads, API calls
+
+2.4 Additional Free-Tier Services
+Service
+Provider
+Free Tier
+Usage
+Hosting (Web)
+Vercel
+Unlimited hobby
+Next.js frontend deployment
+Hosting (API)
+Railway.app / Render
+500 hrs/month free
+Node.js API server
+Redis / Cache
+Upstash Redis
+10K req/day free
+Sessions, BullMQ, rate limits
+Search
+Typesense (self-host) / Meilisearch
+Open Source
+LR, invoice, customer search
+Monitoring
+Sentry
+5K errors/month free
+Error tracking, performance
+Analytics
+PostHog
+1M events/month free
+Product analytics, feature flags
+CI/CD
+GitHub Actions
+2000 min/month free
+Automated testing, deployment
+Logs
+Logtail / Better Stack
+1 GB/month free
+Centralised application logs
+Maps
+Google Maps API
+$200 credit/month
+Route display, geocoding, distance
+e-Way Bill
+NIC API (Govt)
+Free
+EWB generation via GST portal API
+
+2.5 Mobile App
+React Native (Expo) — same codebase for iOS and Android
+Expo EAS Build — free tier for open-source / personal use
+Expo Go for development testing — zero cost
+Push notifications via Expo Notifications (wraps Firebase FCM — free tier)
+
+3. Multi-Tenancy, Licensing & Module Control Architecture
+3.1 Multi-Tenancy Model
+FreightFlow Pro uses a Schema-per-Tenant model within Supabase PostgreSQL, enforced via Row-Level Security (RLS) policies. Each tenant (transport company) gets:
+A unique tenant_id (UUID) stored on every table
+RLS policies that automatically filter all queries by tenant_id extracted from the JWT
+Shared application servers — tenant isolation is at the database row level
+Option to upgrade to dedicated Supabase project for enterprise clients (data isolation)
+
+3.2 Account & Tenant Hierarchy
+Level
+Entity
+Description
+L0
+Super Admin (Platform)
+FreightFlow team — manages all tenants, plans, modules
+L1
+Tenant Owner
+Transport company that purchased a license
+L2
+Company Admin
+Admin of a specific company within the tenant
+L3
+Branch Manager
+Manages a branch/depot within a company
+L4
+Staff Users
+Accountant, Dispatcher, HR, Maintenance Supervisor
+L5
+Field Users
+Drivers, loaders (mobile app only)
+
+3.3 Multi-Company Support
+A single tenant license can have multiple Companies (e.g., Shree Shivay Roadlines + Shivay Cargo Pvt Ltd)
+Each Company has its own Chart of Accounts, GST registration, bank accounts, and branches
+Shared master data (consignees, dealers, vehicles) can be scoped at tenant or company level
+Consolidated reporting across companies for the Tenant Owner
+Inter-company transaction support with automatic elimination entries
+
+3.4 Licensing Engine
+FreightFlow Pro is sold as a time-based SaaS license. The licensing engine manages:
+Feature
+Implementation
+License Key Generation
+Cryptographically signed JWT containing: tenant_id, plan, expiry_date, max_users, max_vehicles, enabled_modules
+License Validation
+Backend middleware validates license JWT on every API request; rejects if expired or tampered
+Expiry Handling
+30-day, 7-day, 3-day, 1-day email + in-app warnings before expiry; grace period of 7 days post-expiry (read-only mode)
+License Renewal
+Admin pays → webhook triggers license extension → new JWT issued; no service interruption
+License Plans
+Starter (1 company, 5 users, 20 vehicles) | Growth (3 companies, 25 users, 100 vehicles) | Enterprise (unlimited)
+Usage Metering
+Vehicle count, user count, monthly LR count tracked and compared against plan limits in real-time
+Violation Handling
+Soft block on new record creation if over limit; hard block if license expired > 7 days
+Offline Grace
+License cached locally for 24 hours; allows offline use with re-validation on next connect
+
+3.5 Module Control System (Super Admin)
+Every functional module can be independently enabled or disabled per tenant by the Super Admin:
+Module Key
+Module Name
+Default
+Can Disable?
+mod_core_accounting
+Core Accounting (GL, AR, AP)
+ON
+No — Core
+mod_freight_billing
+Freight Billing & Invoicing
+ON
+Yes
+mod_lr_management
+Lorry Receipt Management
+ON
+Yes
+mod_pallet_management
+Pallet Management
+ON
+Yes
+mod_trip_management
+Trip Management
+ON
+Yes
+mod_fleet
+Fleet & Vehicle Management
+ON
+Yes
+mod_maintenance
+Maintenance & Job Cards
+ON
+Yes
+mod_fuel
+Fuel Management
+ON
+Yes
+mod_hr_payroll
+HR & Payroll
+ON
+Yes
+mod_driver_advance
+Driver Advance Management
+ON
+Yes
+mod_gst_compliance
+GST & e-Way Bill Compliance
+ON
+Yes
+mod_tds
+TDS Management
+ON
+Yes
+mod_crm
+CRM & Customer Portal
+OFF
+Yes
+mod_ai_analytics
+AI & Analytics (Advanced)
+OFF
+Yes
+mod_dispatch_board
+Live Dispatch Board
+ON
+Yes
+mod_mobile_driver
+Driver Mobile App
+ON
+Yes
+mod_multi_company
+Multi-Company Support
+OFF (Starter)
+Yes
+mod_api_access
+External API Access
+OFF
+Yes
+mod_whatsapp
+WhatsApp Notifications
+OFF
+Yes
+Module state is stored in the tenant_modules table in the platform database. The frontend dynamically renders navigation and feature access based on the current user's tenant module configuration. Disabled modules return 403 from the API and are hidden from the UI.
+
+4. Database Schema Design
+4.1 Platform-Level Tables (Super Admin DB)
+Table
+Key Columns
+Purpose
+tenants
+id, name, slug, plan, status, license_key, license_expires_at, created_at
+All tenant accounts
+tenant_modules
+id, tenant_id, module_key, is_enabled, enabled_by, enabled_at
+Module toggle per tenant
+license_keys
+id, tenant_id, key_hash, plan, max_users, max_vehicles, expires_at, issued_at
+License registry
+platform_admins
+id, email, password_hash, role, last_login
+Super admin users
+tenant_usage
+id, tenant_id, metric_name, metric_value, recorded_at
+Usage metering data
+audit_log_platform
+id, admin_id, action, target_tenant_id, payload, created_at
+Super admin actions
+
+4.2 Tenant-Level Core Tables (Per-Tenant Schema)
+Table
+Key Columns
+Purpose
+companies
+id, tenant_id, name, gstin, pan, address, logo_url, fiscal_year_start
+Company master
+branches
+id, company_id, name, address, state_code, manager_id
+Branch/depot master
+users
+id, tenant_id, company_id, auth_uid (Supabase), name, role, branch_id, is_active
+Staff users
+dealers
+id, company_id, name, short_name, person_name, address, pincode, area, phone, email, pan, gstin, service_tax_no, dealer_type
+Dealer/Consignor master (from screenshots)
+consignors
+id, company_id, name, company_name, address, email, gstin, phone, image_url
+Consignor master
+consignees
+id, company_id, name, company_name, address, email, phone, gstin, pan, image_url
+Consignee master
+vehicles
+id, company_id, reg_no, make, model, type, ownership, chassis_no, engine_no, odometer, status
+Vehicle/Tempo master
+labours
+id, company_id, name, phone, address, salary, is_active
+Labour/loader master (from screenshots)
+drivers
+id, company_id, employee_id, dl_number, dl_expiry, dl_category, badge_no, is_vendor_driver
+Driver extension to employees
+
+4.3 LR & Order Tables
+Table
+Key Columns
+Purpose
+orders (LR)
+id, company_id, lr_no (custom), gst_bill_no, dealer_id, consignee_id, eway_bill_no, vehicle_id, date, from_location, to_location, freight, hamali, rate_on, rate, cgst_pct, sgst_pct, status
+Main LR/Order table (from Order form screenshot)
+order_details
+id, order_id, product_name, box_count, packing_type, weight, dcpi_no
+Line items per LR (multi-product per LR)
+order_pallets
+id, company_id, lr_no, dealer_id, vehicle_id, date, company_name, party_code, gst_pct, status
+Pallet management (from Orderpallet form)
+pallet_details
+id, pallet_id, qty, rate
+Pallet line items (qty/rate pairs)
+pallet_consignee_details
+id, pallet_id, consignee_name, qty, rate
+Per-consignee pallet breakdown
+lr_status_log
+id, order_id, status, notes, updated_by, updated_at, geo_lat, geo_lng
+LR status history / tracking
+pod_records
+id, order_id, photo_url, signature_url, receiver_name, delivered_at, geo_lat, geo_lng
+Proof of delivery
+
+4.4 Accounting Tables
+Table
+Key Columns
+Purpose
+chart_of_accounts
+id, company_id, code, name, type (asset/liability/income/expense/equity), parent_id, is_system
+GL structure
+journal_entries
+id, company_id, branch_id, voucher_type, voucher_no, date, narration, ref_id, ref_type, posted_by, is_posted
+Voucher header
+journal_lines
+id, entry_id, account_id, debit, credit, cost_centre_id, sub_ledger_type, sub_ledger_id
+Double-entry lines
+freight_invoices
+id, company_id, invoice_no, customer_id, order_ids[], date, subtotal, cgst, sgst, igst, total, irn, status, paid_amount
+AR invoices
+payments_received
+id, company_id, customer_id, invoice_ids[], amount, mode, utr_no, date, bank_account_id
+Customer payment receipts
+vendor_invoices
+id, company_id, vendor_id, invoice_no, date, amount, tds_amount, net_payable, status
+AP invoices
+payments_made
+id, company_id, vendor_id, vendor_invoice_ids[], amount, mode, utr_no, date
+Vendor payments
+bank_accounts
+id, company_id, bank_name, account_no, ifsc, branch_name, current_balance, last_synced_at
+Bank account master
+bank_transactions
+id, bank_account_id, date, description, debit, credit, balance, matched_entry_id, is_reconciled
+Bank statement lines
+
+4.5 HR, Fleet & Compliance Tables
+Table
+Key Columns
+Purpose
+employees
+id, company_id, emp_code, name, phone, email, address, designation, branch_id, joining_date, status, bank_account, pan, aadhar_encrypted
+Employee master
+salary_structures
+id, employee_id, basic, hra, conveyance, driver_allowance, other_allowances, pf_applicable, esi_applicable, effective_from
+Salary component config
+payroll_runs
+id, company_id, month, year, status, total_gross, total_deductions, total_net, processed_by, processed_at
+Monthly payroll batch
+payroll_lines
+id, run_id, employee_id, gross, pf_deduction, esi_deduction, pt_deduction, tds_deduction, advance_deduction, net_pay
+Individual payslip data
+driver_advances
+id, company_id, driver_id, trip_id, amount, mode, date, purpose, recovery_amount, recovered_amount, status
+Driver advance ledger
+vehicle_documents
+id, vehicle_id, doc_type (RC/insurance/fitness/puc/permit), doc_no, issue_date, expiry_date, file_url, alert_sent
+Vehicle document tracker
+maintenance_jobs
+id, vehicle_id, job_type (scheduled/breakdown), description, odometer, started_at, completed_at, cost, status
+Maintenance job cards
+fuel_entries
+id, vehicle_id, date, quantity, rate, amount, vendor, odometer, kmpl, is_anomaly
+Fuel fill-up register
+gst_returns
+id, company_id, return_type (GSTR1/3B/9), period, arn, status, filed_at, json_payload
+GST filing tracker
+tds_entries
+id, company_id, vendor_id, invoice_id, section, base_amount, rate, tds_amount, deposited, challan_no
+TDS deduction register
+
+4.6 Row-Level Security Policy Pattern
+All tenant tables have the following RLS policy applied automatically during schema migration:
+Policy
+SQL Pattern
+SELECT
+USING (tenant_id = (SELECT tenant_id FROM users WHERE auth_uid = auth.uid()))
+INSERT
+WITH CHECK (tenant_id = (SELECT tenant_id FROM users WHERE auth_uid = auth.uid()))
+UPDATE
+USING (tenant_id = ...) WITH CHECK (tenant_id = ...)
+DELETE
+USING (tenant_id = ... AND deleted_by = auth.uid())
+
+5. Phase-Wise Implementation Plan
+FOR AI AGENTS
+Each phase has explicit inputs, outputs, tasks, and acceptance criteria. Phases are sequential. An AI agent should complete ALL tasks within a phase and pass all acceptance criteria before starting the next phase. Each phase's output becomes the next phase's input.
+
+Phase 0 — Foundation & Infrastructure Setup
+Duration: 3-5 days | Goal: Running dev environment, empty project scaffold, CI/CD pipeline
+
+0.1 Repository & Project Structure
+Create monorepo: /apps/web (Next.js), /apps/api (Node.js), /apps/mobile (Expo), /packages/shared (types, utils, validators)
+Configure pnpm workspaces or Turborepo for monorepo management
+Set up .env.example with all required environment variables documented
+Create /docs folder: architecture diagrams, API specs, DB schema
+
+0.2 Supabase Project Setup
+Create Supabase project (free tier) — region: ap-south-1 (Mumbai)
+Enable Row-Level Security globally
+Configure Auth: Email/Password, Phone OTP, set JWT expiry to 1 hour
+Create Storage buckets: documents, pod-photos, invoice-pdfs, profile-images (all private)
+Generate and save service_role key and anon key
+
+0.3 Database Migrations (Prisma)
+Set up Prisma with Supabase connection string
+Create migration for platform tables: tenants, tenant_modules, license_keys, platform_admins
+Create migration for tenant tables: companies, branches, users (with RLS policies)
+Seed: 1 super admin account, 1 demo tenant, demo company (Shree Shivay Roadlines style)
+
+0.4 CI/CD Pipeline
+GitHub repository with main (production) and develop (staging) branches
+GitHub Actions: on PR — lint, type-check, unit test, migration dry-run
+Vercel: auto-deploy web app on merge to main
+Railway/Render: auto-deploy API on merge to main
+
+Acceptance Criteria
+Pass Condition
+Supabase project is live
+Can connect via Prisma and run raw SQL
+RLS works
+User A cannot see User B's tenant data
+CI pipeline passes
+All checks green on empty scaffold
+Super admin login works
+Can login to /super-admin with seeded credentials
+
+Phase 1 — Authentication, Licensing & Super Admin Portal
+Duration: 7-10 days | Goal: Working login, license issuance, tenant provisioning, module control
+
+1.1 Authentication System
+Implement login page with email/password via Supabase Auth
+OTP-based login for mobile (SMS via Twilio)
+MFA setup screen (TOTP via Supabase MFA)
+Role-based middleware: extract role, tenant_id, company_id, enabled_modules from JWT + DB
+Protected route wrapper component for Next.js
+Session refresh logic — refresh token before 1-hour expiry
+
+1.2 Super Admin Portal (/super-admin)
+Dashboard: total tenants, active licenses, expiring in 30 days, module usage stats
+Tenant list with search, filter by plan/status, paginated
+Create Tenant: form → generates tenant record + license key + sends welcome email
+License Management: issue, revoke, extend, change plan
+Module Toggle: per-tenant module enable/disable with confirmation dialog
+Usage Dashboard: per-tenant vehicles, users, LR count vs plan limits
+Audit Log: all super admin actions with timestamp and IP
+
+1.3 License Engine
+License key = HMAC-SHA256 signed string encoding: tenant_id|plan|expires_at|modules_hash
+Validation middleware: check signature, expiry, plan limits on every protected API request
+License status API: GET /api/license/status → returns days remaining, current usage, plan limits
+Grace period logic: read-only mode for 7 days after expiry
+License warning banner component in the app UI
+
+1.4 Tenant Onboarding Wizard
+Step 1: Company details (name, GSTIN, PAN, address, logo upload)
+Step 2: First admin user creation
+Step 3: Module selection (based on plan)
+Step 4: Chart of accounts seeding (transport-specific template)
+Step 5: Import existing data (optional CSV upload for consignees, dealers, vehicles)
+
+Acceptance Criteria
+Pass Condition
+Super admin can create tenant
+Tenant provisioned, license key issued, email sent
+Module toggle works
+Disabled module returns 403 API + hidden in UI
+License expiry enforced
+Expired tenant blocked from creating new records
+Tenant login isolated
+Tenant A user cannot access Tenant B data (RLS test)
+Onboarding wizard completes
+Demo company fully set up in < 5 minutes
+
+Phase 2 — Master Data Management
+Duration: 5-7 days | Goal: All master data CRUD — mirrors the reference screenshots
+
+2.1 Masters to Build (from Reference Screenshots)
+Master
+Fields (from screenshots)
+Special Features
+Companies
+Name, Address, Pincode, Phone, Email, PAN, GSTIN
+Logo upload, multi-company switcher
+Dealers
+Name, Short Name, Person Name, Address, Pincode, Area, Phone, Email, PAN, GSTIN, Service Tax No, Dealer Type
+Quick-add from Order form (+Add button)
+Consignors
+Name, Company Name, Address, Email, GSTIN, Phone, Image
+Image upload, Quick-add from Order form
+Consignees
+Name, Company Name, Address, Email, Phone, GSTIN, PAN, Image
+Image upload, PAN for TDS, duplicate detection
+Vehicles (Tempo)
+Reg No, Make, Model, Type, Ownership, Odometer, Status
+Quick-add from Order form
+Labour
+Name, Phone, Address, Salary
+Payment history view (rupee icon in list)
+Drivers
+Employee record + DL No, DL Expiry, DL Category, Badge No
+Linked to employee, expiry alerts
+Products/Goods
+Name, HSN Code, Default Packing
+Used in order details autocomplete
+
+2.2 Master List UI Pattern
+Consistent table layout: ID, fields, Action column (Edit/Delete icons)
+Export buttons: Copy, Excel, CSV, PDF — on all master lists (as seen in screenshots)
+Search/Filter bar on all lists
+Add New modal form (not separate page) — consistent with screenshot patterns
+Pagination: 'Showing X to Y of Z entries' with Previous/Next
+Soft delete with confirmation dialog
+Import from CSV/Excel with validation and error report
+
+Acceptance Criteria
+Pass Condition
+All 8 master entities CRUD working
+Create, Read, Update, Delete with validation
+Quick-add from Order form
++Add button opens inline modal, saves, auto-selects
+Export works
+Excel/CSV/PDF export with actual data
+Search works
+Real-time filter across all visible columns
+RLS enforced
+Company A's consignees not visible to Company B
+
+Phase 3 — LR / Order Management (Core Transport Module)
+Duration: 8-10 days | Goal: Complete LR lifecycle matching the reference software exactly
+
+3.1 Order / LR Creation Form
+Fields: Custom LR No, Dealer (dropdown + quick-add), e-Way Bill No, Consignee (dropdown + quick-add), Companies Name, Tempo No (dropdown + quick-add), Address (auto-filled from consignee), Date, From, To, Freight, Hamali, Rate On (Weight/Box dropdown), Rate, CGST%, SGST%
+Line items table: Product Name, Box, Packing, Weight, DCPI No — dynamic rows (add/remove)
+Auto-calculate: Total Weight, Total Boxes, Total Amount = Freight + Hamali + (Amount * CGST%) + (Amount * SGST%)
+Custom LR No: auto-increment per company with override allowed
+
+3.2 Order List View
+Columns: LR No, GST Bill No, Order Date, Dealer Name, Consignee Name, Total Weight, Total Box, Total Amount, Product, Tempo — matching the screenshot exactly
+Per-row actions: Edit (pencil), Print LR Receipt (printer), Print LR (printer), Delete (trash)
+Filter bar with date range picker, dealer filter, consignee filter, vehicle filter
+Show 10/25/50/100 rows selector
+
+3.3 Dashboard — Today's LRs
+Table: Order ID, LR No, Order Date, Total Weight, LR Receipt (print), LR Print, Update, Delete
+Auto-refresh every 60 seconds
+'View All Orders' link to full order list
+
+3.4 LR Print Formats
+LR Consignee Copy — exact layout matching Transport_invoice.pdf: header (logo, company name, address, GSTIN, phone), dealer info block, date/LRNO/vehicle block, consignee block, goods table (Sr, Good, Box, Packing, Weight, DCPI No), terms & conditions, footer (Service Tax, Receiver Signature, Carriers disclaimer, FOR company name)
+LR Driver Copy — same layout, different copy label
+LR with HSN Code format — Transport_invoice_2.pdf layout with HSN Code column in goods table
+Multi-copy printing: print all 3 copies on one A4 sheet or separate pages
+Print preview before printing, PDF download option
+
+3.5 Pallet Management
+Pallet creation form: LR NO (auto-increment), Dealer, Date, Tempo No, Companies Name, Party Code, GST%, Qty/Rate line items (3 pairs), Consignee/Qty/Rate section (5 rows)
+Today Pallet dashboard widget: Sr No, LR No, Pallet Date, Pallet Qty, Dealer Name, Pallet Print, Update, Delete
+Pallet print format with company branding
+
+3.6 e-Way Bill Integration
+EWB No field on LR form — manual entry for existing EWBs
+'Generate EWB' button → calls NIC API with LR data → stores EWB number
+EWB extension and cancellation flows
+
+Acceptance Criteria
+Pass Condition
+LR created with all fields
+All fields saved, LR No auto-incremented
+LR print matches reference
+Printed PDF matches Transport_invoice.pdf layout exactly
+Multi-product LR works
+Can add 5+ products per LR
+Pallet management works
+Pallet created, linked to LR, printable
+Today's dashboard updates
+New LR appears in today's widget within 60 seconds
+
+Phase 4 — Trip Management & Driver Operations
+Duration: 7-10 days | Goal: Full trip lifecycle with advance, expense recording, and settlement
+
+4.1 Trip Master
+Create Trip: Vehicle, Driver, Co-Driver, From, To, Departure Date/Time, Expected Delivery Date
+Assign LRs to trip: link multiple LRs to a single trip
+Disburse advance: amount, mode (cash/bank), denomination breakdown for cash
+Trip status flow: Created → Loaded → In-Transit → Delivered → Settled
+
+4.2 Trip Expense Recording
+Expense types: Toll, Fuel, Repair, Driver Allowance, Night Halt, Loading Charges, Police/RTO Charges, Other
+Each expense: type, amount, description, receipt photo upload, location (GPS if mobile)
+Running balance: Advance Given − Total Expenses So Far = Balance with Driver
+
+4.3 Trip Settlement
+Settlement screen: list all expenses, total, advance amount, balance
+If advance > expenses: Driver refund entry
+If expenses > advance: Additional payment to driver entry
+Settlement posts journal entries to GL automatically
+Trip P&L: Freight Earned − (Fuel + Toll + Repair + Driver Wages + Misc) = Net Contribution
+
+4.4 Driver Advance Ledger
+Running ledger per driver: opening balance, advances given, recovered, closing balance
+Advance recovery schedule linked to payroll
+Over-advance alert when balance exceeds 2x monthly salary
+
+Acceptance Criteria
+Pass Condition
+Trip full lifecycle works
+Created → Dispatched → Settled without errors
+Trip P&L is accurate
+Revenue − All costs = Correct net contribution
+Advance settled correctly
+GL entries balance (Dr/Cr = 0)
+Driver advance ledger
+Running balance updates in real-time
+
+Phase 5 — Core Accounting Engine
+Duration: 10-14 days | Goal: Double-entry GL, AR, AP, bank reconciliation
+
+5.1 Chart of Accounts
+Transport-specific pre-seeded COA on tenant creation: Revenue (Freight Income, Detention Charges), Direct Costs (Fuel, Toll, Driver Wages, Hamali), Indirect Costs (Office Rent, Salary, Insurance), Assets (Vehicles, Cash, Bank, Debtors), Liabilities (Creditors, Loans, Driver Advances), Capital
+Custom account creation with parent-child hierarchy
+Account types enforce DR/CR rules
+
+5.2 Voucher Entry
+Voucher types: Payment, Receipt, Journal, Contra, Purchase, Sales, Debit Note, Credit Note
+Date, voucher number (auto), narration, line items (account, DR/CR, cost centre, sub-ledger)
+Validation: total DR must equal total CR before save
+Approval workflow for vouchers above configurable threshold
+Reversal voucher linked to original
+
+5.3 Accounts Receivable
+Customer ledger: all invoices, receipts, credit notes per customer
+Outstanding statement: overdue invoices highlighted by age
+Automated reminder emails/WhatsApp at 7, 15, 30, 60 days overdue
+PDC management: record, track clearance, bounce, re-present
+
+5.4 Accounts Payable
+Vendor ledger: all purchase invoices, payments, TDS deductions
+3-way matching: PO → GRN → Invoice
+TDS auto-deduction based on vendor's TDS applicability flag
+Payment scheduling: mark invoices for payment on due date
+
+5.5 Bank Reconciliation
+Bank statement import: CSV/Excel upload with date, description, debit, credit columns
+Auto-match: system matches imported transactions with GL entries using amount + date proximity
+Manual match for unmatched items
+Reconciliation report: matched, unmatched in bank, unmatched in GL
+
+Acceptance Criteria
+Pass Condition
+Trial Balance always balances
+Sum of all DR = Sum of all CR across all vouchers
+AR ageing correct
+Ageing buckets (0-30, 31-60, 61-90, 90+) accurate
+Bank reconciliation works
+Auto-match > 80% of transactions in test dataset
+Freight invoice posts to GL
+Invoice creation auto-generates correct GL entries
+
+Phase 6 — GST, TDS & Compliance
+Duration: 7-10 days | Goal: Automated GST computation, e-Invoice, GSTR preparation
+
+6.1 GST Engine
+GST rate auto-selection: 5% or 12% based on company's ITC position flag
+CGST/SGST for intra-state; IGST for inter-state (based on origin/destination state comparison)
+RCM flag on vendor invoices for unregistered GTA payments
+HSN/SAC code master: SAC 9965 (freight), SAC 9967 (supporting services)
+
+6.2 e-Invoice Integration
+Auto-trigger IRN fetch when invoice is above ₹5 crore threshold (configurable)
+IRP API integration: POST to sandbox then production
+QR code generation from IRN and embedding in invoice PDF
+IRN cancellation workflow within 24 hours
+
+6.3 GSTR-1 Preparation
+Auto-classify invoices: B2B (GSTIN customer), B2C (no GSTIN), exports
+CDNR (Credit/Debit Notes) section auto-populated from credit notes
+JSON generation in GSTN-specified format
+Review screen with error highlighting before filing
+Direct API filing to GST portal (optional) or JSON download for offline upload
+
+6.4 TDS Management
+TDS deduction on vendor payment under Sec 194C (freight), 194I (rent), 194J (professional fees)
+TDS register: vendor, section, base amount, rate, TDS amount, net payment
+Form 26Q data extraction per quarter
+TDS certificate (Form 16A) PDF generation per vendor
+
+6.5 Compliance Calendar
+Dashboard widget: upcoming deadlines — GSTR-1, GSTR-3B, TDS payment, advance tax, vehicle document renewals
+Email alerts 7 days and 1 day before each deadline
+
+Phase 7 — HR, Payroll & Labour Management
+Duration: 7-10 days | Goal: Employee management, attendance, salary processing, driver payroll
+
+7.1 Employee/Labour Master
+Employee master: name, phone, address, designation, branch, joining date, salary, bank details, PAN, Aadhaar (encrypted)
+Labour master: basic profile with daily/monthly rate (from Labour screenshots — simple: Name, Phone, Address, Salary)
+Payment view for labour: click rupee icon in list → shows payment history
+Driver extension: DL number, expiry, category, badge — linked to employee
+
+7.2 Attendance
+Daily attendance entry: present/absent/half-day/leave per employee
+Monthly attendance sheet view
+Leave application and approval workflow
+
+7.3 Payroll Processing
+Monthly payroll run: select month → system calculates gross based on attendance + salary structure
+Deductions: PF (12%), ESI (0.75% employee + 3.25% employer), PT (state-based), advance recovery, TDS
+Trip incentive addition for drivers based on trips completed
+Payslip PDF generation — downloadable and WhatsApp-shareable
+Bank payment file: NEFT bulk file in bank-accepted format
+PF ECR challan and ESI challan generation
+
+Phase 8 — Fleet, Maintenance & Fuel
+Duration: 5-7 days | Goal: Vehicle document tracking, maintenance scheduling, fuel management
+
+8.1 Vehicle Document Tracking
+Per vehicle: RC, Insurance, Fitness Certificate, PUC, National Permit, State Permit, Road Tax — all with expiry dates
+Dashboard widget: documents expiring in next 30/60/90 days, color-coded (red/orange/green)
+Email + WhatsApp alerts to Admin 30 days before expiry
+
+8.2 Maintenance Job Cards
+Job card creation: vehicle, issue reported, mechanic assigned, date, estimated cost
+Parts consumed: deducted from spare parts inventory
+Job completion: actual cost, invoice upload from workshop
+Maintenance cost report: per vehicle per period
+
+8.3 Fuel Management
+Fuel entry: vehicle, date, quantity (litres), rate, amount, vendor, odometer reading
+KMPL auto-calculation: (Current odometer − Last odometer) / Litres filled
+KMPL chart per vehicle with benchmark comparison
+Anomaly alert: if KMPL drops more than 20% from vehicle average
+
+Phase 9 — Reporting, Dashboard & MIS
+Duration: 7-8 days | Goal: All financial and operational reports, executive dashboard
+
+9.1 Executive Dashboard
+KPI cards: Today's LRs, Today's Revenue, Outstanding Receivables, Vehicles On-Trip, Vehicles Idle, Documents Expiring
+Revenue trend chart (last 12 months, bar chart)
+Top 5 customers by revenue (pie chart)
+Today LR list widget and Today Pallet widget (matching dashboard screenshots)
+Compliance calendar widget
+
+9.2 Financial Reports
+Profit & Loss Statement (date range, by company/branch)
+Balance Sheet (as on date)
+Trial Balance with drill-down to vouchers
+Cash Flow Statement
+Debtors Ageing Report
+Creditors Ageing Report
+Bank Reconciliation Statement
+
+9.3 Transport MIS Reports
+Vehicle-wise P&L: for a date range, per vehicle — freight earned, expenses, net
+Route-wise profitability: origin-destination pairs ranked by margin
+Customer-wise revenue and outstanding report
+LR Register: all LRs in date range with full details, exportable
+Driver advance register: advances given, recovered, outstanding per driver
+Fuel consumption report: per vehicle, fleet total, KMPL trends
+Pending POD report: LRs delivered but POD not uploaded
+
+9.4 Report Engine
+All reports exportable to Excel and PDF
+Date range picker with quick-select: Today, This Week, This Month, This Quarter, This Year, Custom
+Scheduled reports: email PDF report on configured schedule (daily/weekly/monthly)
+Custom report builder (Phase 2 feature — mark as future)
+
+Phase 10 — Driver Mobile App
+Duration: 8-10 days | Goal: React Native app for drivers — trips, expenses, POD
+
+10.1 Driver App Screens
+Login: Phone number + OTP (Supabase Auth)
+Home: Active trip card, today's earnings, advance balance
+Trip Details: route map, assigned LRs, current status
+Add Expense: category picker, amount, description, camera for receipt photo
+POD Capture: camera for delivery photo, on-screen signature pad, auto-timestamp + geolocation
+Earnings: this month's payslip summary, advance deductions
+Document Alerts: DL expiry reminder
+
+10.2 Offline Support
+Trip and expense data cached locally using AsyncStorage / SQLite (expo-sqlite)
+Offline expense recording: synced when connectivity restored
+POD photo stored locally if upload fails, auto-retry on reconnect
+
+Phase 11 — AI Features & Automation
+Duration: 10-14 days | Goal: AI-powered insights, anomaly detection, document OCR, NLP query
+
+11.1 AI Infrastructure
+OpenAI API integration (gpt-4o-mini for cost efficiency in free/starter tier)
+LLM calls: always strip PII before sending to OpenAI — replace names with tokens, re-inject in response
+Rate limiting: max 100 AI API calls per tenant per day on Starter plan
+
+11.2 Document OCR (Vendor Invoice Auto-Entry)
+Upload vendor invoice image or PDF → send to OpenAI Vision / AWS Textract
+Extracted fields: vendor name, GSTIN, invoice no, date, line items, tax amounts
+Pre-fill AP invoice entry form with extracted data, user reviews and confirms
+LR paper scan digitisation: scan physical LR → auto-populate LR form
+
+11.3 Anomaly Detection
+Statistical baseline per vehicle: average KMPL, average toll per KM, average repair frequency
+Flag entries that deviate > 2 standard deviations from baseline
+Anomaly feed in dashboard: list of flagged entries with severity and suggested action
+Feedback loop: accountant marks as legitimate/fraudulent → updates model baseline
+
+11.4 Natural Language Report Query
+Chat widget on dashboard: 'What was my best performing vehicle last month?'
+Intent parsing → map to predefined report query templates → execute SQL → return formatted result
+Supported query types: top/bottom N by metric, total/average for period, comparisons
+Multi-turn context: 'Now show me only Gujarat routes' refines previous query
+
+11.5 Smart Alerts
+AI-ranked alert priority: urgency score based on financial impact and time sensitivity
+Cash flow forecast: 30-day projected receivables vs. payables with alert if projected deficit
+Debtor risk flag: customers with pattern of late payment highlighted before issuing new credit
+
+Phase 12 — Customer Portal & CRM
+Duration: 5-7 days | Goal: Self-service portal for customers to track shipments and view invoices
+
+Separate URL (portal.freightflowpro.com/[tenant-slug]) or white-labelled subdomain
+Login: email + OTP (no password required for customers)
+Dashboard: outstanding invoices, recent shipments, total spent this year
+Shipment tracking: enter LR number → see status timeline, current location, ETA
+Invoice download: PDF download of any invoice
+Online payment: Razorpay payment link on invoice
+Statement of account: downloadable PDF
+
+6. Security Implementation Guide
+6.1 API Security Checklist
+Security Control
+Implementation
+Phase
+JWT Validation
+Supabase validates JWT on every request; custom claims (tenant_id, role, modules) extracted
+Phase 1
+RLS Enforcement
+All Supabase queries use auth.uid() in RLS policies — app-level queries use service role for trusted operations only
+Phase 0
+Rate Limiting
+Upstash Redis rate limiter: 100 req/min/IP, 1000 req/min/tenant at API gateway level
+Phase 1
+Input Validation
+Zod schemas on all API endpoints — reject before DB query
+Phase 1 onwards
+SQL Injection
+Prisma parameterised queries only — no raw SQL in application code
+Phase 0
+CORS
+Strict CORS: only allow tenant's registered domains + app domains
+Phase 1
+HTTPS Only
+Enforce HTTPS via Vercel/Railway config; HSTS header
+Phase 0
+File Upload
+MIME type validation, max 10MB, Supabase Storage (no direct execution path)
+Phase 2
+PII Encryption
+Aadhaar, PAN, bank account numbers encrypted using AES-256 before DB storage; decrypted on read with tenant-specific key
+Phase 5
+Audit Log
+Append-only audit_log table: insert-only RLS policy, records all financial mutations
+Phase 5
+MFA
+Supabase TOTP MFA; enforce for all financial approval actions
+Phase 1
+License Tamper
+License key HMAC-signed; server-side validation on every request
+Phase 1
+Module Bypass
+API middleware checks module enablement from DB (not just JWT) to prevent module bypass
+Phase 1
+Secrets Management
+All secrets in environment variables; never in code; .env.example documents all keys
+Phase 0
+GDPR/PDPB
+Data deletion API; user can request data export; Aadhaar not stored if not needed
+Phase 9
+
+6.2 Supabase RLS Policy Examples
+Copy these directly into Supabase migration files:
+Table
+Policy SQL
+orders (LR)
+CREATE POLICY tenant_isolation ON orders USING (company_id IN (SELECT id FROM companies WHERE tenant_id = (SELECT tenant_id FROM users WHERE auth_uid = auth.uid())))
+freight_invoices
+Same pattern — company_id must belong to current user's tenant
+employees
+Additional branch-level check for branch managers: branch_id = (SELECT branch_id FROM users WHERE auth_uid = auth.uid()) OR role = 'company_admin'
+
+7. Project Folder Structure
+Path
+Contents
+/apps/web
+Next.js 14 frontend — main application
+/apps/web/app/(auth)
+Login, register, forgot-password pages
+/apps/web/app/(dashboard)
+All authenticated app pages
+/apps/web/app/(dashboard)/orders
+LR/Order list and create pages
+/apps/web/app/(dashboard)/pallets
+Pallet management pages
+/apps/web/app/(dashboard)/masters
+Dealers, consignors, consignees, vehicles, labour
+/apps/web/app/(dashboard)/accounting
+Vouchers, AR, AP, bank reconciliation
+/apps/web/app/(dashboard)/trips
+Trip management pages
+/apps/web/app/(dashboard)/fleet
+Vehicle registry, maintenance, fuel
+/apps/web/app/(dashboard)/hr
+Employees, attendance, payroll
+/apps/web/app/(dashboard)/compliance
+GST, TDS, e-Way Bill
+/apps/web/app/(dashboard)/reports
+All report pages
+/apps/web/app/(dashboard)/ai
+AI assistant, anomaly alerts
+/apps/web/app/super-admin
+Platform admin panel (separate layout)
+/apps/web/app/portal
+Customer self-service portal
+/apps/web/components/ui
+shadcn/ui base components
+/apps/web/components/forms
+Reusable form components (LRForm, DealerForm, etc.)
+/apps/web/components/print
+Print-formatted components for LR, invoice, payslip
+/apps/web/lib/supabase
+Supabase client, server, middleware config
+/apps/web/lib/validations
+Zod schemas for all entities
+/apps/api
+Node.js/Fastify API server
+/apps/api/src/routes
+Route handlers by module
+/apps/api/src/middleware
+Auth, license, module-check, rate-limit middleware
+/apps/api/src/services
+Business logic services (payroll, GST, LR engine)
+/apps/api/src/jobs
+BullMQ background jobs (report generation, email sending)
+/apps/mobile
+React Native Expo driver app
+/packages/shared
+TypeScript types, Zod validators, constants shared across apps
+/packages/db
+Prisma schema, migrations, seed scripts
+/infrastructure
+Terraform configs, Docker files, deployment scripts
+/docs
+Architecture diagrams, API specs, decision records
+
+8. Environment Variables & Configuration
+Variable
+Value / Notes
+Required By
+NEXT_PUBLIC_SUPABASE_URL
+https://xxx.supabase.co
+Frontend
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+Supabase anon key
+Frontend
+SUPABASE_SERVICE_ROLE_KEY
+Supabase service role (never expose to frontend)
+API Server
+DATABASE_URL
+PostgreSQL connection string (Supabase)
+Prisma / API
+DIRECT_URL
+Supabase direct URL for migrations
+Prisma migrations
+JWT_SECRET
+32+ char random string for license key signing
+API Server
+OPENAI_API_KEY
+sk-... from OpenAI dashboard
+AI Service
+RESEND_API_KEY
+re_... from Resend dashboard
+Email Service
+TWILIO_ACCOUNT_SID
+Twilio account SID
+SMS Service
+TWILIO_AUTH_TOKEN
+Twilio auth token
+SMS Service
+TWILIO_PHONE_NUMBER
++1XXXXXXXXXX
+SMS OTP
+UPSTASH_REDIS_REST_URL
+Upstash Redis URL
+Queue / Rate Limit
+UPSTASH_REDIS_REST_TOKEN
+Upstash Redis token
+Queue / Rate Limit
+GOOGLE_MAPS_API_KEY
+Google Maps Platform key
+Maps / Geocoding
+RAZORPAY_KEY_ID
+Razorpay key ID
+Payment Gateway
+RAZORPAY_KEY_SECRET
+Razorpay secret
+Payment Gateway
+NIC_EWB_USERNAME
+GST portal API username
+e-Way Bill
+NIC_EWB_PASSWORD
+GST portal API password
+e-Way Bill
+PLATFORM_ADMIN_EMAIL
+Super admin email
+Initial Seed
+PLATFORM_ADMIN_PASSWORD
+Super admin password (bcrypt hash)
+Initial Seed
+APP_URL
+https://app.freightflowpro.com
+Emails, redirects
+PORTAL_URL
+https://portal.freightflowpro.com
+Customer portal
+
+9. Phase Summary & Timeline
+Phase
+Name
+Duration
+Key Deliverable
+0
+Foundation & Infrastructure
+3-5 days
+Supabase setup, CI/CD, scaffold, RLS
+1
+Auth, Licensing, Super Admin
+7-10 days
+Login, license engine, module control
+2
+Master Data
+5-7 days
+Dealers, Consignees, Vehicles, Labour, etc.
+3
+LR / Order & Pallet
+8-10 days
+Core LR CRUD, print formats, pallet mgmt
+4
+Trip & Driver Operations
+7-10 days
+Trip lifecycle, advance, expense, settlement
+5
+Core Accounting Engine
+10-14 days
+GL, AR, AP, Bank Recon, vouchers
+6
+GST, TDS & Compliance
+7-10 days
+GST engine, e-Invoice, GSTR, TDS
+7
+HR & Payroll
+7-10 days
+Employee, attendance, payroll, payslips
+8
+Fleet, Maintenance & Fuel
+5-7 days
+Vehicle docs, job cards, fuel register
+9
+Reporting & Dashboard
+7-8 days
+P&L, Balance Sheet, MIS, KPI dashboard
+10
+Driver Mobile App
+8-10 days
+React Native app, POD, offline sync
+11
+AI Features
+10-14 days
+OCR, anomaly detection, NLP query, alerts
+12
+Customer Portal & CRM
+5-7 days
+Portal login, tracking, invoice payment
+13
+Testing & Security Audit
+5-7 days
+Full test suite, pen test, performance
+14
+Production Deployment
+3-5 days
+Vercel + Railway prod deploy, monitoring
+
+TOTAL ESTIMATED
+~100-130 days
+Full SaaS MVP ready for customers
+
+9.1 MVP Scope (Phases 0-4)
+The Minimum Viable Product after Phase 4 includes: Multi-tenant login, master data, LR creation with print, Pallet management, and Trip management with advance. This is sufficient to replace the existing software shown in the reference screenshots.
+
+9.2 Go-Live Scope (Phases 0-9)
+Full accounting, GST compliance, HR, fleet, and reporting. This is the complete replacement for the existing system plus significant new capabilities.
+
+9.3 Full Platform (Phases 0-14)
+Everything including mobile app, AI features, and customer portal. Full SaaS product ready for multi-customer licensing.
+
+10. Additional Features Not in Reference Software
+The following features are recommended additions beyond what the existing software shows:
+
+Feature
+Business Value
+Phase to Add
+WhatsApp LR Notification
+Auto-send LR details + PDF to consignee on WhatsApp when LR is created — very high adoption in Indian transport
+Phase 3
+Bulk LR Import via Excel
+Allow importing 100s of LRs from Excel template — key for migrating from existing systems
+Phase 3
+LR Tracking Link for Consignee
+Auto-generated tracking URL sent via SMS — consignee tracks without login
+Phase 3
+Detention Charge Calculator
+Auto-calculate detention charges if vehicle is held at delivery > agreed free time
+Phase 4
+Vehicle GPS Map View
+Live map showing all vehicles on trip with current location bubble
+Phase 4
+FASTag Toll Auto-Import
+Auto-import toll transactions from FASTag API — eliminates manual toll entry in trip expenses
+Phase 4
+GST 2A/2B Reconciliation
+Auto-match your purchase register against GSTN-provided 2A/2B to find mismatches
+Phase 6
+Tally Export
+Export journal entries as Tally-compatible XML for clients who also use Tally
+Phase 5
+Multi-Language UI
+Hindi and Gujarati UI toggle — critical for driver-facing screens in Gujarat/Rajasthan
+Phase 10
+Document Expiry Central Dashboard
+Single screen showing all expiring docs (vehicle, employee DL, permits) with one-click renewal workflow
+Phase 8
+Freight Rate History & Comparison
+Track how rates have changed per route/customer over time — helps in negotiations
+Phase 9
+Sub-Contractor (Hired Truck) Management
+Manage hired-in vehicles with separate cost tracking and TDS on payments
+Phase 5
+Advance Tax Scheduler
+Auto-calculate and remind about advance tax payment dates (Jun, Sep, Dec, Mar)
+Phase 6
+Payment Link for Invoices
+One-click Razorpay payment link generation on any invoice — send via WhatsApp
+Phase 9
+Role-Based Report Access
+Fleet owner sees P&L; accountant sees all; driver sees only own trip/payslip
+Phase 1
+
+11. Coding Conventions & Standards for AI Agents
+11.1 File & Folder Naming
+Pages: kebab-case — /app/lr-management/page.tsx
+Components: PascalCase — LRCreateForm.tsx, DealerSelectModal.tsx
+Utilities: camelCase — formatCurrency.ts, calculateGST.ts
+Types: PascalCase with T prefix — TOrder, TDealer, TEmployee
+API routes: kebab-case — /api/v1/lorry-receipts, /api/v1/fleet/vehicles
+DB tables: snake_case — lorry_receipts, order_details, freight_invoices
+
+11.2 Currency Handling
+All amounts stored as INTEGER (paise) in DB — never float — to avoid floating point errors
+Display as rupees: amount / 100, formatted with Intl.NumberFormat('en-IN', {style: 'currency', currency: 'INR'})
+Input as rupees: multiply by 100 before storing
+
+11.3 Date Handling
+All dates stored as ISO 8601 UTC in DB
+Display in IST (Indian Standard Time) using date-fns-tz with 'Asia/Kolkata' timezone
+Date format for display: DD/MM/YYYY — Indian standard
+
+11.4 Error Handling
+All API errors return { error: string, code: string, details?: any } with appropriate HTTP status
+Frontend: React Error Boundaries for component crashes; toast notifications for API errors
+All errors logged to Sentry with tenant_id (no PII in Sentry)
+
+11.5 Testing Requirements
+Unit test every financial calculation function (GST, TDS, payroll, freight total)
+Integration test every API route with real Supabase test project
+E2E test the 5 critical paths: Create LR, Generate Invoice, Receive Payment, Process Payroll, File GSTR-1
+All tests must pass before merging to main branch
+
+
+— FreightFlow Pro Implementation Blueprint v1.0 — April 2026 —
+Every Trip. Every Rupee. Every Mile — In Control.
