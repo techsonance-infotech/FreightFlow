@@ -34,42 +34,64 @@ export async function GET(req: Request) {
     const fyString = `${fyStart}-${fyEnd.toString().padStart(2, '0')}`;
     const type = searchParams.get('type') || 'OUTWARD';
     const isReturn = type === 'RETURN';
-    const prefix = `PL/${fyString}/`;
+    const prefix = isReturn ? `PR/${fyString}/` : `PL/${fyString}/`;
 
-    const lastRecord = await prisma.orderPallet.findFirst({
+    // Fetch all active order pallets of matching type for the company to avoid string sorting bugs
+    const records = await prisma.orderPallet.findMany({
       where: {
         companyId: session.user.companyId,
-        lrNo: isReturn
-          ? { startsWith: prefix, endsWith: '/PR' }
-          : { startsWith: prefix, not: { endsWith: '/PR' } }
-      },
-      orderBy: {
-        lrNo: 'desc',
+        type: isReturn ? 'RETURN' : 'OUTWARD',
+        deletedAt: null,
       },
       select: {
         lrNo: true,
+        date: true,
       },
     });
 
-    let nextSequence = isReturn ? 1 : 5001;
-    if (lastRecord && lastRecord.lrNo) {
-      if (isReturn) {
-        const match = lastRecord.lrNo.match(/^PL\/\d{2,4}-\d{2}\/(\d+)\/PR$/);
-        if (match) {
-          nextSequence = parseInt(match[1]) + 1;
-        }
+    const getFinancialYear = (d: Date | string): string => {
+      const dateObj = typeof d === 'string' ? new Date(d) : d;
+      const m = dateObj.getMonth();
+      const y = dateObj.getFullYear();
+      let start, end;
+      if (m >= 3) {
+        start = y;
+        end = (y + 1) % 100;
       } else {
-        const parts = lastRecord.lrNo.split('/');
-        const lastSeq = parseInt(parts[parts.length - 1]);
-        if (!isNaN(lastSeq) && lastSeq >= 5001) {
-          nextSequence = lastSeq + 1;
+        start = y - 1;
+        end = y % 100;
+      }
+      return `${start}-${end.toString().padStart(2, '0')}`;
+    };
+
+    // Filter records belonging to the current financial year
+    const currentFyRecords = records.filter((r) => {
+      if (!r.date) return false;
+      return getFinancialYear(r.date) === fyString;
+    });
+
+    // Extract numerical sequences supporting old/new return formats and outward formats
+    const activeSeqs = currentFyRecords
+      .map((r) => {
+        if (!r.lrNo) return NaN;
+        const parts = r.lrNo.split('/');
+        if (parts.length >= 3) {
+          const seq = parseInt(parts[2], 10);
+          return isNaN(seq) ? NaN : seq;
         }
+        return NaN;
+      })
+      .filter((seq) => !isNaN(seq));
+
+    let nextSequence = isReturn ? 1 : 5001;
+    if (activeSeqs.length > 0) {
+      const maxSeq = Math.max(...activeSeqs);
+      if (maxSeq >= nextSequence) {
+        nextSequence = maxSeq + 1;
       }
     }
 
-    const nextLr = isReturn 
-      ? `${prefix}${nextSequence}/PR`
-      : `${prefix}${nextSequence}`;
+    const nextLr = `${prefix}${nextSequence}`;
 
     return NextResponse.json({ nextLr });
   } catch (error) {
