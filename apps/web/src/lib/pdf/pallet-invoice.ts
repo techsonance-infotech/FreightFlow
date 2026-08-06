@@ -202,6 +202,14 @@ export async function generatePalletPDF(pallet: any, company: any, settings?: an
   const isSeparateBilling = settings?.enableSeparateReturnBilling === true && pallet.type === 'RETURN';
 
   if (isSeparateBilling) {
+    const totalWeight = (pallet.palletDetails || []).reduce((sum: number, item: any) => sum + (parseFloat(item.weight) || 0), 0);
+    const totalQty = (pallet.palletDetails || []).reduce((sum: number, item: any) => sum + (Number(item.boxQty) || Number(item.qty) || 0), 0);
+    const totalRs = (pallet.palletDetails || []).reduce((sum: number, item: any) => {
+      const unitRate = item.rate || 0;
+      const qty = item.boxQty || item.qty || 0;
+      return sum + (qty * unitRate) / 100;
+    }, 0);
+
     // Render Table 1: Goods Details (using item.rate for value)
     autoTable(doc, {
       startY: currentY,
@@ -223,10 +231,23 @@ export async function generatePalletPDF(pallet: any, company: any, settings?: an
           rowTotal.toFixed(2)
         ];
       }),
+      foot: [[
+        { content: '', styles: { halign: 'center' } },
+        { content: 'Total', styles: { halign: 'left' } },
+        { content: '', styles: { halign: 'center' } },
+        { content: '', styles: { halign: 'center' } },
+        { content: formatWeight(totalWeight), styles: { halign: 'center' } },
+        { content: totalQty, styles: { halign: 'center' } },
+        { content: '', styles: { halign: 'center' } },
+        { content: '', styles: { halign: 'right' } },
+        { content: totalRs.toFixed(2), styles: { halign: 'right' } }
+      ]],
+      showFoot: 'lastPage',
       theme: 'grid',
       styles: { lineColor: [180, 180, 180], lineWidth: 0.15, cellPadding: 1.5 },
       headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
       bodyStyles: { fontSize: 7.5, fontStyle: 'bold', textColor: [0, 0, 0] },
+      footStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7.5, fontStyle: 'bold', halign: 'center' },
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
         1: { cellWidth: 35 },
@@ -288,6 +309,16 @@ export async function generatePalletPDF(pallet: any, company: any, settings?: an
     currentY = (doc as any).lastAutoTable.finalY + 3.5;
   } else {
     // Existing single table layout with DCPI # column added
+    const totalWeight = (pallet.palletDetails || []).reduce((sum: number, item: any) => sum + (parseFloat(item.weight) || 0), 0);
+    const totalQty = (pallet.palletDetails || []).reduce((sum: number, item: any) => sum + (Number(item.boxQty) || Number(item.qty) || 0), 0);
+    const totalRs = (pallet.palletDetails || []).reduce((sum: number, item: any) => {
+      const unitRate = (pallet.rate || item.rate || 0);
+      const qty = item.boxQty || item.qty || 0;
+      const weight = item.weight || 0;
+      const rowTotalPaise = pallet.rateOn === 'weight' ? (weight * unitRate) : (qty * unitRate);
+      return sum + (rowTotalPaise / 100);
+    }, 0);
+
     autoTable(doc, {
       startY: currentY,
       head: [['Sr.', 'Description Of Goods', 'Code', 'DCPI #', 'Weight (KG)', 'Qty.', 'UOM', 'Rate', 'Total (Rs.)']],
@@ -309,10 +340,23 @@ export async function generatePalletPDF(pallet: any, company: any, settings?: an
           rowTotal.toFixed(2)
         ];
       }),
+      foot: [[
+        { content: '', styles: { halign: 'center' } },
+        { content: 'Total', styles: { halign: 'left' } },
+        { content: '', styles: { halign: 'center' } },
+        { content: '', styles: { halign: 'center' } },
+        { content: formatWeight(totalWeight), styles: { halign: 'center' } },
+        { content: totalQty, styles: { halign: 'center' } },
+        { content: '', styles: { halign: 'center' } },
+        { content: '', styles: { halign: 'right' } },
+        { content: totalRs.toFixed(2), styles: { halign: 'right' } }
+      ]],
+      showFoot: 'lastPage',
       theme: 'grid',
       styles: { lineColor: [180, 180, 180], lineWidth: 0.15, cellPadding: 1.5 },
       headStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold', halign: 'center' },
       bodyStyles: { fontSize: 7.5, fontStyle: 'bold', textColor: [0, 0, 0] },
+      footStyles: { fillColor: [245, 248, 252], textColor: [0, 0, 0], fontSize: 7.5, fontStyle: 'bold', halign: 'center' },
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
         1: { cellWidth: 35 },
