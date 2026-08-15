@@ -89,10 +89,22 @@ export function BillModal({ isOpen, onClose, onSuccess }: BillModalProps) {
     }
   };
 
+  const fetchCentralSettings = async () => {
+    try {
+      const res = await fetch('/api/v1/accounting/settings').then(r => r.json());
+      if (res?.data?.defaultGstRate !== undefined) {
+        setFormData(prev => ({ ...prev, gstRate: Number(res.data.defaultGstRate || 0) }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch central settings');
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchVendors();
       fetchAccounts();
+      fetchCentralSettings();
     }
   }, [isOpen]);
 

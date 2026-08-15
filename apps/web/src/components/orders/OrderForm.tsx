@@ -212,6 +212,26 @@ export const OrderForm: React.FC<OrderFormProps> = ({ initialData, isEditing }) 
     }
   }, [isEditing, initialData, setValue]);
 
+  // Load central accounting settings for default GST rate
+  useEffect(() => {
+    const fetchCentralGst = async () => {
+      try {
+        const res = await fetch('/api/v1/accounting/settings').then(r => r.json());
+        if (res?.data?.defaultGstRate !== undefined) {
+          const centralRate = Number(res.data.defaultGstRate || 5);
+          if (!isEditing && initialData?.cgstPct === undefined && initialData?.igstPct === undefined) {
+            setValue('cgstPct', centralRate / 2);
+            setValue('sgstPct', centralRate / 2);
+            setValue('igstPct', centralRate);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch central GST settings:', e);
+      }
+    };
+    fetchCentralGst();
+  }, [isEditing, initialData, setValue]);
+
   useEffect(() => {
     const fetchMasters = async () => {
       try {

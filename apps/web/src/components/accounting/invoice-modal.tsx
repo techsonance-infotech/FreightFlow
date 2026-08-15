@@ -154,12 +154,24 @@ export function InvoiceModal({ isOpen, onClose, onSuccess, initialSelectedIds, s
     }
   };
 
+  const fetchCentralSettings = async () => {
+    try {
+      const res = await fetch('/api/v1/accounting/settings').then(r => r.json());
+      if (res?.data?.defaultGstRate !== undefined) {
+        setFormData(prev => ({ ...prev, gstRate: Number(res.data.defaultGstRate || 0) }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch central settings');
+    }
+  };
+
   // 4. ALL EFFECTS AT THE END OF DEFINITIONS
   useEffect(() => {
     if (isOpen) {
       fetchCustomers();
       fetchAccounts();
       fetchNextInvoiceNumber();
+      fetchCentralSettings();
 
       if (initialSelectedIds && initialSelectedIds.length > 0) {
         fetchSelectedDetails();
