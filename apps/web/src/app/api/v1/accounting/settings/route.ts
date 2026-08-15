@@ -53,14 +53,29 @@ export async function PATCH(request: Request) {
     const { tenantId, companyId } = session.user;
     const body = await request.json();
 
+    const updateData = { ...body };
+    delete updateData.id;
+    delete updateData.tenantId;
+    delete updateData.companyId;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+
+    if (updateData.defaultGstRate !== undefined) {
+      updateData.defaultGstRate = parseFloat(updateData.defaultGstRate) || 0;
+    }
+
     const updated = await prisma.accountingSetting.upsert({
       where: { tenantId_companyId: { tenantId, companyId } },
       create: {
         tenantId,
         companyId,
-        ...body
+        fiscalYearStart: updateData.fiscalYearStart || 4,
+        gstEnabled: updateData.gstEnabled ?? true,
+        defaultGstRate: updateData.defaultGstRate ?? 5.00,
+        voucherPrefixes: updateData.voucherPrefixes || {},
+        autoPostInvoices: updateData.autoPostInvoices ?? true,
       },
-      update: body
+      update: updateData
     });
 
     return NextResponse.json({ data: updated });
