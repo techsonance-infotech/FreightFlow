@@ -46,6 +46,7 @@ import {
   deleteFreightInvoice,
   updateInvoiceRecords
 } from '@/app/actions/accounting/dealer-billing';
+import { getCentralAccountingSettings } from '@/app/actions/accounting/settings';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { numberToWords } from '@/lib/utils/number-to-words';
@@ -91,6 +92,7 @@ export default function DealerBillingPage() {
   const [isGstRequired, setIsGstRequired] = useState(false);
   const [gstType, setGstType] = useState<'intra' | 'inter'>('intra');
   const [gstRate, setGstRate] = useState<number>(0);
+  const [centralGstRate, setCentralGstRate] = useState<number>(5);
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [selectedDealerId, setSelectedDealerId] = useState<string>('');
   const [periodType, setPeriodType] = useState<'month' | 'range'>('month');
@@ -145,16 +147,21 @@ export default function DealerBillingPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [dealersData, nextNo, dateStr, company] = await Promise.all([
+        const [dealersData, nextNo, dateStr, company, acctSettings] = await Promise.all([
           getDealers(),
           getNextInvoiceNumber(loadType),
           fetchOnlineDate(),
-          getCompanyBillingDetails()
+          getCompanyBillingDetails(),
+          getCentralAccountingSettings()
         ]);
         setDealers(dealersData);
         if (nextNo) setCurrentInvoiceNo(nextNo);
         setInvoiceDate(dateStr);
         setCompanyDetails(company);
+
+        const defaultRate = Number(acctSettings?.defaultGstRate ?? 5);
+        setCentralGstRate(defaultRate);
+        setGstRate(defaultRate);
       } catch (error) {
         console.error('Error initializing page data:', error);
       }
@@ -780,23 +787,28 @@ export default function DealerBillingPage() {
     setEditInvoiceNotes(inv.notes || '');
     
     // Copy records to editable state
-    const mapped = inv.records.map((r: any) => ({
-      id: r.id,
-      loadType: r.loadType,
-      date: r.date,
-      lrNo: r.lrNo,
-      companyName: r.companyName,
-      consignee: r.consignee,
-      details: r.details,
-      totalWeight: r.totalWeight,
-      totalBoxes: r.totalBoxes,
-      rate: r.rate,
-      rateOn: r.rateOn || 'weight',
-      gstType: r.cgstAmount > 0 || r.sgstAmount > 0 ? 'intra' : (r.igstAmount > 0 ? 'inter' : 'intra'),
-      gstRate: r.cgstAmount > 0 || r.sgstAmount > 0 
+    const mapped = (inv.records || []).map((r: any) => {
+      const isIntra = r.gstType ? r.gstType === 'intra' : (r.cgstAmount > 0 || r.sgstAmount > 0 || (r.igstAmount === 0 && r.igstPct === 0));
+      const calculatedGstRate = r.cgstAmount > 0 || r.sgstAmount > 0 
         ? Math.round((r.cgstPct + r.sgstPct) * 10) / 10 
-        : (r.igstAmount > 0 ? Math.round(r.igstPct * 10) / 10 : 0)
-    }));
+        : (r.igstAmount > 0 ? Math.round(r.igstPct * 10) / 10 : Math.round(((r.igstPct || 0) + (r.cgstPct || 0) + (r.sgstPct || 0)) * 10) / 10);
+
+      return {
+        id: r.id,
+        loadType: r.loadType,
+        date: r.date,
+        lrNo: r.lrNo,
+        companyName: r.companyName,
+        consignee: r.consignee,
+        details: r.details,
+        totalWeight: Number(r.totalWeight || 0),
+        totalBoxes: Number(r.totalBoxes || 0),
+        rate: Number(r.rate || 0),
+        rateOn: r.rateOn || 'weight',
+        gstType: isIntra ? 'intra' : 'inter',
+        gstRate: calculatedGstRate
+      };
+    });
     setEditRecords(mapped);
   };
 
@@ -832,8 +844,8 @@ export default function DealerBillingPage() {
       } else {
         toast.error(res.error || 'Failed to update invoice');
       }
-    } catch (e) {
-      toast.error('Error updating invoice');
+    } catch (e: any) {
+      toast.error(e?.message || 'Error updating invoice');
     } finally {
       setIsSavingEdit(false);
     }
@@ -841,6 +853,15 @@ export default function DealerBillingPage() {
 
   // Computes invoice totals dynamically in edit dialog
   const getEditInvoiceTotals = () => {
+    if (editRecords.length === 0 && editingInvoice) {
+      const sub = Number(editingInvoice.subtotal || 0);
+      const cgstAmt = Number(editingInvoice.cgst || 0);
+      const sgstAmt = Number(editingInvoice.sgst || 0);
+      const igstAmt = Number(editingInvoice.igst || 0);
+      const grand = Number(editingInvoice.totalAmount || 0);
+      return { sub, cgstAmt, sgstAmt, igstAmt, grand };
+    }
+
     let sub = 0;
     let cgstAmt = 0;
     let sgstAmt = 0;
@@ -848,23 +869,26 @@ export default function DealerBillingPage() {
 
     editRecords.forEach(rec => {
       const mult = rec.loadType === 'BOX'
-        ? (rec.rateOn === 'box' ? rec.totalBoxes : rec.totalWeight)
-        : (rec.rateOn === 'weight' ? rec.totalWeight : rec.totalBoxes);
-      const rowSub = mult * rec.rate;
+        ? (rec.rateOn === 'box' ? Number(rec.totalBoxes || 0) : Number(rec.totalWeight || 0))
+        : (rec.rateOn === 'weight' ? Number(rec.totalWeight || 0) : Number(rec.totalBoxes || 0));
+      const rowSub = mult * Number(rec.rate || 0);
       sub += rowSub;
 
-      if (rec.gstRate > 0) {
+      const rowGstRate = Number(rec.gstRate || 0);
+      if (rowGstRate > 0) {
         if (rec.gstType === 'intra') {
-          const halfRate = rec.gstRate / 2;
+          const halfRate = rowGstRate / 2;
           cgstAmt += (rowSub * halfRate) / 100;
           sgstAmt += (rowSub * halfRate) / 100;
         } else {
-          igstAmt += (rowSub * rec.gstRate) / 100;
+          igstAmt += (rowSub * rowGstRate) / 100;
         }
       }
     });
 
-    const grand = Math.round(sub + cgstAmt + sgstAmt + igstAmt);
+    const rawTotal = sub + cgstAmt + sgstAmt + igstAmt;
+    const grand = Math.round(rawTotal);
+
     return { sub, cgstAmt, sgstAmt, igstAmt, grand };
   };
 

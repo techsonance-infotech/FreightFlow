@@ -523,13 +523,14 @@ export async function getSavedInvoices() {
         activeTotalAmountPaise += Number(r.totalAmount || 0);
       }
 
-      // Auto-heal if totals are out of sync due to soft-deleted records
+      // Auto-heal if totals are out of sync due to soft-deleted records (only if invoice has linked records)
       if (
-        activeSubtotalPaise !== inv.subtotal ||
+        (inv.orders.length > 0 || inv.pallets.length > 0) &&
+        (activeSubtotalPaise !== inv.subtotal ||
         activeCgstPaise !== inv.cgst ||
         activeSgstPaise !== inv.sgst ||
         activeIgstPaise !== inv.igst ||
-        activeTotalAmountPaise !== inv.totalAmount
+        activeTotalAmountPaise !== inv.totalAmount)
       ) {
         await prisma.freightInvoice.update({
           where: { id: inv.id },
@@ -566,6 +567,7 @@ export async function getSavedInvoices() {
         sgstAmount: Number(r.sgstAmount || 0) / 100,
         igstAmount: Number(r.igstAmount || 0) / 100,
         totalAmount: Number(r.totalAmount || 0) / 100,
+        gstType: (r as any).gstType || 'intra',
         consignee: r.consignee,
         companyName: r.companyName,
         details: r.details.map(d => ({
@@ -596,6 +598,7 @@ export async function getSavedInvoices() {
           sgstAmount: Number(r.sgstAmount || 0) / 100,
           igstAmount: Number(r.igstAmount || 0) / 100,
           totalAmount: Number(r.totalAmount || 0) / 100,
+          gstType: (r as any).gstType || 'intra',
           consignee: computedConsigneeName ? { name: computedConsigneeName } : r.consignee,
           companyName: r.companyName,
           details: r.palletDetails.map(d => ({
@@ -637,7 +640,7 @@ export async function deleteFreightInvoice(invoiceId: string) {
 
     await prisma.$transaction(async (tx) => {
       // 1. Fetch invoice to get its invoiceNo and verify ownership
-      const inv = await tx.freightInvoice.findUnique({
+      const inv = await tx.freightInvoice.findFirst({
         where: { id: invoiceId, companyId },
         include: { orders: true, pallets: true }
       });
@@ -710,10 +713,18 @@ export async function updateInvoiceRecords(
       // Acquire transaction-level advisory lock to serialize updates for this company
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${companyId}::text))`;
 
-      // Fetch current invoice first to check if invoiceNo changed
-      const currentInvoice = await tx.freightInvoice.findUnique({
+      // Fetch current invoice first to check if invoiceNo changed and verify ownership
+      const currentInvoice = await tx.freightInvoice.findFirst({
         where: { id: invoiceId, companyId },
-        select: { invoiceNo: true }
+        select: {
+          id: true,
+          invoiceNo: true,
+          subtotal: true,
+          cgst: true,
+          sgst: true,
+          igst: true,
+          totalAmount: true,
+        }
       });
       if (!currentInvoice) {
         throw new Error('Invoice not found');
@@ -770,7 +781,7 @@ export async function updateInvoiceRecords(
 
         if (rec.loadType === 'BOX') {
           await tx.order.update({
-            where: { id: rec.id, companyId },
+            where: { id: rec.id },
             data: {
               totalWeight: rec.totalWeight,
               totalBoxes: rec.totalBoxes,
@@ -789,7 +800,7 @@ export async function updateInvoiceRecords(
           });
         } else {
           await tx.orderPallet.update({
-            where: { id: rec.id, companyId },
+            where: { id: rec.id },
             data: {
               totalWeight: rec.totalWeight,
               totalBoxes: rec.totalBoxes,
@@ -812,19 +823,23 @@ export async function updateInvoiceRecords(
       const updateData: any = {
         date: new Date(date),
         notes: notes || '',
-        subtotal: subtotalPaise,
-        cgst: cgstPaise,
-        sgst: sgstPaise,
-        igst: igstPaise,
-        totalAmount: totalAmountPaise,
       };
+
+      // Only update totals if updatedRecords were provided; otherwise preserve existing totals for old standalone invoices
+      if (updatedRecords.length > 0) {
+        updateData.subtotal = subtotalPaise;
+        updateData.cgst = cgstPaise;
+        updateData.sgst = sgstPaise;
+        updateData.igst = igstPaise;
+        updateData.totalAmount = totalAmountPaise;
+      }
 
       if (isInvoiceNoChanged && trimmedInvoiceNo) {
         updateData.invoiceNo = trimmedInvoiceNo;
       }
 
       await tx.freightInvoice.update({
-        where: { id: invoiceId, companyId },
+        where: { id: invoiceId },
         data: updateData
       });
 
@@ -873,6 +888,9 @@ export async function recalculateInvoiceTotals(invoiceId: string) {
 
     if (!inv) return;
 
+    // Do not recalculate or zero out if no linked records exist
+    if (inv.orders.length === 0 && inv.pallets.length === 0) return;
+
     let subtotalPaise = 0;
     let cgstPaise = 0;
     let sgstPaise = 0;
@@ -909,3 +927,4 @@ export async function recalculateInvoiceTotals(invoiceId: string) {
     console.error('Error recalculating invoice totals:', error);
   }
 }
+

@@ -38,21 +38,25 @@ export function FreightInvoiceModal({ isOpen, onClose, selectedOrders, onSuccess
 
   const customer = selectedOrders[0]?.dealer;
 
-  const fetchNextInvoiceNumber = async () => {
+  const fetchSettingsAndInvoiceNumber = async () => {
     try {
-      const res = await fetch('/api/v1/accounting/invoices?nextNumber=true');
-      const json = await res.json();
-      if (json.data) {
-        setFormData(prev => ({ ...prev, invoiceNo: json.data }));
-      }
+      const [invRes, settingsRes] = await Promise.all([
+        fetch('/api/v1/accounting/invoices?nextNumber=true').then(r => r.json()),
+        fetch('/api/v1/accounting/settings').then(r => r.json())
+      ]);
+      setFormData(prev => ({
+        ...prev,
+        invoiceNo: invRes?.data || prev.invoiceNo,
+        gstRate: settingsRes?.data?.defaultGstRate !== undefined ? Number(settingsRes.data.defaultGstRate) : prev.gstRate
+      }));
     } catch (err) {
-      console.error('Failed to fetch next invoice number');
+      console.error('Failed to fetch invoice number or settings', err);
     }
   };
 
   useEffect(() => {
     if (isOpen) {
-      fetchNextInvoiceNumber();
+      fetchSettingsAndInvoiceNumber();
     }
   }, [isOpen]);
 
