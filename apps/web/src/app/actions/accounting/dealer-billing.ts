@@ -638,48 +638,52 @@ export async function deleteFreightInvoice(invoiceId: string) {
     const companyId = session?.user?.companyId;
     if (!companyId) return { success: false, error: 'Unauthorized' };
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Fetch invoice to get its invoiceNo and verify ownership
-      const inv = await tx.freightInvoice.findFirst({
-        where: { id: invoiceId, companyId },
-        include: { orders: true, pallets: true }
-      });
+    // 1. Fetch invoice to verify ownership
+    const inv = await prisma.freightInvoice.findFirst({
+      where: { id: invoiceId, companyId },
+      include: { orders: true, pallets: true }
+    });
 
-      if (!inv) throw new Error('Invoice not found');
+    if (!inv) return { success: false, error: 'Invoice not found' };
 
-      // 2. Disconnect orders
-      if (inv.orders.length > 0) {
-        await tx.order.updateMany({
+    const batchOps: any[] = [];
+
+    // 2. Disconnect orders
+    if (inv.orders.length > 0) {
+      batchOps.push(
+        prisma.order.updateMany({
           where: { freightInvoiceId: invoiceId, companyId },
           data: {
             freightInvoiceId: null,
             gstBillNo: null
           }
-        });
-      }
+        })
+      );
+    }
 
-      // 3. Disconnect pallets
-      if (inv.pallets.length > 0) {
-        const palletIds = inv.pallets.map(p => p.id);
-        const params = [companyId, ...palletIds];
-        const idPlaceholders = palletIds.map((_, i) => `$${i + 2}::uuid`).join(', ');
-        await tx.$executeRawUnsafe(
-          `UPDATE "order_pallets"
-           SET "freight_invoice_id" = NULL,
-               "metadata" = coalesce("metadata", '{}'::jsonb) - 'invoiceNo'
-           WHERE "id" IN (${idPlaceholders}) AND "company_id" = $1::uuid`,
-          ...params
-        );
-      }
-
-      // 4. Delete the invoice itself safely
-      await tx.freightInvoice.deleteMany({
+    // 3. Delete the invoice itself safely
+    batchOps.push(
+      prisma.freightInvoice.deleteMany({
         where: { id: invoiceId, companyId }
-      });
-    }, {
-      maxWait: 10000,
-      timeout: 30000,
-    });
+      })
+    );
+
+    // Run batch transaction safely without interactive transaction timeouts
+    await prisma.$transaction(batchOps);
+
+    // 4. Disconnect pallets metadata via raw query
+    if (inv.pallets.length > 0) {
+      const palletIds = inv.pallets.map(p => p.id);
+      const params = [companyId, ...palletIds];
+      const idPlaceholders = palletIds.map((_, i) => `$${i + 2}::uuid`).join(', ');
+      await prisma.$executeRawUnsafe(
+        `UPDATE "order_pallets"
+         SET "freight_invoice_id" = NULL,
+             "metadata" = coalesce("metadata", '{}'::jsonb) - 'invoiceNo'
+         WHERE "id" IN (${idPlaceholders}) AND "company_id" = $1::uuid`,
+        ...params
+      );
+    }
 
     return { success: true };
   } catch (error: any) {
@@ -709,168 +713,163 @@ export async function updateInvoiceRecords(
     const companyId = session?.user?.companyId;
     if (!companyId) return { success: false, error: 'Unauthorized' };
 
-    await prisma.$transaction(async (tx) => {
-      // Acquire transaction-level advisory lock to serialize updates for this company
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${companyId}::text))`;
-
-      // Fetch current invoice first to check if invoiceNo changed and verify ownership
-      const currentInvoice = await tx.freightInvoice.findFirst({
-        where: { id: invoiceId, companyId },
-        select: {
-          id: true,
-          invoiceNo: true,
-          subtotal: true,
-          cgst: true,
-          sgst: true,
-          igst: true,
-          totalAmount: true,
-        }
-      });
-      if (!currentInvoice) {
-        throw new Error('Invoice not found');
+    // Fetch current invoice first to verify ownership and check if invoiceNo changed
+    const currentInvoice = await prisma.freightInvoice.findFirst({
+      where: { id: invoiceId, companyId },
+      select: {
+        id: true,
+        invoiceNo: true,
+        subtotal: true,
+        cgst: true,
+        sgst: true,
+        igst: true,
+        totalAmount: true,
       }
+    });
+    if (!currentInvoice) {
+      return { success: false, error: 'Invoice not found' };
+    }
 
-      const trimmedInvoiceNo = invoiceNo?.trim();
-      if (invoiceNo !== undefined && !trimmedInvoiceNo) {
-        throw new Error('Invoice number cannot be empty.');
+    const trimmedInvoiceNo = invoiceNo?.trim();
+    if (invoiceNo !== undefined && !trimmedInvoiceNo) {
+      return { success: false, error: 'Invoice number cannot be empty.' };
+    }
+
+    const isInvoiceNoChanged = trimmedInvoiceNo && trimmedInvoiceNo !== currentInvoice.invoiceNo;
+    if (isInvoiceNoChanged) {
+      const validation = await validateInvoiceNumber(prisma, companyId, trimmedInvoiceNo, invoiceId);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
       }
+    }
 
-      const isInvoiceNoChanged = trimmedInvoiceNo && trimmedInvoiceNo !== currentInvoice.invoiceNo;
-      if (isInvoiceNoChanged) {
-        const validation = await validateInvoiceNumber(tx, companyId, trimmedInvoiceNo, invoiceId);
-        if (!validation.valid) {
-          throw new Error(validation.error);
-        }
-      }
+    let subtotalPaise = 0;
+    let cgstPaise = 0;
+    let sgstPaise = 0;
+    let igstPaise = 0;
+    let totalAmountPaise = 0;
 
-      let subtotalPaise = 0;
-      let cgstPaise = 0;
-      let sgstPaise = 0;
-      let igstPaise = 0;
-      let totalAmountPaise = 0;
+    const transactionOperations: any[] = [];
 
-      for (const rec of updatedRecords) {
-        if (!rec.id) continue;
+    for (const rec of updatedRecords) {
+      if (!rec.id) continue;
 
-        const rateNum = isNaN(Number(rec.rate)) ? 0 : Number(rec.rate);
-        const weightNum = isNaN(Number(rec.totalWeight)) ? 0 : Number(rec.totalWeight);
-        const boxesNum = isNaN(Number(rec.totalBoxes)) ? 0 : Math.round(Number(rec.totalBoxes));
-        const gstRateNum = isNaN(Number(rec.gstRate)) ? 0 : Number(rec.gstRate);
+      const rateNum = isNaN(Number(rec.rate)) ? 0 : Number(rec.rate);
+      const weightNum = isNaN(Number(rec.totalWeight)) ? 0 : Number(rec.totalWeight);
+      const boxesNum = isNaN(Number(rec.totalBoxes)) ? 0 : Math.round(Number(rec.totalBoxes));
+      const gstRateNum = isNaN(Number(rec.gstRate)) ? 0 : Number(rec.gstRate);
 
-        const ratePaise = Math.round(rateNum * 100);
-        const multiplier = rec.loadType === 'BOX'
-          ? (rec.rateOn === 'box' ? boxesNum : weightNum)
-          : (rec.rateOn === 'weight' ? weightNum : boxesNum);
-        
-        const rowSubtotal = Math.round(multiplier * ratePaise);
-        
-        let rowCgst = 0;
-        let rowSgst = 0;
-        let rowIgst = 0;
+      const ratePaise = Math.round(rateNum * 100);
+      const multiplier = rec.loadType === 'BOX'
+        ? (rec.rateOn === 'box' ? boxesNum : weightNum)
+        : (rec.rateOn === 'weight' ? weightNum : boxesNum);
+      
+      const rowSubtotal = Math.round(multiplier * ratePaise);
+      
+      let rowCgst = 0;
+      let rowSgst = 0;
+      let rowIgst = 0;
 
-        if (gstRateNum > 0) {
-          if (rec.gstType === 'intra') {
-            const halfRate = gstRateNum / 2;
-            rowCgst = Math.round((rowSubtotal * halfRate) / 100);
-            rowSgst = Math.round((rowSubtotal * halfRate) / 100);
-          } else {
-            rowIgst = Math.round((rowSubtotal * gstRateNum) / 100);
-          }
-        }
-
-        const rowTotal = rowSubtotal + rowCgst + rowSgst + rowIgst;
-
-        subtotalPaise += rowSubtotal;
-        cgstPaise += rowCgst;
-        sgstPaise += rowSgst;
-        igstPaise += rowIgst;
-        totalAmountPaise += rowTotal;
-
-        const updateDataPayload = {
-          totalWeight: weightNum,
-          totalBoxes: boxesNum,
-          rate: ratePaise,
-          rateOn: rec.rateOn || 'weight',
-          subtotal: rowSubtotal,
-          cgstPct: rec.gstType === 'intra' ? gstRateNum / 2 : 0,
-          sgstPct: rec.gstType === 'intra' ? gstRateNum / 2 : 0,
-          igstPct: rec.gstType !== 'intra' ? gstRateNum : 0,
-          cgstAmount: rowCgst,
-          sgstAmount: rowSgst,
-          igstAmount: rowIgst,
-          totalAmount: rowTotal,
-          gstType: rec.gstType || 'intra',
-        };
-
-        if (rec.loadType === 'BOX') {
-          const res = await tx.order.updateMany({
-            where: { id: rec.id, companyId },
-            data: updateDataPayload
-          });
-          if (res.count === 0) {
-            await tx.orderPallet.updateMany({
-              where: { id: rec.id, companyId },
-              data: updateDataPayload
-            });
-          }
+      if (gstRateNum > 0) {
+        if (rec.gstType === 'intra') {
+          const halfRate = gstRateNum / 2;
+          rowCgst = Math.round((rowSubtotal * halfRate) / 100);
+          rowSgst = Math.round((rowSubtotal * halfRate) / 100);
         } else {
-          const res = await tx.orderPallet.updateMany({
-            where: { id: rec.id, companyId },
-            data: updateDataPayload
-          });
-          if (res.count === 0) {
-            await tx.order.updateMany({
-              where: { id: rec.id, companyId },
-              data: updateDataPayload
-            });
-          }
+          rowIgst = Math.round((rowSubtotal * gstRateNum) / 100);
         }
       }
 
-      const updateData: any = {
-        date: new Date(date),
-        notes: notes || '',
+      const rowTotal = rowSubtotal + rowCgst + rowSgst + rowIgst;
+
+      subtotalPaise += rowSubtotal;
+      cgstPaise += rowCgst;
+      sgstPaise += rowSgst;
+      igstPaise += rowIgst;
+      totalAmountPaise += rowTotal;
+
+      const updateFields = {
+        totalWeight: weightNum,
+        totalBoxes: boxesNum,
+        rate: ratePaise,
+        rateOn: rec.rateOn || 'weight',
+        subtotal: rowSubtotal,
+        cgstPct: rec.gstType === 'intra' ? gstRateNum / 2 : 0,
+        sgstPct: rec.gstType === 'intra' ? gstRateNum / 2 : 0,
+        igstPct: rec.gstType !== 'intra' ? gstRateNum : 0,
+        cgstAmount: rowCgst,
+        sgstAmount: rowSgst,
+        igstAmount: rowIgst,
+        totalAmount: rowTotal,
+        gstType: rec.gstType || 'intra',
       };
 
-      // Only update totals if updatedRecords were provided; otherwise preserve existing totals for old standalone invoices
-      if (updatedRecords.length > 0) {
-        updateData.subtotal = subtotalPaise;
-        updateData.cgst = cgstPaise;
-        updateData.sgst = sgstPaise;
-        updateData.igst = igstPaise;
-        updateData.totalAmount = totalAmountPaise;
-      }
-
-      if (isInvoiceNoChanged && trimmedInvoiceNo) {
-        updateData.invoiceNo = trimmedInvoiceNo;
-      }
-
-      await tx.freightInvoice.updateMany({
-        where: { id: invoiceId, companyId },
-        data: updateData
-      });
-
-      if (isInvoiceNoChanged && trimmedInvoiceNo) {
-        // Update linked orders' gstBillNo
-        await tx.order.updateMany({
-          where: { freightInvoiceId: invoiceId, companyId },
-          data: { gstBillNo: trimmedInvoiceNo }
-        });
-
-        // Update linked pallets' metadata -> invoiceNo
-        await tx.$executeRawUnsafe(
-          `UPDATE "order_pallets"
-           SET "metadata" = jsonb_set(coalesce("metadata", '{}'::jsonb), '{invoiceNo}', to_jsonb($1::text))
-           WHERE "freight_invoice_id" = $2::uuid AND "company_id" = $3::uuid`,
-          trimmedInvoiceNo,
-          invoiceId,
-          companyId
+      if (rec.loadType === 'BOX') {
+        transactionOperations.push(
+          prisma.order.updateMany({
+            where: { id: rec.id, companyId },
+            data: updateFields
+          })
+        );
+      } else {
+        transactionOperations.push(
+          prisma.orderPallet.updateMany({
+            where: { id: rec.id, companyId },
+            data: updateFields
+          })
         );
       }
-    }, {
-      maxWait: 10000,
-      timeout: 30000,
-    });
+    }
+
+    const updateData: any = {
+      date: new Date(date),
+      notes: notes || '',
+    };
+
+    // Only update totals if updatedRecords were provided; otherwise preserve existing totals for old standalone invoices
+    if (updatedRecords.length > 0) {
+      updateData.subtotal = subtotalPaise;
+      updateData.cgst = cgstPaise;
+      updateData.sgst = sgstPaise;
+      updateData.igst = igstPaise;
+      updateData.totalAmount = totalAmountPaise;
+    }
+
+    if (isInvoiceNoChanged && trimmedInvoiceNo) {
+      updateData.invoiceNo = trimmedInvoiceNo;
+    }
+
+    transactionOperations.push(
+      prisma.freightInvoice.updateMany({
+        where: { id: invoiceId, companyId },
+        data: updateData
+      })
+    );
+
+    if (isInvoiceNoChanged && trimmedInvoiceNo) {
+      transactionOperations.push(
+        prisma.order.updateMany({
+          where: { freightInvoiceId: invoiceId, companyId },
+          data: { gstBillNo: trimmedInvoiceNo }
+        })
+      );
+    }
+
+    // Execute atomic sequential transaction batch without interactive session timeout issues
+    if (transactionOperations.length > 0) {
+      await prisma.$transaction(transactionOperations);
+    }
+
+    if (isInvoiceNoChanged && trimmedInvoiceNo) {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "order_pallets"
+         SET "metadata" = jsonb_set(coalesce("metadata", '{}'::jsonb), '{invoiceNo}', to_jsonb($1::text))
+         WHERE "freight_invoice_id" = $2::uuid AND "company_id" = $3::uuid`,
+        trimmedInvoiceNo,
+        invoiceId,
+        companyId
+      );
+    }
 
     return { success: true };
   } catch (error: any) {
