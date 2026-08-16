@@ -672,9 +672,9 @@ export async function deleteFreightInvoice(invoiceId: string) {
         );
       }
 
-      // 4. Delete the invoice itself
-      await tx.freightInvoice.delete({
-        where: { id: invoiceId }
+      // 4. Delete the invoice itself safely
+      await tx.freightInvoice.deleteMany({
+        where: { id: invoiceId, companyId }
       });
     }, {
       maxWait: 10000,
@@ -750,10 +750,17 @@ export async function updateInvoiceRecords(
       let totalAmountPaise = 0;
 
       for (const rec of updatedRecords) {
-        const ratePaise = Math.round(rec.rate * 100);
+        if (!rec.id) continue;
+
+        const rateNum = isNaN(Number(rec.rate)) ? 0 : Number(rec.rate);
+        const weightNum = isNaN(Number(rec.totalWeight)) ? 0 : Number(rec.totalWeight);
+        const boxesNum = isNaN(Number(rec.totalBoxes)) ? 0 : Math.round(Number(rec.totalBoxes));
+        const gstRateNum = isNaN(Number(rec.gstRate)) ? 0 : Number(rec.gstRate);
+
+        const ratePaise = Math.round(rateNum * 100);
         const multiplier = rec.loadType === 'BOX'
-          ? (rec.rateOn === 'box' ? rec.totalBoxes : rec.totalWeight)
-          : (rec.rateOn === 'weight' ? rec.totalWeight : rec.totalBoxes);
+          ? (rec.rateOn === 'box' ? boxesNum : weightNum)
+          : (rec.rateOn === 'weight' ? weightNum : boxesNum);
         
         const rowSubtotal = Math.round(multiplier * ratePaise);
         
@@ -761,13 +768,13 @@ export async function updateInvoiceRecords(
         let rowSgst = 0;
         let rowIgst = 0;
 
-        if (rec.gstRate > 0) {
+        if (gstRateNum > 0) {
           if (rec.gstType === 'intra') {
-            const halfRate = rec.gstRate / 2;
+            const halfRate = gstRateNum / 2;
             rowCgst = Math.round((rowSubtotal * halfRate) / 100);
             rowSgst = Math.round((rowSubtotal * halfRate) / 100);
           } else {
-            rowIgst = Math.round((rowSubtotal * rec.gstRate) / 100);
+            rowIgst = Math.round((rowSubtotal * gstRateNum) / 100);
           }
         }
 
@@ -779,44 +786,44 @@ export async function updateInvoiceRecords(
         igstPaise += rowIgst;
         totalAmountPaise += rowTotal;
 
+        const updateDataPayload = {
+          totalWeight: weightNum,
+          totalBoxes: boxesNum,
+          rate: ratePaise,
+          rateOn: rec.rateOn || 'weight',
+          subtotal: rowSubtotal,
+          cgstPct: rec.gstType === 'intra' ? gstRateNum / 2 : 0,
+          sgstPct: rec.gstType === 'intra' ? gstRateNum / 2 : 0,
+          igstPct: rec.gstType !== 'intra' ? gstRateNum : 0,
+          cgstAmount: rowCgst,
+          sgstAmount: rowSgst,
+          igstAmount: rowIgst,
+          totalAmount: rowTotal,
+          gstType: rec.gstType || 'intra',
+        };
+
         if (rec.loadType === 'BOX') {
-          await tx.order.update({
-            where: { id: rec.id },
-            data: {
-              totalWeight: rec.totalWeight,
-              totalBoxes: rec.totalBoxes,
-              rate: ratePaise,
-              rateOn: rec.rateOn,
-              subtotal: rowSubtotal,
-              cgstPct: rec.gstType === 'intra' ? rec.gstRate / 2 : 0,
-              sgstPct: rec.gstType === 'intra' ? rec.gstRate / 2 : 0,
-              igstPct: rec.gstType !== 'intra' ? rec.gstRate : 0,
-              cgstAmount: rowCgst,
-              sgstAmount: rowSgst,
-              igstAmount: rowIgst,
-              totalAmount: rowTotal,
-              gstType: rec.gstType,
-            }
+          const res = await tx.order.updateMany({
+            where: { id: rec.id, companyId },
+            data: updateDataPayload
           });
+          if (res.count === 0) {
+            await tx.orderPallet.updateMany({
+              where: { id: rec.id, companyId },
+              data: updateDataPayload
+            });
+          }
         } else {
-          await tx.orderPallet.update({
-            where: { id: rec.id },
-            data: {
-              totalWeight: rec.totalWeight,
-              totalBoxes: rec.totalBoxes,
-              rate: ratePaise,
-              rateOn: rec.rateOn,
-              subtotal: rowSubtotal,
-              cgstPct: rec.gstType === 'intra' ? rec.gstRate / 2 : 0,
-              sgstPct: rec.gstType === 'intra' ? rec.gstRate / 2 : 0,
-              igstPct: rec.gstType !== 'intra' ? rec.gstRate : 0,
-              cgstAmount: rowCgst,
-              sgstAmount: rowSgst,
-              igstAmount: rowIgst,
-              totalAmount: rowTotal,
-              gstType: rec.gstType,
-            }
+          const res = await tx.orderPallet.updateMany({
+            where: { id: rec.id, companyId },
+            data: updateDataPayload
           });
+          if (res.count === 0) {
+            await tx.order.updateMany({
+              where: { id: rec.id, companyId },
+              data: updateDataPayload
+            });
+          }
         }
       }
 
@@ -838,8 +845,8 @@ export async function updateInvoiceRecords(
         updateData.invoiceNo = trimmedInvoiceNo;
       }
 
-      await tx.freightInvoice.update({
-        where: { id: invoiceId },
+      await tx.freightInvoice.updateMany({
+        where: { id: invoiceId, companyId },
         data: updateData
       });
 
